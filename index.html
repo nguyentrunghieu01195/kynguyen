@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0b0a10">
+<meta name="description" content="Kỷ Nguyên Huyền Thoại — nhập vai cày cuốc, ép đồ, săn boss, Reset. Chơi ngay trên trình duyệt điện thoại và máy tính.">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" type="image/png" href="./favicon.png">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kỷ Nguyên">
+<title>Kỷ Nguyên Huyền Thoại</title>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div id="hud" class="hidden">
+  <div id="topleft" class="box">
+    <div id="pname"></div><div id="plv"></div>
+    <div class="bar hp"><div id="hpf"></div><span id="hpt"></span></div>
+    <div class="bar mp"><div id="mpf"></div><span id="mpt"></span></div>
+  </div>
+  <div id="buffs"></div>
+  <div id="topright" class="box"><div id="mapname"></div><div id="zen"></div><div id="jewels"></div><div id="netst"></div></div>
+  <div id="minimap"><canvas id="mmc"></canvas><button class="mmexp" data-act="open" data-p="bigmap" title="Bản đồ khu vực (N)">⤢</button><div id="mmcoord"></div></div>
+  <div id="sidebtns"><button class="rb sb" data-act="open" data-p="chat">💬<i class="dot hidden" id="cdot"></i></button><button class="rb sb" data-act="open" data-p="rank">🏆</button><button class="rb sb" data-act="open" data-p="market" title="Chợ">⚖️</button><button class="rb sb" id="btnSet" data-act="open" data-p="set">⚙️</button></div>
+  <button id="questbox" class="box" data-act="openQuest"><div id="qtitle"></div><div id="qprog"></div></button>
+  <div id="evbox" class="box hidden"><div class="evh"><b id="evname"></b><span id="evtime"></span></div><div id="evinfo"></div><button class="btn sm red" data-act="leaveEvent">Rời</button></div>
+  <div id="bossbox" class="box hidden"><div id="bossname"></div><div class="bar boss"><div id="bossf"></div><span id="bosst"></span></div></div>
+  <div id="log"></div>
+  <div id="center-msg"></div>
+  <div id="rightbtns">
+    <div class="r"><button class="rb" data-act="pot" data-t="hp"><span class="pi">❤️</span><span class="cnt" id="cntHp">0</span></button><button class="rb" data-act="pot" data-t="mp"><span class="pi">💧</span><span class="cnt" id="cntMp">0</span></button></div>
+    <div class="r"><button class="rb sk" id="sk3" data-act="skill" data-i="3"><span class="ski"></span><div class="cd hidden"></div><small class="key">4</small></button><button class="rb sk" id="sk2" data-act="skill" data-i="2"><span class="ski"></span><div class="cd hidden"></div><small class="key">3</small></button><button class="rb sk" id="sk1" data-act="skill" data-i="1"><span class="ski"></span><div class="cd hidden"></div><small class="key">2</small></button></div>
+    <div class="r"><button class="rb" id="btnAuto" data-act="auto">AUTO</button><button class="rb sk main" id="sk0" data-act="skill" data-i="0"><span class="ski"></span><div class="cd hidden"></div><small class="key">1</small></button></div>
+  </div>
+  <div id="menubar">
+    <button class="mb" data-act="open" data-p="quest"><b>📜</b>Nhiệm vụ<i class="dot hidden" id="qdot"></i></button>
+    <button class="mb" data-act="open" data-p="events"><b>⚔️</b>Sự kiện<i class="dot hidden" id="edot"></i></button>
+    <button class="mb" data-act="open" data-p="char"><b>👤</b>Nhân vật</button>
+    <button class="mb" data-act="open" data-p="inv"><b>🎒</b>Túi đồ</button>
+    <button class="mb" data-act="open" data-p="skills"><b>📖</b>Kỹ năng<i class="dot hidden" id="kdot"></i></button>
+    <button class="mb" data-act="open" data-p="up"><b>⚒️</b>Ép đồ</button>
+    <button class="mb" data-act="open" data-p="map"><b>🗺️</b>Bản đồ</button>
+    <button class="mb" data-act="open" data-p="shop"><b>🏪</b>Cửa hàng</button>
+      </div>
+  <div id="expbar"><div id="expf"></div><span id="expt"></span></div>
+</div>
+<div id="netwait" class="hidden"></div>
+<div id="panel" class="hidden"><div id="panel-inner"><i class="gem tl"></i><i class="gem tr"></i><i class="gem bl"></i><i class="gem br"></i><div id="panel-head"><span id="panel-title"></span><button id="panel-close" data-act="close">✕</button></div><div id="panel-body"></div></div></div>
+<div id="start">
+  <h1>KỶ NGUYÊN<br>HUYỀN THOẠI</h1>
+  <div class="sub">Nhập vai cày cuốc · Ép đồ đỏ đen · Săn Boss · Reset</div>
+  <div id="nojs" style="max-width:340px;margin:14px auto;padding:12px 14px;border:1px solid #8a6a2a;border-radius:10px;background:#1a140a;color:#f0d9a0;font-size:14px;line-height:1.5;text-align:center">
+    ⚠ Trình xem file này không chạy được game.<br>Hãy mở game qua <b>đường link web</b> (GitHub Pages / máy chủ game) bằng Safari hoặc Chrome, hoặc mở file trên máy tính.
+  </div>
+  <div id="accbox"></div>
+  <div id="contbox"></div>
+  <div class="cls" id="clsList"></div>
+  <input id="cname" maxlength="12" placeholder="Tên nhân vật">
+  <button class="btn big" data-act="create">Tạo nhân vật &amp; vào game</button>
+  <p class="muted" style="margin-top:14px;text-align:center;max-width:420px">Chạm mặt đất để di chuyển · Chạm quái để đánh · Bật AUTO để tự cày</p>
+  <div id="installbox"></div>
+  <div id="authbox" class="hidden"></div>
+</div>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

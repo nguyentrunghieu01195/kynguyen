@@ -1,0 +1,5 @@
+# Caddy tự xin chứng chỉ HTTPS miễn phí (Let's Encrypt) cho tên miền và chuyển tiếp vào máy chủ game (kể cả WebSocket).
+{$DOMAIN} {
+	encode gzip
+	reverse_proxy game:8787
+}

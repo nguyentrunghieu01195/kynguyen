@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0b0a10">
+<title>Quản trị · Kỷ Nguyên Huyền Thoại</title>
+<style>
+:root{--bg:#0b0a10;--pa:#1f1810;--pb:#0f0c08;--line:#8a6d2b;--ld:#4a3a16;--gold:#f3d58a;--text:#e8dcc0;--muted:#9a8f78;--ok:#5dd07a;--bad:#ff6a6a;--blue:#7fc8ff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+header{position:sticky;top:0;z-index:5;background:#120e08;border-bottom:1px solid var(--ld);padding:10px 14px;display:flex;align-items:center;gap:10px}
+header h1{font-size:16px;margin:0;color:var(--gold);flex:1}
+main{max-width:980px;margin:0 auto;padding:12px}
+.card{background:linear-gradient(180deg,var(--pa),var(--pb));border:1px solid var(--ld);border-radius:12px;padding:12px;margin-bottom:12px}
+.card h2{font-size:15px;margin:0 0 10px;color:var(--gold)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.stat{background:#0c0a07;border:1px solid var(--ld);border-radius:10px;padding:8px 10px}
+.stat b{display:block;font-size:20px;color:var(--gold)}
+.stat span{font-size:12px;color:var(--muted)}
+button,.btn{background:linear-gradient(#a8801f,#6b4f0e);border:1px solid #f0c860;color:#fff;border-radius:8px;padding:8px 12px;font:600 13px inherit;cursor:pointer;text-decoration:none;display:inline-block}
+button.sec{background:#2a2114;border-color:var(--line);color:var(--gold)}
+button.red{background:linear-gradient(#c44,#701818);border-color:#f88}
+button.green{background:linear-gradient(#2e9b42,#14501c);border-color:#8f8}
+button:disabled{opacity:.4}
+input,select{background:#0c0a07;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px 10px;font-size:15px;min-width:0}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row input{flex:1}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:7px 6px;border-bottom:1px solid #2a2214;vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:12px}
+tr.click{cursor:pointer}
+tr.click:hover{background:#1a140c}
+.tag{display:inline-block;padding:1px 7px;border-radius:9px;font-size:11px;font-weight:700}
+.on{background:#143a1c;color:var(--ok)}.ban{background:#3a1414;color:var(--bad)}
+.muted{color:var(--muted);font-size:12px}
+.msg{min-height:18px;font-size:13px;margin-top:6px}
+.msg.err{color:var(--bad)}.msg.ok{color:var(--ok)}
+.hidden{display:none!important}
+#login{max-width:360px;margin:12vh auto}
+.kv{display:grid;grid-template-columns:120px 1fr;gap:4px 10px;font-size:13px}
+.kv div:nth-child(odd){color:var(--muted)}
+.tabs{display:flex;gap:6px;margin-bottom:12px;overflow:auto}
+.tabs button{flex:1;white-space:nowrap;background:#2a2114;border-color:var(--line);color:var(--gold)}
+.tabs button.act{background:linear-gradient(#f3d58a,#b8902a);color:#2a1a06}
+@media (max-width:640px){.hide-m{display:none}}
+</style>
+</head>
+<body>
+<header><h1>🛡 Quản trị · Kỷ Nguyên Huyền Thoại</h1><button class="sec hidden" id="btnOut">Thoát</button></header>
+<main>
+  <div id="login" class="card">
+    <h2>Đăng nhập quản trị</h2>
+    <div class="row"><input id="apw" type="password" placeholder="Mật khẩu quản trị (ADMIN_PASSWORD)" autocomplete="current-password"></div>
+    <div class="row" style="margin-top:10px"><button id="btnIn" style="width:100%">Đăng nhập</button></div>
+    <div class="msg err" id="lmsg"></div>
+  </div>
+
+  <div id="app" class="hidden">
+    <div class="tabs">
+      <button data-tab="dash" class="act">Tổng quan</button>
+      <button data-tab="acc">Tài khoản</button>
+      <button data-tab="online">Đang online</button>
+    </div>
+
+    <section id="tab-dash">
+      <div class="card"><h2>Số liệu</h2><div class="grid" id="stats"></div></div>
+      <div class="card">
+        <h2>Sao lưu</h2>
+        <p class="muted" id="bkinfo"></p>
+        <div class="row"><button id="btnBackup" class="green">Sao lưu ngay</button></div>
+        <div class="msg" id="bmsg"></div>
+        <table style="margin-top:8px"><thead><tr><th>Bản sao lưu</th><th>Thời gian</th><th class="hide-m">Dung lượng</th><th></th></tr></thead><tbody id="bklist"></tbody></table>
+      </div>
+      <div class="card">
+        <h2>Thông báo toàn server</h2>
+        <div class="row"><input id="ann" maxlength="200" placeholder="Vd: Bảo trì lúc 22:00, mọi người nhớ thoát game nhé"><button id="btnAnn">Gửi</button></div>
+        <div class="msg" id="amsg"></div>
+      </div>
+    </section>
+
+    <section id="tab-acc" class="hidden">
+      <div class="card">
+        <div class="row"><input id="q" placeholder="Tìm tên đăng nhập / tên nhân vật"><select id="sort"><option value="recent">Hoạt động gần đây</option><option value="level">Cấp cao nhất</option><option value="created">Mới đăng ký</option></select></div>
+        <table style="margin-top:8px"><thead><tr><th>Tài khoản</th><th>Nhân vật</th><th class="hide-m">Hoạt động</th><th></th></tr></thead><tbody id="acclist"></tbody></table>
+        <div class="row" style="margin-top:8px;justify-content:space-between"><button class="sec" id="prev">‹ Trước</button><span class="muted" id="pinfo"></span><button class="sec" id="next">Sau ›</button></div>
+      </div>
+      <div class="card hidden" id="detail"></div>
+    </section>
+
+    <section id="tab-online" class="hidden">
+      <div class="card"><h2>Người chơi đang online</h2><table><thead><tr><th>Nhân vật</th><th>Tài khoản</th><th class="hide-m">Bản đồ</th><th></th></tr></thead><tbody id="onlist"></tbody></table></div>
+    </section>
+  </div>
+</main>
+<script>
+(function () {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const SLOT = { weapon: 'Vũ khí', helm: 'Mũ', armor: 'Áo', pants: 'Quần', gloves: 'Găng', boots: 'Giày', wings: 'Cánh' };
+  const CLS = { knight: 'Kiếm Sĩ', wizard: 'Pháp Sư', archer: 'Xạ Thủ' };
+  const MAPS = ['Đồng Cỏ Xanh', 'Rừng Bóng Tối', 'Đầm Lầy Độc', 'Hầm Mộ', 'Hẻm Núi Đá Đỏ', 'Băng Nguyên', 'Bờ Biển San Hô', 'Sa Mạc', 'Núi Lửa Hỏa Ngục', 'Thiên Giới Đọa Lạc'];
+  const fmt = (t) => (t ? new Date(t).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: '2-digit' }) : '—');
+  const ago = (t) => { if (!t) return '—'; const m = (Date.now() - t) / 60000; return m < 1 ? 'vừa xong' : m < 60 ? Math.round(m) + ' phút trước' : m < 1440 ? Math.round(m / 60) + ' giờ trước' : Math.round(m / 1440) + ' ngày trước'; };
+  const size = (b) => (b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.ceil(b / 1024) + ' KB');
+  const charOf = (s) => (s ? esc(s.name) + ' · ' + (CLS[s.cls] || '') + ' ' + s.lv + (s.resets ? ' · R' + s.resets : '') : '<span class="muted">chưa có</span>');
+  let token = sessionStorage.getItem('kng_admin') || '', page = 0, cur = null;
+
+  async function api(method, path, body) {
+    const r = await fetch('/api/admin/' + path, { method, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: body ? JSON.stringify(body) : undefined });
+    let j = {}; try { j = await r.json(); } catch (e) {}
+    if (r.status === 401 && path !== 'login') { logoutLocal(); throw new Error(j.message || 'Hết phiên'); }
+    if (!r.ok) throw new Error(j.message || 'Lỗi ' + r.status);
+    return j;
+  }
+  // Tải file có kèm token (không đưa token lên URL)
+  async function download(path, name) {
+    const r = await fetch('/api/admin/' + path, { headers: { Authorization: 'Bearer ' + token } });
+    if (!r.ok) { alert('Không tải được'); return; }
+    const url = URL.createObjectURL(await r.blob()), a = document.createElement('a');
+    a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
+  const msg = (id, t, ok) => { const e = $(id); e.textContent = t || ''; e.className = 'msg ' + (ok ? 'ok' : 'err'); };
+
+  function logoutLocal() { token = ''; sessionStorage.removeItem('kng_admin'); $('app').classList.add('hidden'); $('btnOut').classList.add('hidden'); $('login').classList.remove('hidden'); }
+  async function login() {
+    try { const j = await api('POST', 'login', { pass: $('apw').value }); token = j.token; sessionStorage.setItem('kng_admin', token); $('apw').value = ''; show(); }
+    catch (e) { msg('lmsg', e.message); }
+  }
+  function show() { $('login').classList.add('hidden'); $('app').classList.remove('hidden'); $('btnOut').classList.remove('hidden'); tab('dash'); }
+  function tab(t) {
+    document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('act', b.dataset.tab === t));
+    for (const k of ['dash', 'acc', 'online']) $('tab-' + k).classList.toggle('hidden', k !== t);
+    ({ dash: loadDash, acc: loadAcc, online: loadOnline })[t]();
+  }
+
+  async function loadDash() {
+    const s = await api('GET', 'stats');
+    const st = [['Tài khoản', s.accounts], ['Có nhân vật', s.withChar], ['Hoạt động 24h', s.active1d], ['Hoạt động 7 ngày', s.active7d], ['Đang online', s.online], ['Hồ sơ trực tuyến', s.profiles], ['Bị khoá', s.banned], ['Đang bán ở chợ', s.market.listings], ['Lượt bán 24h', s.market.sales24h], ['Phí chợ 24h (Zen)', Number(s.market.fees24h).toLocaleString('vi-VN')], ['Máy chủ chạy', Math.round(s.uptime / 3600) + ' giờ'], ['Đang mô phỏng', s.host.players + ' người'], ['Tải máy chủ', Math.round(s.host.tickMs / s.host.budgetMs * 100) + '% (' + s.host.tickMs + 'ms/' + s.host.budgetMs + 'ms)']];
+    $('stats').innerHTML = st.map(([k, v]) => '<div class="stat"><b>' + v + '</b><span>' + k + '</span></div>').join('');
+    $('bkinfo').textContent = 'Tự động sao lưu mỗi ' + s.backupEvery + ' giờ, giữ tối đa ' + s.backupKeep + ' bản gần nhất (hiện có ' + s.backups.length + ') trong thư mục dữ liệu/backups. Nên tải bản mới nhất về máy định kỳ, phòng khi VPS hỏng.';
+    renderBackups(s.backups);
+  }
+  function renderBackups(list) {
+    $('bklist').innerHTML = list.length ? list.map((b) => '<tr><td>' + esc(b.name) + '</td><td>' + fmt(b.at) + '</td><td class="hide-m">' + size(b.size) + '</td><td><button class="sec" data-dl="' + esc(b.name) + '">Tải về</button></td></tr>').join('') : '<tr><td colspan="4" class="muted">Chưa có bản sao lưu nào.</td></tr>';
+  }
+
+  async function loadAcc() {
+    const j = await api('GET', 'accounts?q=' + encodeURIComponent($('q').value) + '&sort=' + $('sort').value + '&page=' + page);
+    $('acclist').innerHTML = j.rows.length ? j.rows.map((a) => '<tr class="click" data-id="' + a.id + '"><td><b>' + esc(a.user) + '</b> ' + (a.online ? '<span class="tag on">online</span> ' : '') + (a.banned ? '<span class="tag ban">khoá</span>' : '') + '</td><td>' + charOf(a.summary) + '</td><td class="hide-m">' + ago(Math.max(a.lastLogin || 0, a.saveAt || 0)) + '</td><td>›</td></tr>').join('') : '<tr><td colspan="4" class="muted">Không có tài khoản nào.</td></tr>';
+    const pages = Math.max(1, Math.ceil(j.total / j.per));
+    $('pinfo').textContent = 'Trang ' + (j.page + 1) + '/' + pages + ' · ' + j.total + ' tài khoản';
+    $('prev').disabled = j.page <= 0; $('next').disabled = j.page >= pages - 1;
+  }
+  async function openAcc(id) {
+    const a = await api('GET', 'account/' + id); cur = a;
+    const s = a.save, J = s && s.jewels ? s.jewels : {};
+    $('detail').classList.remove('hidden');
+    $('detail').innerHTML = '<h2>👤 ' + esc(a.user) + ' ' + (a.online ? '<span class="tag on">online</span> ' : '') + (a.banned ? '<span class="tag ban">đã khoá</span>' : '') + '</h2>' +
+      '<div class="kv"><div>Mã tài khoản</div><div>' + a.id + '</div><div>Đăng ký</div><div>' + fmt(a.created) + '</div><div>Đăng nhập gần nhất</div><div>' + fmt(a.lastLogin) + '</div>' +
+      '<div>Lưu gần nhất</div><div>' + fmt(a.saveAt) + ' (lần lưu thứ ' + a.rev + ')</div><div>Thiết bị đăng nhập</div><div>' + a.sessions + '</div>' +
+      (a.banned ? '<div>Lý do khoá</div><div>' + esc(a.banReason || '—') + '</div>' : '') + '</div>' +
+      (s ? '<h2 style="margin-top:12px">Nhân vật</h2><div class="kv"><div>Tên</div><div>' + esc(s.name) + ' · ' + (CLS[s.cls] || s.cls) + ' · Bậc ' + (s.tier || 1) + '</div><div>Cấp</div><div>' + s.lv + ' · Reset ' + (s.resets || 0) + '</div>' +
+        '<div>Zen</div><div>' + Number(s.zen || 0).toLocaleString('vi-VN') + '</div><div>Ngọc</div><div>Ước ' + (J.bless || 0) + ' · Linh hồn ' + (J.soul || 0) + ' · Hỗn nguyên ' + (J.chaos || 0) + '</div>' +
+        '<div>Bản đồ</div><div>' + (MAPS[s.map] || s.map) + '</div><div>Quái đã hạ</div><div>' + Number(s.kills || 0).toLocaleString('vi-VN') + '</div><div>Tháp</div><div>tầng ' + (s.tower || 0) + '</div>' +
+        '<div>Trang bị</div><div>' + (s.equip.map((e) => esc(SLOT[e.slot] || e.slot) + ' +' + e.plus + (e.exc ? '★' : '')).join(', ') || '—') + '</div><div>Túi đồ</div><div>' + s.inv + ' món · bản lưu ' + size(s.bytes) + '</div></div>'
+        : '<p class="muted">Tài khoản chưa có nhân vật.</p>') +
+      '<h2 style="margin-top:12px">Thao tác</h2>' +
+      '<div class="row"><input id="npw" type="text" placeholder="Mật khẩu mới cho người chơi (≥ 6 ký tự)"><button data-a="password">Đặt lại mật khẩu</button></div>' +
+      '<div class="row" style="margin-top:8px"><input id="breason" placeholder="Lý do khoá (vd: gian lận chỉ số)" value="' + esc(a.banReason) + '">' +
+      (a.banned ? '<button class="green" data-a="unban">Mở khoá</button>' : '<button class="red" data-a="ban">Khoá tài khoản</button>') + '</div>' +
+      '<div class="row" style="margin-top:8px"><input id="gzen" type="number" min="0" placeholder="Zen" style="width:110px"><input id="gb" type="number" min="0" placeholder="Ước" style="width:70px"><input id="gs" type="number" min="0" placeholder="Hồn" style="width:70px"><input id="gc" type="number" min="0" placeholder="Hỗn" style="width:70px"><input id="gnote" placeholder="Ghi chú (vd: đền bù bảo trì)"><button class="green" data-a="gift">🎁 Tặng quà</button></div>' +
+      '<div class="row" style="margin-top:8px"><button class="sec" data-a="logout-all">Đăng xuất mọi thiết bị</button>' + (s ? '<button class="sec" data-a="save">Tải bản lưu (.json)</button>' : '') + '<button class="sec" data-a="close">Đóng</button></div>' +
+      '<div class="msg" id="dmsg"></div>';
+    $('detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  async function accAction(a) {
+    if (!cur) return;
+    try {
+      if (a === 'close') { $('detail').classList.add('hidden'); cur = null; return; }
+      if (a === 'save') return download('account/' + cur.id + '/save', cur.user + '-save.json');
+      if (a === 'password') { const p = $('npw').value.trim(); if (p.length < 6) return msg('dmsg', 'Mật khẩu cần ít nhất 6 ký tự.'); await api('POST', 'account/' + cur.id + '/password', { pass: p }); msg('dmsg', '✔ Đã đặt mật khẩu mới: ' + p + ' — gửi cho người chơi và nhắc họ đổi lại.', true); return; }
+      if (a === 'ban' && !confirm('Khoá tài khoản ' + cur.user + '? Người chơi sẽ bị đăng xuất và không vào được nữa.')) return;
+      if (a === 'gift') { await api('POST', 'account/' + cur.id + '/gift', { zen: +$('gzen').value || 0, jewels: { bless: +$('gb').value || 0, soul: +$('gs').value || 0, chaos: +$('gc').value || 0 }, note: $('gnote').value }); msg('dmsg', '✔ Đã gửi quà vào hộp thư người chơi.', true); return; }
+      if (a === 'logout-all') { await api('POST', 'account/' + cur.id + '/logout-all'); msg('dmsg', '✔ Đã đăng xuất mọi thiết bị.', true); return; }
+      if (a === 'ban' || a === 'unban') { await api('POST', 'account/' + cur.id + '/' + a, { reason: $('breason').value }); await openAcc(cur.id); msg('dmsg', a === 'ban' ? '✔ Đã khoá.' : '✔ Đã mở khoá.', true); loadAcc(); }
+    } catch (e) { msg('dmsg', e.message); }
+  }
+
+  async function loadOnline() {
+    const j = await api('GET', 'online');
+    $('onlist').innerHTML = j.rows.length ? j.rows.map((p) => '<tr><td><b>' + esc(p.name) + '</b> · ' + p.lv + (p.resets ? ' R' + p.resets : '') + '</td><td>' + (p.acc ? esc(p.acc) : '<span class="muted">khách</span>') + '</td><td class="hide-m">' + esc(p.room ? MAPS[+p.room.slice(1)] || p.room : 'sự kiện/tháp') + '</td>' +
+      '<td class="row"><button class="sec" data-p="' + p.pid + '" data-pa="kick">Ngắt</button><button class="red" data-p="' + p.pid + '" data-pa="ban">Khoá</button></td></tr>').join('') : '<tr><td colspan="4" class="muted">Không có ai online.</td></tr>';
+  }
+
+  // ---- sự kiện ----
+  $('btnIn').onclick = login;
+  $('apw').onkeydown = (e) => { if (e.key === 'Enter') login(); };
+  $('btnOut').onclick = async () => { try { await api('POST', 'logout'); } catch (e) {} logoutLocal(); };
+  document.querySelectorAll('.tabs button').forEach((b) => (b.onclick = () => tab(b.dataset.tab)));
+  $('btnBackup').onclick = async () => { try { msg('bmsg', 'Đang sao lưu…', true); const j = await api('POST', 'backup'); renderBackups(j.list); msg('bmsg', '✔ Đã tạo ' + j.name, true); } catch (e) { msg('bmsg', e.message); } };
+  $('bklist').onclick = (e) => { const n = e.target.dataset.dl; if (n) download('backup/' + n, n); };
+  $('btnAnn').onclick = async () => { try { const j = await api('POST', 'announce', { text: $('ann').value }); $('ann').value = ''; msg('amsg', '✔ Đã gửi tới ' + j.sent + ' kết nối.', true); } catch (e) { msg('amsg', e.message); } };
+  let qT = null;
+  $('q').oninput = () => { clearTimeout(qT); qT = setTimeout(() => { page = 0; loadAcc(); }, 300); };
+  $('sort').onchange = () => { page = 0; loadAcc(); };
+  $('prev').onclick = () => { page = Math.max(0, page - 1); loadAcc(); };
+  $('next').onclick = () => { page++; loadAcc(); };
+  $('acclist').onclick = (e) => { const tr = e.target.closest('tr[data-id]'); if (tr) openAcc(tr.dataset.id).catch((er) => alert(er.message)); };
+  $('detail').onclick = (e) => { const a = e.target.dataset.a; if (a) accAction(a); };
+  $('onlist').onclick = async (e) => {
+    const id = e.target.dataset.p, a = e.target.dataset.pa;
+    if (!id) return;
+    if (a === 'ban') { const r = prompt('Lý do khoá nhân vật này?'); if (r === null) return; await api('POST', 'player/' + id + '/ban', { reason: r }); }
+    else await api('POST', 'player/' + id + '/kick');
+    setTimeout(loadOnline, 400);
+  };
+  if (token) api('GET', 'stats').then(show).catch(() => {});
+})();
+</script>
+</body>
+</html>
