@@ -98,7 +98,7 @@ export function createGBoss(dir, { guilds, store, market, notify = () => {}, ann
       // thưởng tham gia: mọi người đã đánh
       for (const [a, m] of members) {
         const r = GBOSS.participation(m.lv || 1);
-        market.mail(a, GBOSS.icon + ' Thưởng tham gia Boss bang (bang ' + g.name + ' hạng ' + rank + ').', { items: [], jewels: { bless: r.bless || 0 }, zen: r.zen || 0 });
+        market.mail(a, GBOSS.icon + ' Thưởng tham gia Boss bang (bang ' + g.name + ' hạng ' + rank + ').', { items: [], jewels: { bless: r.bless || 0, soul: r.soul || 0 }, zen: r.zen || 0 });
       }
       if (specs.length) notify(accs, GBOSS.icon + ' Bang ' + g.name + ' đứng hạng ' + rank + ' Boss bang! Có ' + specs.length + ' phần quà đang đấu giá — mở 🔨 Đấu giá (còn ' + AUCTION.guildMin + ' phút trong bang).');
     });

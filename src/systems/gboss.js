@@ -9,7 +9,8 @@ import { CFG } from '../config/constants.js';
 import { seededRng } from '../core/utils.js';
 import { GBOSS, ARENA, BOSS_TPL, gbossStatus } from '../config/gboss.js';
 import { makeRuntime, createMob, enterMap } from './world.js';
-import { addText, playerDie } from './combat.js';
+import { PLAYER } from '../config/balance.js';
+import { addText } from './combat.js';
 
 // ---------------- ĐẤU TRƯỜNG ----------------
 let arenaCache = null;
@@ -128,7 +129,11 @@ export function gbossHurt(kind, o) {
   addText(p.x, p.y, '-' + fmt(dmg), '#ff3030', 'hurt');
   emit(EV.PLAYER_HIT, dmg, m);
   if (kind === 'hit') R.fx.push({ k: 'claw', x: p.x, y: p.y, t: 0, d: 0.25, f: m ? m.face : 1, boss: true });
-  if (p.hp <= 0) playerDie();
+  if (p.hp <= 0) { // chết trong đấu trường: hồi sinh sau vài giây tại điểm xuất phát, KHÔNG mất EXP
+    p.hp = 0; p.dead = PLAYER.respawnSec; p.target = null; p.tx = null;
+    announce('Anh bị Boss hạ gục!');
+    emit(EV.PLAYER_DIE);
+  }
 }
 
 /** Máy chủ: lấy phần sát thương chưa báo cho bang (đánh dấu đã báo) */

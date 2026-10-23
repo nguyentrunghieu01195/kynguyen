@@ -14,7 +14,7 @@ export const GBOSS = {
   minActiveSec: 180,             // phải chiến đấu thực sự ≥ 3 phút (mỗi giây có gây sát thương mới tính) mới được tính là tham gia — người yếu vẫn đạt được, người treo máy thì không
   graceMs: 5000,                 // chờ thêm sau khi đóng cổng rồi mới chốt kết quả
   /** Thưởng tham gia (gửi hộp thư cho mọi người đã gây sát thương), theo cấp nhân vật */
-  participation: (lv) => ({ zen: Math.round(20000 + lv * 600), bless: 1 }),
+  participation: (lv) => ({ zen: lv * 2500, bless: 1, soul: 1 }), // ≈ 60–70% thu nhập cày thường trong 15 phút (cấp 80 ≈ 200K, cấp 200 ≈ 500K, cấp 300 ≈ 750K)
 };
 
 /** Đấu trường dùng chung: mọi người chơi cùng một khu, cùng một Boss (máy chủ điều khiển Boss duy nhất) */
