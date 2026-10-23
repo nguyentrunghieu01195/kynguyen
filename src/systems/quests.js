@@ -9,7 +9,7 @@ import { MAIN_QUESTS, DAILY_POOL, DAILY, CHECKIN, CHECKIN_ZEN_GROWTH } from '../
 import { grantReward, rewardText } from './rewards.js';
 import { TIER_QUESTS, TIER_RESETS, CLASS_TIERS } from '../config/skills.js';
 import { calcStats } from './stats.js';
-import { GUILD_QUESTS } from '../config/guild.js';
+import { GUILD_QUESTS, GUILD_WEEKLY } from '../config/guild.js';
 
 /** Ngày hiện tại theo giờ máy, dạng YYYY-MM-DD */
 export const today = () => {
@@ -152,11 +152,39 @@ export function ensureGuildQ() {
 }
 export const guildQList = () => { const D = ensureGuildQ(); return D ? D.ids.map((id) => GUILD_QUESTS.pool.find((x) => x.id === id)) : []; };
 export const guildQDone = (gq) => done(gq.goal, (ensureGuildQ().prog[gq.id]) || 0);
+// ---------------- NHIỆM VỤ BANG HỘI (hằng tuần) ----------------
+/** Mã tuần = ngày thứ Hai đầu tuần (giờ máy), dạng YYYY-MM-DD */
+export const weekKey = (dt = new Date()) => { const d = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+export function ensureGuildW() {
+  if (!G.S.guild) return null;
+  const q = Q(), w = weekKey();
+  if (q.gw && q.gw.week === w) return q.gw;
+  const rng = seededRng(w.split('-').reduce((a, b) => a * 31 + +b, 97)), pool = GUILD_WEEKLY.pool.filter((x) => !x.req || x.req(G.S)), ids = [];
+  while (ids.length < GUILD_WEEKLY.perWeek && pool.length) ids.push(pool.splice(Math.floor(rng() * pool.length), 1)[0].id);
+  q.gw = { week: w, ids, prog: {}, claimed: {} };
+  return q.gw;
+}
+export const guildWList = () => { const D = ensureGuildW(); return D ? D.ids.map((id) => GUILD_WEEKLY.pool.find((x) => x.id === id)) : []; };
+export const guildWDone = (gq) => done(gq.goal, (ensureGuildW().prog[gq.id]) || 0);
+function claimGuildW(id) {
+  const D = ensureGuildW(), gq = GUILD_WEEKLY.pool.find((x) => x.id === id);
+  if (!D || !gq || !D.ids.includes(id) || D.claimed[id] || !guildWDone(gq)) return null;
+  D.claimed[id] = true;
+  const r = { zen: GUILD_QUESTS.zen(G.S.lv) * GUILD_WEEKLY.zenMul };
+  let pts = GUILD_WEEKLY.pts;
+  const all = D.ids.every((x) => D.claimed[x]);
+  if (all) { pts += GUILD_WEEKLY.allBonus; r.chaos = GUILD_WEEKLY.allChaos; }
+  grantReward(r);
+  emit(EV.QUEST);
+  return { pts, all };
+}
+
 /**
  * Nhận thưởng 1 nhiệm vụ bang (chạy trên máy chủ): đánh dấu đã nhận, trả Zen cho người làm.
  * Trả về { pts } = điểm cống hiến cộng cho bang (gồm thưởng đủ bộ), hoặc null nếu chưa làm xong / đã nhận.
  */
 export function claimGuildQ(id) {
+  if (String(id).startsWith('w_')) return claimGuildW(id);
   const D = ensureGuildQ(), gq = GUILD_QUESTS.pool.find((x) => x.id === id);
   if (!D || !gq || !D.ids.includes(id) || D.claimed[id] || !guildQDone(gq)) return null;
   D.claimed[id] = true;
@@ -225,6 +253,12 @@ function progress(type, payload, amount = 1) {
     GQ.prog[gq.id] = (GQ.prog[gq.id] || 0) + amount;
     changed = true;
   }
+  const GW = ensureGuildW();
+  if (GW) for (const gq of guildWList()) {
+    if (GW.claimed[gq.id] || !matches(gq.goal, type, payload)) continue;
+    GW.prog[gq.id] = (GW.prog[gq.id] || 0) + amount;
+    changed = true;
+  }
   if (changed) emit(EV.QUEST);
 }
 
@@ -243,4 +277,6 @@ export function initQuests() {
   sysOn(EV.RESET, () => progress('reset'));
   sysOn(EV.EVENT, (id) => progress('event', { id }));
   sysOn(EV.TOWER_FLOOR, () => progress('tower'));
+  sysOn(EV.GBOSS_END, (r) => { if (r && r.dmg > 0) progress('gboss'); });
+  sysOn(EV.SIEGE_END, (r) => { if (r && r.active > 0) progress('siege'); });
 }

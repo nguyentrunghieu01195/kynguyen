@@ -204,7 +204,7 @@ export function render() {
     const s = iso(p.x, p.y), y = s.y - A.heroHeight;
     ctx.font = '700 11px "Be Vietnam Pro", sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = '#000';
     ctx.strokeText(S.name, s.x, y); ctx.fillStyle = '#8fd0ff'; ctx.fillText(S.name, s.x, y);
-    if (S.guild) guildTag(ctx, S.guild.name, s.x, y - 13);
+    if (S.guild) guildTag(ctx, S.guild.name, s.x, y - 13, S.guild.castle);
     if (R.event && R.event.id === 'siege' && R.event.team) drawTeamMarker(ctx, s.x, y - 26, SIEGE.teamColors[R.event.team.slot], t);
   }
   // Tên người chơi khác
@@ -212,7 +212,7 @@ export function render() {
     const s = iso(o.x, o.y), y = s.y - A.heroHeight, label = o.name + ' · Lv' + o.lv + (o.resets ? ' R' + o.resets : '');
     ctx.font = '700 11px "Be Vietnam Pro", sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = '#000';
     ctx.strokeText(label, s.x, y); ctx.fillStyle = '#ffc8f0'; ctx.fillText(label, s.x, y);
-    if (o.look && o.look.g) guildTag(ctx, o.look.g, s.x, y - 13);
+    if (o.look && o.look.g) guildTag(ctx, o.look.g, s.x, y - 13, o.look.ct);
     if (R.event && R.event.id === 'siege' && o.look && o.look.g) drawTeamMarker(ctx, s.x, y - 26, teamColor(R, o.look.g), t);
   }
   drawLighting(ctx, t);
@@ -226,10 +226,10 @@ export function render() {
 }
 
 /** Tên bang hội phía trên tên nhân vật */
-function guildTag(ctx, name, x, y) {
-  const label = '⟦' + name + '⟧';
+function guildTag(ctx, name, x, y, castle) {
+  const label = (castle ? '👑 ' : '') + '⟦' + name + '⟧';
   ctx.font = '700 10px "Be Vietnam Pro", sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = '#000';
-  ctx.strokeText(label, x, y); ctx.fillStyle = '#ffd54a'; ctx.fillText(label, x, y);
+  ctx.strokeText(label, x, y); ctx.fillStyle = castle ? '#fff0a0' : '#ffd54a'; if (castle) { ctx.shadowColor = '#ffb020'; ctx.shadowBlur = 8; } ctx.fillText(label, x, y); ctx.shadowBlur = 0;
 }
 
 // ---------------- CÔNG THÀNH CHIẾN ----------------

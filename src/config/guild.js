@@ -30,6 +30,28 @@ export function guildBuff(lv) {
 }
 
 /** Nhiệm vụ bang hằng ngày: mỗi người mỗi ngày nhận `perDay` nhiệm vụ riêng (theo ngày, giống nhau cả bang). Mục tiêu cùng kiểu với config/quests.js */
+/** Nhiệm vụ bang hằng tuần: mỗi tuần (tính từ thứ Hai) 3 nhiệm vụ lớn, giống nhau cả bang. Thưởng: điểm cống hiến + Zen cho người làm; nhận đủ cả bộ thêm điểm và 1 Ngọc Hỗn Nguyên. */
+export const GUILD_WEEKLY = {
+  perWeek: 3,
+  pts: 200,
+  allBonus: 400,
+  allChaos: 1,
+  zenMul: 8,                     // Zen = zenMul × Zen nhiệm vụ ngày
+  pool: [
+    { id: 'w_kill', title: 'Quét sạch lãnh thổ', desc: 'Hạ 1.500 quái', goal: { type: 'kill', n: 1500 } },
+    { id: 'w_strong', title: 'Đội tinh binh', desc: 'Hạ 600 quái có cấp ≥ cấp bạn − 5', goal: { type: 'kill', strong: true, n: 600 } },
+    { id: 'w_boss', title: 'Đồ tể Boss', desc: 'Hạ 5 Boss bất kỳ', goal: { type: 'kill', boss: true, n: 5 } },
+    { id: 'w_upgrade', title: 'Lò rèn của bang', desc: 'Ép đồ 40 lần', goal: { type: 'upgrade', n: 40 } },
+    { id: 'w_skill', title: 'Khổ luyện', desc: 'Dùng kỹ năng 400 lần', goal: { type: 'skill', n: 400 } },
+    { id: 'w_jewel', title: 'Kho ngọc bang', desc: 'Nhặt 25 viên ngọc', goal: { type: 'jewel', n: 25 } },
+    { id: 'w_event', title: 'Vinh quang sự kiện', desc: 'Tham gia 5 sự kiện', goal: { type: 'event', n: 5 } },
+    { id: 'w_tower', title: 'Chinh phục tháp', desc: 'Vượt 15 tầng Tháp Vô Tận', goal: { type: 'tower', n: 15 }, req: (S) => S.lv >= 100 || S.resets >= 1 },
+    { id: 'w_potion', title: 'Hậu cần cả tuần', desc: 'Dùng 150 bình thuốc', goal: { type: 'potion', n: 150 } },
+    { id: 'w_gboss', title: 'Chiến binh Boss Bang', desc: 'Tham gia Boss Bang Hội 3 lượt (có gây sát thương)', goal: { type: 'gboss', n: 3 } },
+    { id: 'w_siege', title: 'Tiếng gọi công thành', desc: 'Tham gia 1 trận Công Thành Chiến', goal: { type: 'siege', n: 1 } },
+  ],
+};
+
 export const GUILD_QUESTS = {
   perDay: 3,
   pts: 30,                       // điểm cống hiến cho bang mỗi nhiệm vụ

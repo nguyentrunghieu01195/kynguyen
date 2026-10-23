@@ -6,8 +6,8 @@ import { act } from '../../net/actions.js';
 import { GBOSS, gbossStatus } from '../../config/gboss.js';
 import { SIEGE, CASTLE, siegeStatus } from '../../config/siege.js';
 import { gbossBlock } from '../../systems/gboss.js';
-import { GUILD, GUILD_QUESTS, guildBuff } from '../../config/guild.js';
-import { ensureGuildQ, guildQList, guildQDone, goalProgress } from '../../systems/quests.js';
+import { GUILD, GUILD_QUESTS, GUILD_WEEKLY, guildBuff } from '../../config/guild.js';
+import { ensureGuildQ, guildQList, guildQDone, goalProgress, ensureGuildW, guildWList, guildWDone } from '../../systems/quests.js';
 import { JEWELS, JEWEL_KEYS } from '../../config/items.js';
 import { CLASSES } from '../../config/classes.js';
 import { btn } from '../components.js';
@@ -142,17 +142,22 @@ function renderSiege(g) {
   if (D.history.length) h += '<h4>Lịch sử</h4><table class="st rank">' + D.history.map((x) => '<tr><td class="muted">' + new Date(x.at).toLocaleDateString('vi-VN') + '</td><td>' + (x.winner ? '🏆 <b>' + esc(x.winner.name) + '</b>' : '—') + '</td><td class="muted">' + x.teams.map((t) => esc(t.name) + ' ' + hms(t.hold)).join(' · ') + '</td></tr>').join('') + '</table>';
   return h;
 }
+function questRows(list, D, doneFn, cls) {
+  return '<div class="mklist">' + list.map((q) => {
+    const [a, n] = goalProgress(q.goal, D.prog[q.id] || 0), ok = doneFn(q), got = !!D.claimed[q.id], pct = Math.round((a / n) * 100);
+    return '<div class="mkrow"><div class="mkinfo"><b>' + esc(q.title) + '</b><div class="muted">' + esc(q.desc) + ' · ' + fmt(a) + '/' + fmt(n) + '</div>' +
+      '<div class="bar" style="height:8px"><div style="width:' + pct + '%;background:linear-gradient(#e8c050,#8a6a10)"></div></div></div>' +
+      (got ? '<span class="muted">✔ Đã nhận</span>' : btn('Nhận', 'gQuest', { id: q.id }, { cls: 'sm green', disabled: !ok || GS.busy })) + '</div>';
+  }).join('') + '</div>';
+}
 function renderQuests() {
-  const D = ensureGuildQ();
+  const D = ensureGuildQ(), W = ensureGuildW();
   if (!D) return '<p class="muted">Chưa có bang.</p>';
-  const list = guildQList(), nDone = list.filter((q) => D.claimed[q.id]).length;
+  const list = guildQList(), nDone = list.filter((q) => D.claimed[q.id]).length, wl = guildWList(), wDone = wl.filter((q) => W.claimed[q.id]).length;
   return '<div class="tip">Mỗi ngày 3 nhiệm vụ riêng. Mỗi nhiệm vụ: <b>+' + GUILD_QUESTS.pts + ' điểm cống hiến</b> cho bang và Zen cho anh. Nhận đủ cả bộ: thêm <b>+' + GUILD_QUESTS.allBonus + ' điểm</b>. Đổi mới lúc 0 giờ. (' + nDone + '/' + list.length + ')</div>' +
-    '<div class="mklist">' + list.map((q) => {
-      const [a, n] = goalProgress(q.goal, D.prog[q.id] || 0), ok = guildQDone(q), got = !!D.claimed[q.id], pct = Math.round((a / n) * 100);
-      return '<div class="mkrow"><div class="mkinfo"><b>' + esc(q.title) + '</b><div class="muted">' + esc(q.desc) + ' · ' + fmt(a) + '/' + fmt(n) + '</div>' +
-        '<div class="bar" style="height:8px"><div style="width:' + pct + '%;background:linear-gradient(#e8c050,#8a6a10)"></div></div></div>' +
-        (got ? '<span class="muted">✔ Đã nhận</span>' : btn('Nhận', 'gQuest', { id: q.id }, { cls: 'sm green', disabled: !ok || GS.busy })) + '</div>';
-    }).join('') + '</div>';
+    questRows(list, D, guildQDone) +
+    '<h4>📅 Nhiệm vụ tuần</h4><div class="tip">Mỗi tuần 3 nhiệm vụ lớn (đổi mới sáng thứ Hai). Mỗi nhiệm vụ: <b>+' + GUILD_WEEKLY.pts + ' điểm cống hiến</b> và nhiều Zen. Nhận đủ cả bộ: thêm <b>+' + GUILD_WEEKLY.allBonus + ' điểm</b> và <b>' + GUILD_WEEKLY.allChaos + ' Ngọc Hỗn Nguyên</b>. (' + wDone + '/' + wl.length + ')</div>' +
+    questRows(wl, W, guildWDone);
 }
 function renderDonate() {
   return '<div class="tip">Quyên góp để tăng <b>điểm cống hiến</b>: ' + fmt(GUILD.zenPerPt) + ' Zen = 1 điểm · ' +
