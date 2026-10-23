@@ -13,6 +13,17 @@ npm run build          # ra dist/index.html — game gói gọn 1 file
 npm run build:design   # ra dist-design/design.html — trang Design Sheet
 ```
 
+## Kiểm thử
+
+```bash
+npm test            # test đơn vị (bang hội, Boss, đấu giá, công thành, thuế chợ…) — vài giây
+npm run test:e2e    # từ đầu đến cuối trên máy chủ thật (cần: cd server && npm install) — vài phút
+npm run test:all    # cả hai
+node tests/run.mjs unit siege    # chỉ chạy các file có tên chứa "siege"
+```
+
+Cần **Node ≥ 18** (Dockerfile dùng Node 20). Test đơn vị giả lập thời gian để chạy cả vòng đời (đợt Boss, đấu giá, trận công thành theo tuần); test từ đầu đến cuối dựng máy chủ thật trên cổng riêng, dữ liệu tạm, đồng hồ máy chủ chỉnh bằng `tests/helpers/timeshift.cjs`. Thử tải công thành: `node tools/load/siege-load.mjs 100 45`.
+
 ## Kiến trúc: 5 tầng, phụ thuộc một chiều
 
 ```
