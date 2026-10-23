@@ -2,6 +2,7 @@
 import { G } from '../core/state.js';
 
 import { CFG, SPAWN, SAFE_RADIUS } from '../config/constants.js';
+import { SIEGE } from '../config/siege.js';
 import { iso, isoRadius, VIEW, camPos } from './iso.js';
 import { art } from './art/index.js';
 import { NET } from '../net/client.js';
@@ -136,6 +137,7 @@ export function render() {
     ctx.ellipse(s.x, s.y, 18 * p.target.size, 8 * p.target.size, 0, 0, 6.283); ctx.stroke(); ctx.restore();
   }
   for (const d of R.drops) if (inView(d)) A.drawDrop(ctx, d, t);
+  if (R.event && R.event.id === 'siege') drawSiegeGround(ctx, R, t);
   // Vùng cảnh báo chiêu boss (vẽ dưới chân, trước quái)
   for (const m of R.mobs) if (m.cast) {
     const c = m.cast, s = iso(c.x, c.y), r = isoRadius(c.r), k = Math.min(1, c.t / c.d);
@@ -149,7 +151,7 @@ export function render() {
   // Sắp xếp theo chiều sâu (x+y) để vật ở gần che vật ở xa
   const list = [];
   for (const d of R.map.decos) if (inView(d)) list.push({ z: d.x + d.y, k: 0, o: d });
-  for (const m of R.mobs) if (inView(m)) list.push({ z: m.x + m.y, k: 1, o: m });
+  for (const m of R.mobs) if (inView(m) && !m.pvp) list.push({ z: m.x + m.y, k: 1, o: m }); // người địch vẽ bằng sprite người chơi (NET.players)
   if (p.dead <= 0) list.push({ z: p.x + p.y, k: 2, o: p });
   if (!R.event || R.event.room) for (const o of NET.players.values()) if (inView(o)) list.push({ z: o.x + o.y, k: 3, o });
   list.sort((a, b) => a.z - b.z);
@@ -171,7 +173,7 @@ export function render() {
   for (const pr of R.projs) A.drawProjectile(ctx, pr, t);
   for (const pr of R.eprojs || []) A.drawProjectile(ctx, pr, t);
   for (const f of R.fx) A.drawFx(ctx, f, t);
-  for (const m of R.mobs) if (inView(m)) drawBars(ctx, m, A);
+  for (const m of R.mobs) if (inView(m)) { if (m.pvp) drawPvpBar(ctx, m, A); else drawBars(ctx, m, A); }
 
   if (p.dead <= 0) {
     const s = iso(p.x, p.y), y = s.y - A.heroHeight;
@@ -199,4 +201,30 @@ function guildTag(ctx, name, x, y) {
   const label = '⟦' + name + '⟧';
   ctx.font = '700 10px "Be Vietnam Pro", sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = '#000';
   ctx.strokeText(label, x, y); ctx.fillStyle = '#ffd54a'; ctx.fillText(label, x, y);
+}
+
+// ---------------- CÔNG THÀNH CHIẾN ----------------
+const teamColor = (R, name) => { const T = R.event.board && R.event.board.teams.find((t) => t.name === name); return T ? SIEGE.teamColors[T.slot] : '#ddd'; };
+/** Vòng Ngai Vàng (màu theo bang đang giữ) + vòng màu phe dưới chân các nhân vật */
+function drawSiegeGround(ctx, R, t) {
+  const B = R.event.board, th = SIEGE.throne, s = iso(th.x, th.y), r = isoRadius(th.r);
+  const holder = B && B.teams.find((x) => x.holder), col = holder ? SIEGE.teamColors[holder.slot] : '#ffd54a';
+  ctx.save();
+  ctx.globalAlpha = 0.18 + Math.sin(t * 3) * 0.05; ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(s.x, s.y, r.rx, r.ry, 0, 0, 6.283); ctx.fill();
+  ctx.globalAlpha = 0.85; ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.setLineDash([10, 6]); ctx.beginPath(); ctx.ellipse(s.x, s.y, r.rx, r.ry, 0, 0, 6.283); ctx.stroke();
+  if (B && B.cap) { ctx.setLineDash([]); ctx.lineWidth = 5; ctx.strokeStyle = SIEGE.teamColors[B.cap.slot]; ctx.beginPath(); ctx.ellipse(s.x, s.y, r.rx * 0.8, r.ry * 0.8, 0, -1.57, -1.57 + 6.283 * Math.min(1, B.cap.frac)); ctx.stroke(); }
+  ctx.restore();
+  const ring = (x, y, c) => { const q = iso(x, y); ctx.save(); ctx.globalAlpha = 0.8; ctx.strokeStyle = c; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.ellipse(q.x, q.y, 17, 7.5, 0, 0, 6.283); ctx.stroke(); ctx.restore(); };
+  const me = R.event.team;
+  if (R.p.dead <= 0) ring(R.p.x, R.p.y, SIEGE.teamColors[me.slot]);
+  for (const o of NET.players.values()) if (o.look && o.look.g) ring(o.x, o.y, teamColor(R, o.look.g));
+}
+/** Thanh máu + tên người địch (sprite do NET.players vẽ) */
+function drawPvpBar(c, m, A) {
+  const s = iso(m.x, m.y), y = s.y - A.heroHeight - 26, bw = 44, col = SIEGE.teamColors[m.team] || '#ff5a4a';
+  c.save(); c.textAlign = 'center';
+  c.fillStyle = '#000'; c.fillRect(s.x - bw / 2 - 1, y - 1, bw + 2, 6);
+  c.fillStyle = col; c.fillRect(s.x - bw / 2, y, bw * Math.max(0, m.hp / m.maxHp), 4);
+  if (m === G.R.p.target) { c.strokeStyle = '#ff4040'; c.lineWidth = 2; c.beginPath(); c.ellipse(s.x, s.y, 20, 9, 0, 0, 6.283); c.stroke(); }
+  c.restore();
 }

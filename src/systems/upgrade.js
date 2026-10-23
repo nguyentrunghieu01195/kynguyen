@@ -1,5 +1,6 @@
 // Ép đồ & chế tạo cánh. Trả về kết quả dạng dữ liệu để UI tự hiển thị.
 import { G } from '../core/state.js';
+import { WEAPON_TYPES } from '../config/gear.js';
 import { log, announce, emit, EV } from '../core/events.js';
 import { uid, esc } from '../core/utils.js';
 import { UPGRADE, WING_RECIPE, ITEM } from '../config/balance.js';
@@ -70,7 +71,11 @@ export function reforge(id, variant) {
   if (!ref || ref.it.slot === 'wings') return false;
   const it = ref.it, cost = Math.round(reforgeCost(it));
   if (S.zen < cost) return false;
-  if (it.slot === 'weapon') { if ((it.wt || 0) === variant) return false; it.wt = variant; }
+  if (it.slot === 'weapon') {
+    const L = WEAPON_TYPES[it.cls || S.cls] || [];
+    if ((it.wt || 0) === variant || !L[variant] || L[variant].special || (L[it.wt || 0] && L[it.wt || 0].special)) return false; // vũ khí đặc biệt không rèn lại được
+    it.wt = variant;
+  }
   else { if ((it.line || 0) === variant) return false; it.line = variant; }
   S.zen -= cost;
   calcStats();

@@ -17,6 +17,8 @@ import { createHost } from './host.js';
 import { createMarket, TradeError, MARKET, cleanGoods, goodsText, takeGoods as takeGoodsFn } from './market.js';
 import { createGuilds } from './guilds.js';
 import { createGBoss } from './gboss.js';
+import { createSiege } from './siege.js';
+import { CASTLE } from '../../src/config/siege.js';
 import { claimGuildQ } from '../../src/systems/quests.js';
 import crypto from 'node:crypto';
 import { LIMITS, CLASSES, cleanName, cleanText, cleanLook, cleanStats, cleanRoom, cleanPos, ANNOUNCE, buildRank } from './protocol.js';
@@ -38,9 +40,17 @@ const gboss = createGBoss(DATA, {
   notify: (accIds, text) => { const set = new Set(accIds); for (const s of sessions.values()) if (s.p && set.has(s.p.acc)) out(s.ws, { t: 'sys', text, private: true, info: true }); },
   announce: (text) => toAll({ t: 'sys', text }),
 });
+const siege = createSiege(DATA, {
+  guilds, store, market, gboss,
+  notify: (accIds, text) => { const set = new Set(accIds); for (const s of sessions.values()) if (s.p && set.has(s.p.acc)) out(s.ws, { t: 'sys', text, private: true, info: true }); },
+  announce: (text) => toAll({ t: 'sys', text }),
+  onResult: (r) => { for (const t of r.teams) guilds.refresh(t.gid); },
+});
+guilds.setCastle((gid) => siege.ownerGid() === gid);
+market.setTax((fee) => { const g = siege.ownerGid(); if (g) guilds.addFund(g, Math.floor(fee * CASTLE.taxShare)); }); // thuế chợ → quỹ bang giữ thành
 // Máy chủ chạy game cho người chơi có tài khoản (gắn hàm gửi/hiện diện ở dưới khi đã có sessions/rooms)
 const host = createHost({
-  accounts, store, market, guilds, gboss,
+  accounts, store, market, guilds, gboss, siege,
   send: (s, msg) => out(s.ws, msg),
   onPresence(s, d) {
     if (d.look) { s.look = cleanLook(d.look); if (s.room) toRoom(s.room, { t: 'plook', id: s.p.id, look: s.look }, s); return; }
@@ -50,7 +60,7 @@ const host = createHost({
   },
   announceAll(kind, data, who) { const f = ANNOUNCE[kind]; if (f) toAll({ t: 'sys', text: f(data || {}, who) }); },
 });
-const backups = createBackups(DATA, { accounts, store, market, guilds, gboss, everyHours: +process.env.BACKUP_HOURS || 24, keep: +process.env.BACKUP_KEEP || 14 });
+const backups = createBackups(DATA, { accounts, store, market, guilds, gboss, siege, everyHours: +process.env.BACKUP_HOURS || 24, keep: +process.env.BACKUP_KEEP || 14 });
 const ADMIN_RAW = process.env.ADMIN_PASSWORD || '';
 const ADMIN_WEAK = ADMIN_RAW && (ADMIN_RAW.length < 10 || ADMIN_RAW === 'doi-mat-khau-nay');
 const ADMIN_PASSWORD = ADMIN_WEAK ? '' : ADMIN_RAW;
@@ -104,6 +114,7 @@ function readBody(req, max) {
 // Giới hạn số lần thử đăng nhập/đăng ký theo IP (chống dò mật khẩu)
 const hits = new Map();
 function limited(key, max, windowMs) {
+  if (process.env.LOAD_TEST) return false; // chỉ để thử tải (bỏ giới hạn tần suất)
   const now = Date.now(), h = hits.get(key) || { n: 0, at: now };
   if (now - h.at > windowMs) { h.n = 0; h.at = now; }
   h.n++; hits.set(key, h);
@@ -154,6 +165,20 @@ async function api(req, res, url) {
       // ---- bang hội ----
       case 'GET /api/guild': return json(res, 200, { guild: guilds.detail(acc.id) });
       case 'GET /api/guild/list': return json(res, 200, guilds.list(acc.id, { page: +url.searchParams.get('page') || 0, q: url.searchParams.get('q') || '' }));
+      case 'GET /api/siege': return json(res, 200, siege.status(acc.id));
+      case 'POST /api/siege/register': return await saveOp(req, res, acc, (S) => siege.register(acc.id, S));
+      case 'POST /api/siege/_debug': { // chỉ khi bật SIEGE_TEST=1 (thử nghiệm)
+        if (!process.env.SIEGE_TEST) return json(res, 404, { error: 'not_found' });
+        const b = await readBody(req, 2048);
+        siege.debugStart(b.def || null, Array.isArray(b.att) ? b.att : [], +b.sec || 0, +b.gateHp || 0);
+        return json(res, 200, { ok: true });
+      }
+      case 'POST /api/guild/fund': { // bang chủ phát quỹ bang (thuế chợ) chia đều cho thành viên qua thư
+        const r = guilds.takeFund(acc.id), share = Math.floor(r.amount / r.ids.length);
+        for (const a of r.ids) market.mail(a, '🏯 Chia quỹ bang giữ thành: ' + share.toLocaleString('vi-VN') + ' Zen.', { items: [], jewels: {}, zen: share });
+        guilds.addFund(r.gid, r.amount - share * r.ids.length);
+        return json(res, 200, { ok: true, amount: r.amount, share, guild: guilds.detail(acc.id) });
+      }
       case 'GET /api/gboss': return json(res, 200, gboss.status(acc.id));
       case 'GET /api/auction': return json(res, 200, gboss.lots(acc.id, url.searchParams.get('scope') === 'world' ? 'world' : 'guild'));
       case 'POST /api/auction/bid': return await saveOp(req, res, acc, (S, b) => gboss.bid(acc.id, S, String(b.id || ''), b.amount));
@@ -253,7 +278,7 @@ async function adminApi(req, res, url) {
         accounts: all.length, withChar: all.filter((a) => a.summary).length, banned: all.filter((a) => a.banned).length,
         active1d: all.filter((a) => a.lastLogin > day || a.saveAt > day).length, active7d: all.filter((a) => a.lastLogin > week || a.saveAt > week).length,
         profiles: store.all().length, online: [...sessions.values()].filter((s) => s.p).length,
-        market: market.adminStats(), guilds: guilds.stats(), gboss: gboss.stats(), trades: trades.size, host: host.load(), backups: backups.list(), backupEvery: +process.env.BACKUP_HOURS || 24, backupKeep: +process.env.BACKUP_KEEP || 14, uptime: Math.round(process.uptime()),
+        market: market.adminStats(), guilds: guilds.stats(), gboss: gboss.stats(), siege: siege.stats(), trades: trades.size, host: host.load(), backups: backups.list(), backupEvery: +process.env.BACKUP_HOURS || 24, backupKeep: +process.env.BACKUP_KEEP || 14, uptime: Math.round(process.uptime()),
       });
     }
     if (route === 'GET /api/admin/accounts') {
@@ -569,7 +594,7 @@ setInterval(() => {
 setInterval(() => { for (const ws of sessions.keys()) { if (ws.isAlive === false) { ws.terminate(); continue; } ws.isAlive = false; ws.ping(); } }, 30000);
 wss.on('connection', (ws) => { ws.isAlive = true; ws.on('pong', () => (ws.isAlive = true)); });
 
-const shutdown = () => { host.flushAll(); for (const T of [...trades.values()]) tradeClose(T, 'Máy chủ đang khởi động lại.'); store.flush(); accounts.flush(); market.flush(); guilds.flush(); gboss.flush(); process.exit(0); };
+const shutdown = () => { host.flushAll(); for (const T of [...trades.values()]) tradeClose(T, 'Máy chủ đang khởi động lại.'); store.flush(); accounts.flush(); market.flush(); guilds.flush(); gboss.flush(); siege.flush(); process.exit(0); };
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 

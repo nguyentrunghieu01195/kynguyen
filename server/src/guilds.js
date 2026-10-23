@@ -19,7 +19,7 @@ export function createGuilds(dir, { store }) {
   const file = path.join(dir, 'guilds.json');
   let data = { guilds: {} };
   try { data = Object.assign(data, JSON.parse(fs.readFileSync(file, 'utf8'))); } catch (e) { /* file mới */ }
-  let dirty = false, timer = null, notify = () => {}, isOnline = () => false;
+  let dirty = false, timer = null, notify = () => {}, isOnline = () => false, isCastle = () => false;
   const chats = new Map(); // guildId -> [tin nhắn] (chỉ giữ trong bộ nhớ)
 
   const flush = () => { if (!dirty) return; dirty = false; const tmp = file + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(data)); fs.renameSync(tmp, file); };
@@ -44,7 +44,7 @@ export function createGuilds(dir, { store }) {
   /** Tóm tắt gắn vào nhân vật (S.guild) — dùng để tính buff và hiển thị tên bang */
   const brief = (accId) => {
     const g = guildOf(accId);
-    return g ? { id: g.id, name: g.name, lv: lvOf(g), role: roleOf(g, accId) } : null;
+    return g ? { id: g.id, name: g.name, lv: lvOf(g), role: roleOf(g, accId), castle: isCastle(g.id) } : null;
   };
 
   function cleanName(s) {
@@ -64,7 +64,7 @@ export function createGuilds(dir, { store }) {
     const online = new Set(Object.keys(g.members).filter(isOnline));
     const lv = lvOf(g), me = roleOf(g, accId), isMgr = atLeast(g, accId, 'officer');
     return {
-      id: g.id, name: g.name, lv, exp: g.exp, next: lv < GUILD.levels.length ? GUILD.levels[lv] : null, cur: GUILD.levels[lv - 1],
+      id: g.id, name: g.name, castle: isCastle(g.id), fund: g.fund || 0, lv, exp: g.exp, next: lv < GUILD.levels.length ? GUILD.levels[lv] : null, cur: GUILD.levels[lv - 1],
       notice: g.notice || '', cap: guildCap(lv), role: me, created: g.created, leader: nameOf(g.leader),
       members: Object.keys(g.members).map((a) => memberRow(g, a, online, accId)).sort((a, b) => (ROLE_RANK[b.role] - ROLE_RANK[a.role]) || (b.contrib - a.contrib)),
       apps: isMgr ? Object.entries(g.apps).map(([a, ap]) => ({ acc: a, name: nameOf(a), cls: ap.cls, lv: ap.lv, at: ap.at })) : [],
@@ -92,6 +92,20 @@ export function createGuilds(dir, { store }) {
   return {
     setNotify: (fn) => { notify = fn; },
     setOnline: (fn) => { isOnline = fn; },
+    setCastle: (fn) => { isCastle = fn; },
+    /** Báo máy chủ game cập nhật S.guild của mọi thành viên bang (vd. đổi chủ thành) */
+    refresh: (gid) => { const g = data.guilds[gid]; if (g) syncAll(g); },
+    addFund: (gid, n) => { const g = data.guilds[gid]; if (g && n > 0) { g.fund = (g.fund || 0) + Math.floor(n); touch(); } },
+    /** Bang chủ rút toàn bộ quỹ để chia cho thành viên (trả { ids, amount } — nơi gọi gửi thư) */
+    takeFund(accId) {
+      const g = need(accId);
+      if (roleOf(g, accId) !== 'leader') throw bad('Chỉ bang chủ được phát quỹ.', 403);
+      if (!(g.fund > 0)) throw bad('Quỹ bang đang trống.');
+      const amount = g.fund, ids = Object.keys(g.members);
+      g.fund = 0; touch();
+      return { ids, amount, gid: g.id };
+    },
+    idByName: (name) => (Object.values(data.guilds).find((g) => g.name === name) || {}).id || null,
     flush, dump: () => data, brief, detail, list,
     guildIdOf: (accId) => byAcc.get(accId) || null,
     nameOf: (gid) => (data.guilds[gid] ? data.guilds[gid].name : null),

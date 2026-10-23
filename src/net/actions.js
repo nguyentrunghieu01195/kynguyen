@@ -9,7 +9,7 @@ import { G } from '../core/state.js';
 import { log, announce } from '../core/events.js';
 import { MAPS } from '../config/maps.js';
 import { PROGRESSION as PG } from '../config/balance.js';
-import { WEAPON_TYPES } from '../config/gear.js';
+import { WEAPON_TYPES, regularWeaponCount } from '../config/gear.js';
 import { commandMove, commandAttack, toggleAuto } from '../systems/player.js';
 import { usePotion } from '../systems/combat.js';
 import { castSlot, learnSkill, setSlot, toggleAutoSkill } from '../systems/skills.js';
@@ -22,6 +22,7 @@ import { buyFashion, toggleFashion } from '../systems/fashion.js';
 import { enterEvent, leaveEvent } from '../systems/events.js';
 import { enterTower } from '../systems/tower.js';
 import { enterGBoss } from '../systems/gboss.js';
+import { enterSiege } from '../systems/siege.js';
 import { enterMap } from '../systems/world.js';
 import { claimOffline } from '../systems/offline.js';
 
@@ -70,7 +71,7 @@ export const ACTIONS = {
   reforge: [(a) => [id(a[0]), int(a[1], 0, 9)], (k, v) => {
     const r = findItem(k);
     if (!r) return false;
-    const max = r.it.slot === 'weapon' ? (WEAPON_TYPES[r.it.cls || G.S.cls] || []).length - 1 : 1;
+    const max = r.it.slot === 'weapon' ? regularWeaponCount(r.it.cls || G.S.cls) - 1 : 1;
     return v <= max ? !!reforge(k, v) : false;
   }],
   buy: [(a) => [id(a[0]), int(a[1], 1, 1000)], (k, n) => !!buy(k, n)],
@@ -91,6 +92,7 @@ export const ACTIONS = {
   leaveEvent: [() => [], () => { leaveEvent(); return true; }],
   enterTower: [() => [], () => !!enterTower()],
   enterGBoss: [() => [], () => !!enterGBoss()],
+  enterSiege: [() => [], () => !!enterSiege()],
   // --- tuỳ chọn (danh sách trắng) ---
   setPref: [(a) => [oneOf(a[0], ['autoSell', 'expRate', 'eventTest', 'art']), a[1]], (k, v) => {
     const S = G.S;

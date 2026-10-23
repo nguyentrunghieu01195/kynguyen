@@ -35,8 +35,8 @@ function upgradeBox(ref) {
   }
   h += (UI.upMsg ? '<div style="margin-top:8px;font-weight:700">' + UI.upMsg + '</div>' : '') + '</div>';
   // Rèn lại loại vũ khí / dòng bộ
-  if (it.slot !== 'wings') {
-    const cost = Math.round(reforgeCost(it)), opts = it.slot === 'weapon' ? WEAPON_TYPES[it.cls || S.cls].map((w, i) => [i, w.name]) : ARMOR_SETS[it.tier].map((st, i) => [i, 'Bộ ' + st.name]);
+  if (it.slot !== 'wings' && !(it.slot === 'weapon' && WEAPON_TYPES[it.cls || S.cls][it.wt || 0].special)) {
+    const cost = Math.round(reforgeCost(it)), opts = it.slot === 'weapon' ? WEAPON_TYPES[it.cls || S.cls].map((w, i) => [i, w.name]).filter(([i]) => !WEAPON_TYPES[it.cls || S.cls][i].special) : ARMOR_SETS[it.tier].map((st, i) => [i, 'Bộ ' + st.name]);
     const cur = it.slot === 'weapon' ? it.wt || 0 : it.line || 0;
     h += '<h4>🔨 Rèn lại ' + (it.slot === 'weapon' ? 'loại vũ khí' : 'dòng bộ giáp') + '</h4><div class="tip">' + variantLines(it) +
       '<div class="row" style="margin-top:8px">' + opts.map(([i, name]) => btn(name, 'reforge', { v: i }, { cls: 'sm ' + (i === cur ? 'green' : ''), disabled: i === cur || S.zen < cost })).join('') + '</div>' +

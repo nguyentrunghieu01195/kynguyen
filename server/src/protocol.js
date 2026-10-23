@@ -40,7 +40,7 @@ export function cleanLook(look) {
 export const cleanStats = (s) => ({ lv: int(s?.lv, 1, 400, 1), resets: int(s?.resets, 0, 9999), tower: int(s?.tower, 0, 100000), power: int(s?.power, 0, 1e12) });
 
 /** Tên phòng hợp lệ: 'm0'..'m99' (bản đồ thường). null = không ở phòng công khai (sự kiện/tháp) */
-export const cleanRoom = (r) => (typeof r === 'string' && /^(m\d{1,2}|gb_[0-9a-f]{10})$/.test(r) ? r : null);
+export const cleanRoom = (r) => (typeof r === 'string' && /^(m\d{1,2}|gb_[0-9a-f]{10}|sg)$/.test(r) ? r : null);
 
 export const cleanPos = (m) => ({ x: num(m?.x, 0, 128), y: num(m?.y, 0, 128), tx: m?.tx == null ? null : num(m.tx, 0, 128), ty: m?.ty == null ? null : num(m.ty, 0, 128), f: m?.f === -1 ? -1 : 1, mv: !!m?.mv });
 
@@ -49,6 +49,7 @@ export const ANNOUNCE = {
   upgrade: (d, who) => '✨ ' + who + ' vừa ép thành công ' + cleanText(d.item, 40) + '!',
   tower: (d, who) => '🗼 ' + who + ' vừa chinh phục tầng ' + int(d.floor, 1, 100000) + ' Tháp Vô Tận!',
   boss: (d, who) => '🏆 ' + who + ' đã hạ gục BOSS ' + cleanText(d.boss, 30) + '!',
+  siege: (d) => cleanText(d.text, 120),
   reset: (d, who) => '🔄 ' + who + ' đã Reset lần thứ ' + int(d.n, 1, 9999) + '!',
   event: (d, who) => '⚔️ ' + who + ' đã hoàn thành ' + (d.id === 'ds' ? 'Quảng Trường Quỷ' : 'Huyết Lâu') + '!',
   wings: (d, who) => '🪽 ' + who + ' vừa chế tạo thành công ' + cleanText(d.name, 30) + '!',

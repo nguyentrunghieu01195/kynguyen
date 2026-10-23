@@ -6,6 +6,7 @@ import { PLAYER } from '../config/balance.js';
 import { SKILL_LIST, TIER_BONUS } from '../config/skills.js';
 import { itemPower, wingStats, weaponType, activeSets } from './items.js';
 import { guildBuff } from '../config/guild.js';
+import { CASTLE } from '../config/siege.js';
 
 export function calcStats() {
   const S = G.S, c = CLASSES[S.cls], f = STAT_FORMULA[S.cls], st = S.stats, lv = S.lv;
@@ -30,6 +31,7 @@ export function calcStats() {
   const tb = TIER_BONUS[(S.tier || 1) - 1] || {};
   for (const k in tb) ex[k] += tb[k];
   if (S.guild) { const gb = guildBuff(S.guild.lv); for (const k in gb) ex[k] += gb[k]; } // buff bang hội
+  if (S.guild && S.guild.castle) for (const k in CASTLE.buff) ex[k] += CASTLE.buff[k]; // buff bang giữ thành
   const buffs = (G.R && G.R.p && G.R.p.buffs) || {};
   for (const id in buffs) for (const k in buffs[id].mods) ex[k] += buffs[id].mods[k];
   // Chỉ số riêng của loại vũ khí

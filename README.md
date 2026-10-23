@@ -252,6 +252,24 @@ Hằng ngày lúc **12:00 và 20:00 (giờ Việt Nam)**, cổng mở 15 phút. 
 - Mọi người đã đánh còn nhận thưởng tham gia qua hộp thư. Dữ liệu ở `gboss.json` (có trong sao lưu / khôi phục). Số liệu ở `src/config/gboss.js`; luật trong trận ở `src/systems/gboss.js`.
 - Lưu ý kỹ thuật: mỗi người chơi vẫn chạy mô phỏng riêng trên máy chủ; Boss "thật" nằm ở bộ não chung của bang và được đặt vào thế giới từng người mỗi 50 ms.
 
+## Công Thành Chiến
+
+Hằng tuần **Chủ nhật 20:00 (giờ VN)**, trận kéo dài **30 phút**. Mở bằng 🏰 Bang hội → tab 🏯 Công thành (cấp 50 trở lên).
+
+- **Phe & đăng ký:** bang đang giữ thành là **phe thủ** (tự động tham gia, spawn trong thành); tối đa **3 bang công** do bang chủ / phó bang đăng ký (phí 2M Zen, cấp bang ≥ 2, ai đăng ký trước được trước). Đóng đăng ký lúc 19:30. Mỗi bang tối đa **25 người** vào trận; ai đủ cấp và thuộc bang tham gia bấm *Vào trận*.
+- **Cách thắng:** phe công phải **phá Cổng Thành** (máu tính theo "số đòn" nên không phụ thuộc cấp; phe thủ không đánh được cổng nhà), rồi các bang tranh **Ngai Vàng**: đứng một mình trên ngai (người còn sống) **10 giây** thì chiếm; hai bang cùng đứng thì giành giật, không ai chiếm. Sau khi cổng vỡ, bang đang giữ ngai **tích lũy giờ giữ**; hết giờ bang có **tổng giờ giữ cao nhất** thắng và chiếm thành. Cổng chưa vỡ → bang thủ thắng.
+- **PvP:** chọn người bang khác như chọn quái (chạm, hoặc AUTO tự đánh). Dùng chỉ số thật, nhân hệ số **×0.25** (`SIEGE.pvpCoef`). Chết hồi sinh sau 6 giây tại điểm xuất phát của bang, bất tử 3 giây, không mất EXP. PvP chỉ có trong trận này.
+- **Cơ chế kỹ thuật:** mỗi người vẫn mô phỏng riêng trên máy chủ; "bộ não" trận (`server/src/siegebrain.js`) giữ máu cổng, ngai, giờ giữ. Người địch trong tầm (tối đa 30 gần nhất) được đặt vào thế giới của mỗi người dưới dạng mob đại diện (`m.pvp`) nên toàn bộ code đánh quái (kỹ năng, đạn, AUTO) dùng được để đánh người; sát thương được ghi lại và máy chủ trừ máu thật của người bị đánh (`hitMob` → `siegeHit` trong `systems/combat.js`). Hiệu ứng chiêu của đồng đội và địch hiện qua `relayEffects`.
+- **Quyền lợi bang giữ thành:**
+  - **Vũ khí đặc biệt** (Vương Giả Kiếm / Trượng / Cung, +30% sát thương, +8% chí mạng; chỉ có từ công thành, không rơi ngẫu nhiên, không rèn lại): bang thắng nhận 3 món (Hoàn Hảo +9) vào **đấu giá bang** (15 phút, chỉ người chiến đấu ≥ 5 phút; không ai đặt → đấu giá thế giới), giá khởi điểm tính theo giá tự kiếm × 1.8.
+  - **Thuế chợ:** 30% phí chợ (≈ 1.5% giá bán) chuyển vào **quỹ bang** chủ thành; số tiền người bán nhận **không đổi**. Bang chủ bấm *Phát quỹ* để chia đều cho thành viên qua hộp thư.
+  - **Buff cả bang** (sát thương / HP / phòng thủ +5%, Zen rơi +15%) cho tới khi đổi chủ thành (tối đa 1 tuần).
+  - Mọi người chiến đấu ≥ 5 phút nhận thưởng tham gia (Zen theo cấp + ngọc), bang thắng ×2.
+- Dữ liệu: `siege.json` (chủ thành, đăng ký, lịch sử; có trong sao lưu / khôi phục). Số liệu ở `src/config/siege.js`; luật trong trận ở `src/systems/siege.js`.
+- **Thử tải** (`node tools/load/siege-load.mjs 100 45`, 100 bot AUTO cùng 1 trận, máy dev): tick máy chủ trung bình **~21 ms / 50 ms** (đỉnh ~27 ms), mạng ~6 KB/giây mỗi người sau nén (~4.4 Mbit/s tổng). Máy chủ yếu hơn thì hạ `SIEGE.maxPerGuild` (hoặc `maxProxies`).
+- Kiểm thử trên máy: đặt `SIEGE_TEST=1` để dùng `POST /api/siege/_debug` (bắt đầu trận ngay, bỏ qua lịch), `SIEGE_MIN_ACTIVE_SEC` để hạ thời gian chiến đấu tối thiểu.
+- Chưa có: liên minh nhiều bang, bang chủ tự đặt mức thuế, danh hiệu trên đầu, ưu tiên mục tiêu cổng / ngai cho AUTO.
+
 ## Chợ & giao dịch giữa người chơi
 
 Cần **đăng nhập tài khoản** và có máy chủ. Mở bằng nút ⚖️ bên phải màn hình, hoặc **Túi đồ → Bán ở chợ**.

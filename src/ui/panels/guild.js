@@ -4,6 +4,7 @@ import { on, EV, log } from '../../core/events.js';
 import { esc, fmt } from '../../core/utils.js';
 import { act } from '../../net/actions.js';
 import { GBOSS, gbossStatus } from '../../config/gboss.js';
+import { SIEGE, CASTLE, siegeStatus } from '../../config/siege.js';
 import { gbossBlock } from '../../systems/gboss.js';
 import { GUILD, GUILD_QUESTS, guildBuff } from '../../config/guild.js';
 import { ensureGuildQ, guildQList, guildQDone, goalProgress } from '../../systems/quests.js';
@@ -14,7 +15,7 @@ import { UI, $ } from '../dom.js';
 import { saveGame } from '../../core/save.js';
 import { loggedIn, apiBase } from '../../net/account.js';
 import { NET } from '../../net/client.js';
-import { GD, loadMine, loadList, createGuild, claimQuest, loadBoss, donate, guildOp, sendGuildChat } from '../../net/guild.js';
+import { GD, loadMine, loadList, createGuild, claimQuest, loadBoss, loadSiege, registerSiege, distributeFund, donate, guildOp, sendGuildChat } from '../../net/guild.js';
 
 const GS = { tab: 'info', msg: '', err: false, busy: false, confirm: null };
 const say = (m, err) => { GS.msg = m || ''; GS.err = !!err; };
@@ -112,6 +113,35 @@ function renderBoss() {
   }
   return h;
 }
+// ---------------- CÔNG THÀNH CHIẾN ----------------
+const WD = ['Chủ nhật', 'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy'];
+const siegeClock = () => { const st = siegeStatus(); return st.phase === 'battle' ? 'còn ' + hms(st.secLeft) : (st.phase === 'reg' ? 'bắt đầu sau ' : 'bắt đầu sau ') + hms(st.secUntil); };
+function renderSiege(g) {
+  const D = GD.siege, st = siegeStatus();
+  const when = WD[SIEGE.weekday] + ' ' + clock(SIEGE.startMin) + ' (giờ VN)';
+  let h = '<div class="tip">' + SIEGE.icon + ' <b>' + SIEGE.name + '</b> — hằng tuần, ' + when + ', kéo dài ' + SIEGE.battleMin + ' phút. 1 bang giữ thành (thủ) đấu với tối đa ' + SIEGE.maxAttackers + ' bang công. ' +
+    'Phe công <b>phá Cổng Thành</b> rồi cả hai phe tranh <b>Ngai Vàng</b>: giữ ngai lâu nhất khi hết giờ thì thắng và chiếm thành 1 tuần. Đánh người bang khác bằng chọn họ như quái (sát thương PvP ×' + SIEGE.pvpCoef + ').</div>';
+  h += '<div class="tip">' + (st.phase === 'battle' ? '🔥 <b>Đang diễn ra</b>' : st.phase === 'reg' ? '📝 <b>Đang mở đăng ký</b>' : '⏳ <b>Đã đóng đăng ký</b>') + ' · <b id="gst">' + siegeClock() + '</b></div>';
+  if (!D) return h + '<p class="muted">Đang tải…</p>';
+  h += '<div class="tip">👑 Chủ thành: ' + (D.owner ? '<b>' + esc(D.owner.name) + '</b>' + (D.owner.mine ? ' (bang anh)' : '') : '<span class="muted">chưa có</span>') + '</div>';
+  if (D.mine.isOwner) {
+    h += '<div class="tip">🏰 Bang anh đang giữ thành — buff mọi thành viên: ' + Object.entries(CASTLE.buff).map(([k, v]) => ({ dmg: 'sát thương', hp: 'HP', def: 'phòng thủ', zen: 'Zen rơi' }[k]) + ' +' + v + '%').join(' · ') +
+      '<br>💰 Quỹ bang (thuế chợ): <b>' + fmt(g.fund || 0) + ' Zen</b>' + (g.role === 'leader' ? ' ' + btn('Phát quỹ cho thành viên', 'gFund', {}, { cls: 'sm green', disabled: !(g.fund > 0) || GS.busy }) : '<span class="muted"> (bang chủ phát quỹ)</span>') + '</div>';
+  }
+  h += '<h4>Bang đăng ký công thành (' + D.reg.length + '/' + D.regMax + ')</h4>' + (D.reg.length ? '<div class="mklist">' + D.reg.map((r) => '<div class="mkrow"><div class="mkinfo"><b>' + esc(r.name) + '</b>' + (r.mine ? ' <span class="muted">(bang anh)</span>' : '') + '</div></div>').join('') + '</div>' : '<p class="muted">Chưa bang nào đăng ký.</p>');
+  const live = D.battle;
+  h += '<div class="row" style="gap:8px;margin-top:8px">';
+  if (live && live.mine) h += btn('⚔ Vào trận', 'gSiegeGo', {}, { cls: 'green', disabled: GS.busy });
+  if (D.mine.canRegister && !D.mine.registered) h += btn('📝 Đăng ký công thành (' + fmt(D.regFee) + ' Zen)', 'gSiegeReg', {}, { cls: 'green', disabled: GS.busy || D.reg.length >= D.regMax });
+  if (D.mine.registered) h += '<span class="muted">✔ Bang anh đã đăng ký</span>';
+  if (D.mine.isOwner && st.phase !== 'battle') h += '<span class="muted">Bang giữ thành tự động tham gia phòng thủ.</span>';
+  h += '</div>';
+  if (!D.mine.canRegister && !D.mine.registered && !D.mine.isOwner && st.phase === 'reg') h += '<p class="muted">Chỉ bang chủ / phó bang đăng ký được (bang cần cấp ' + SIEGE.minGuildLv + ').</p>';
+  if (live && live.board) h += '<h4>Trận đang diễn ra</h4><div class="tip">🚪 Cổng Thành: ' + (live.gate.open ? '<b>đã vỡ</b>' : Math.ceil((live.gate.hp / live.gate.max) * 100) + '%') + '</div><table class="st rank">' +
+    live.board.teams.map((t) => '<tr><td>' + (t.holder ? '👑' : '') + '</td><td><b>' + esc(t.name) + '</b> <span class="muted">' + (t.role === 'def' ? 'thủ' : 'công') + '</span></td><td>giữ ' + hms(t.hold) + ' · hạ ' + t.kills + '</td></tr>').join('') + '</table>';
+  if (D.history.length) h += '<h4>Lịch sử</h4><table class="st rank">' + D.history.map((x) => '<tr><td class="muted">' + new Date(x.at).toLocaleDateString('vi-VN') + '</td><td>' + (x.winner ? '🏆 <b>' + esc(x.winner.name) + '</b>' : '—') + '</td><td class="muted">' + x.teams.map((t) => esc(t.name) + ' ' + hms(t.hold)).join(' · ') + '</td></tr>').join('') + '</table>';
+  return h;
+}
 function renderQuests() {
   const D = ensureGuildQ();
   if (!D) return '<p class="muted">Chưa có bang.</p>';
@@ -140,10 +170,10 @@ function renderChat() {
 }
 
 function renderGuild(g) {
-  const tabs = [['info', 'Thông tin'], ['members', 'Thành viên'], ['boss', GBOSS.icon + ' Boss'], ['quest', 'Nhiệm vụ'], ['donate', 'Quyên góp'], ['chat', 'Chat']];
+  const tabs = [['info', 'Thông tin'], ['members', 'Thành viên'], ['boss', GBOSS.icon + ' Boss'], ['siege', SIEGE.icon + ' Công thành'], ['quest', 'Nhiệm vụ'], ['donate', 'Quyên góp'], ['chat', 'Chat']];
   if (mgr()) tabs.splice(2, 0, ['apps', 'Đơn' + (g.apps.length ? ' (' + g.apps.length + ')' : '')]);
   if (!tabs.some((t) => t[0] === GS.tab)) GS.tab = 'info';
-  const body = { info: renderInfo, members: renderMembers, apps: renderApps, donate: renderDonate, quest: renderQuests, boss: renderBoss, chat: renderChat }[GS.tab](g);
+  const body = { info: renderInfo, members: renderMembers, apps: renderApps, donate: renderDonate, quest: renderQuests, boss: renderBoss, siege: renderSiege, chat: renderChat }[GS.tab](g);
   return tabBar(tabs) + (GS.tab === 'chat' ? '' : msgLine()) + body;
 }
 
@@ -159,6 +189,7 @@ async function refresh() {
     if (!GD.mine) { if (!['list', 'create'].includes(GS.tab)) GS.tab = 'list'; await loadList(); }
     else if (['list', 'create'].includes(GS.tab)) GS.tab = 'info';
     if (GD.mine && GS.tab === 'boss') await loadBoss();
+    if (GD.mine && GS.tab === 'siege') await loadSiege();
   } catch (e) { say(errOf(e), true); }
 }
 /** Thao tác xong → tải lại cho đúng trạng thái (vd. vừa vào bang / bị đuổi) */
@@ -176,7 +207,10 @@ export const guildPanel = {
   },
   actions: {
     gToStart: () => { saveGame(); UI.noSave = true; location.reload(); },
-    gTab: (d) => { GS.tab = d.t; GS.confirm = null; say(''); if (d.t === 'list') return loadList().catch(() => {}); if (d.t === 'boss') return loadBoss().catch((e) => say(errOf(e), true)); },
+    gTab: (d) => { GS.tab = d.t; GS.confirm = null; say(''); if (d.t === 'list') return loadList().catch(() => {}); if (d.t === 'boss') return loadBoss().catch((e) => say(errOf(e), true)); if (d.t === 'siege') return loadSiege().catch((e) => say(errOf(e), true)); },
+    gSiegeGo: async () => { const ok = await act('enterSiege'); return ok ? { close: true } : undefined; },
+    gSiegeReg: async () => { await run(() => registerSiege(), 'Đã đăng ký công thành! Trận diễn ra ' + WD[SIEGE.weekday] + ' ' + clock(SIEGE.startMin) + '.'); try { await loadSiege(); } catch (e) { /* bỏ qua */ } },
+    gFund: async () => { await run(() => distributeFund(), (j) => '✔ Đã phát ' + fmt(j.share) + ' Zen cho mỗi thành viên (qua hộp thư).'); try { await loadSiege(); } catch (e) { /* bỏ qua */ } },
     gBossGo: async () => { const ok = await act('enterGBoss'); return ok ? { close: true } : undefined; },
     gAuction: () => ({ open: 'auction' }),
     gSearch: () => { GD.q = val('gq').trim(); GD.page = 0; return loadList().catch((e) => say(errOf(e), true)); },
@@ -205,7 +239,9 @@ export const guildPanel = {
 export function initGuildUi(rerender) {
   // đếm ngược Boss bang mỗi giây (không vẽ lại cả bảng để không mất ô nhập) + làm mới bảng xếp hạng mỗi 10 giây
   setInterval(() => {
-    if (UI.panel !== 'guild' || GS.tab !== 'boss') return;
+    if (UI.panel !== 'guild') return;
+    if (GS.tab === 'siege') { const e2 = $('gst'); if (e2) e2.textContent = siegeClock(); if (Date.now() - GD.siegeAt > 10000 && !GS.busy) { GD.siegeAt = Date.now(); loadSiege().then(() => { if (UI.panel === 'guild' && GS.tab === 'siege') rerender(); }).catch(() => {}); } return; }
+    if (GS.tab !== 'boss') return;
     const el = $('gbt'); if (el) el.textContent = bossClock();
     if (Date.now() - GD.bossAt > 10000 && !GS.busy) { GD.bossAt = Date.now(); loadBoss().then(() => { if (UI.panel === 'guild' && GS.tab === 'boss') rerender(); }).catch(() => {}); }
   }, 1000);

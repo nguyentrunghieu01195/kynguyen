@@ -19,6 +19,9 @@ import { initSkills } from '../../src/systems/skills.js';
 import { initEvents } from '../../src/systems/events.js';
 import { initGBoss, syncBoss, gbossHurt, gbossTakeDelta, gbossSetBoard } from '../../src/systems/gboss.js';
 import { gbossStatus } from '../../src/config/gboss.js';
+import { SIEGE } from '../../src/config/siege.js';
+import { setSiegeProvider, syncSiege, siegeTakeOut, siegeHurt, siegeFinish } from '../../src/systems/siege.js';
+import { setGateOpen } from '../../src/systems/siege.js';
 import { createArena } from './arena.js';
 import { computeOffline } from '../../src/systems/offline.js';
 import { itemFull } from '../../src/systems/items.js';
@@ -38,7 +41,7 @@ export const HOST = {
   actPerSec: 30,       // giới hạn số lệnh mỗi giây
 };
 
-export function createHost({ accounts, store, market, guilds, gboss, send, onPresence, announceAll }) {
+export function createHost({ accounts, store, market, guilds, gboss, siege, send, onPresence, announceAll }) {
   const ctxs = new Map(); // accId -> ctx
   let CUR = null;
 
@@ -153,6 +156,65 @@ export function createHost({ accounts, store, market, guilds, gboss, send, onPre
     }
   }
 
+  // ---- Công Thành Chiến: một đấu trường chung cho cả trận, bộ não (server/src/siege*.js) điều khiển ----
+  const siegeList = () => { const out = []; for (const c of ctxs.values()) { const E = c.R && c.R.event; if (E && E.id === 'siege' && !E.over && c.S.guild) out.push(c); } return out; };
+  setSiegeProvider((S) => siege.entryFor(S, (gid) => siegeList().filter((c) => c.S.guild.id === gid).length));
+  let siegeRepT = 0;
+  function stepSiege(dt) {
+    const res = siege.takeResult();
+    if (res) { for (const c of ctxs.values()) { const E = c.R && c.R.event; if (E && E.id === 'siege' && !E.over) run(c, () => siegeFinish({ winner: res.winner, gateBroken: res.gateBroken, teams: res.teams })); } return; }
+    const brain = siege.brain;
+    if (!brain.active()) return;
+    const list = siegeList();
+    if (!list.length) { brain.step(dt, []); siege.pollEnd(); return; }
+    siegeRepT += dt;
+    const doReport = siegeRepT >= 1;
+    if (doReport) siegeRepT = 0;
+    const byId = new Map(), players = list.map((c) => {
+      const p = c.R.p, o = { ref: c, id: c.acc.id, gid: c.S.guild.id, name: c.S.name, x: p.x, y: p.y, dead: p.dead > 0 };
+      byId.set(o.id, o); return o;
+    });
+    // 1) gom sát thương PvP / cổng mà mỗi người vừa gây ra
+    for (const o of players) {
+      const out = run(o.ref, () => siegeTakeOut());
+      if (!out) continue;
+      for (const [pid, dmg] of Object.entries(out.pvp)) {
+        const t = byId.get(pid);
+        if (!t || t.gid === o.gid || t.dead || o.dead) continue;
+        if (Math.hypot(t.x - o.x, t.y - o.y) > SIEGE.maxHitRange) continue; // quá xa: bỏ
+        const d = Math.max(1, Math.min(Math.floor(dmg), Math.floor(t.ref.P.maxHp)));
+        const r = run(t.ref, () => siegeHurt(d, o.name));
+        if (r && r.died) { t.dead = true; brain.kill(o.gid, t.gid); }
+      }
+      if (out.gate > 0 && brain.gateHit(o.gid, out.gate)) { setGateOpen(true); announceAll('siege', { text: SIEGE.icon + ' Cổng Thành đã bị phá vỡ! Mau chiếm Ngai Vàng!' }); }
+    }
+    // 2) bộ não: ngai vàng, giờ giữ, hết giờ
+    for (const e of brain.step(dt, players.map((o) => ({ gid: o.gid, x: o.x, y: o.y, dead: o.ref.R.p.dead > 0 })))) {
+      if (e.type === 'throne') announceAll('siege', { text: SIEGE.icon + ' ' + brain.teamOf(e.gid).name + ' đã chiếm Ngai Vàng!' });
+    }
+    if (doReport) for (const o of players) siege.report(o.id, o.gid, Math.floor(o.ref.R.event.active || 0), o.ref.S.lv);
+    siege.pollEnd();
+    // 3) mỗi người thấy người địch quanh mình + cổng + bảng điểm
+    const board = brain.board(), gate = brain.gate();
+    const live = players.filter((o) => o.ref.R.p.dead <= 0);
+    for (const o of players) {
+      const near = [];
+      for (const e of live) {
+        if (e.gid === o.gid) continue;
+        const dd = Math.hypot(e.ref.R.p.x - o.x, e.ref.R.p.y - o.y);
+        if (dd <= SIEGE.viewRadius) near.push([dd, e]);
+      }
+      if (near.length > SIEGE.maxProxies) near.sort((a, b) => a[0] - b[0]).length = SIEGE.maxProxies;
+      const enemies = [];
+      for (const [, e] of near) {
+        const p = e.ref.R.p;
+        enemies.push({ id: e.id, name: e.name, lv: e.ref.S.lv, x: p.x, y: p.y, hp: p.hp, maxHp: e.ref.P.maxHp, def: e.ref.P.def, face: p.face, moving: p.moving, team: brain.teamOf(e.gid).slot, prot: e.ref.R.event.prot > 0 });
+      }
+      run(o.ref, () => syncSiege({ enemies, gate, board }));
+    }
+    relayEffects(list.map((c) => ({ ref: c })));
+  }
+
   // ---- vòng lặp ----
   let last = Date.now(), snapT = 0, stateT = 0, loopMs = 0;
   setInterval(() => {
@@ -163,6 +225,7 @@ export function createHost({ accounts, store, market, guilds, gboss, send, onPre
     const doSnap = snapT >= HOST.snapMs, doState = stateT >= HOST.stateMs;
     if (doSnap) snapT = 0;
     try { stepArena(dt, now); } catch (e) { console.error('[host] lỗi đấu trường bang', e); }
+    try { stepSiege(dt); } catch (e) { console.error('[host] lỗi công thành', e); }
     if (doState) stateT = 0;
     for (const c of ctxs.values()) try {
       run(c, () => update(dt));

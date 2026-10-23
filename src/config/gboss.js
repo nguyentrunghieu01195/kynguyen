@@ -79,10 +79,10 @@ export function diyOf(spec) {
   const tb = need.bless / DIY.rate.bless, ts = need.soul / DIY.rate.soul, tc = need.chaos / DIY.rate.chaos;
   // cày đồ và ngọc diễn ra song song (lấy mốc lâu nhất) + công ép/nhặt riêng lẻ (15% tổng thời gian từng loại)
   const hours = Math.max(tb, ts, tc, items / DIY.excItemPerHour) + DIY.laborFrac * (tb + ts + tc);
-  const zen = Math.round((hours * DIY.zenPerHour * (items ? DIY.tierMul(tier) : 1)) / 10000) * 10000;
+  const zen = Math.round((hours * DIY.zenPerHour * (items ? DIY.tierMul(tier) : 1) * (spec.premium || 1)) / 10000) * 10000;
   return { need, items, hours, zen };
 }
-const withStart = (spec) => { const d = diyOf(spec); return { ...spec, diy: d.zen, start: Math.max(10000, Math.round((d.zen * DIY.startFrac) / 10000) * 10000) }; };
+export const withStart = (spec) => { const d = diyOf(spec); return { ...spec, diy: d.zen, start: Math.max(10000, Math.round((d.zen * DIY.startFrac) / 10000) * 10000) }; };
 
 // ---------------- QUÀ XẾP HẠNG → ĐẤU GIÁ ----------------
 // Mỗi "lô" là 1 phiên đấu giá riêng. item: { tier, plus, exc } (loại đồ & lớp vũ khí ngẫu nhiên khi tạo), jewels: { bless, soul, chaos }.

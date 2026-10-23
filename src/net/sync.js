@@ -12,6 +12,7 @@ import { generateMap } from '../systems/world.js';
 import { generateArena } from '../systems/events.js';
 import { towerArena, towerMeta } from '../systems/tower.js';
 import { gbossArena, gbossMeta } from '../systems/gboss.js';
+import { siegeArena, siegeMeta } from '../systems/siege.js';
 
 // ---------------- MẪU QUÁI (tham chiếu → khoá) ----------------
 const TPL = new Map(), TPL_BY_KEY = {};
@@ -22,7 +23,7 @@ const tplKey = (t) => TPL.get(t) || null;
 
 // Chỉ gửi các trường cần để VẼ quái (không gửi trường AI nội bộ)
 const MOB_FIELDS = ['x', 'y', 'hp', 'maxHp', 'lv', 'name', 'shape', 'size', 'c1', 'c2', 'boss', 'elite', 'kind', 'invuln', 'face', 'moving',
-  'flash', 'hpShow', 'lunge', 'stun', 'slowT', 'cast', 'event', 'angry'];
+  'flash', 'hpShow', 'lunge', 'stun', 'slowT', 'cast', 'event', 'angry', 'pvp', 'team', 'pid', 'siegeGate'];
 const SKIP_P = new Set(['target', 'path', 'pathGoal', 'pathT', 'prog', 'stuck']);
 const r2 = (v) => (typeof v === 'number' ? Math.round(v * 100) / 100 : v);
 const same = (a, b) => a === b || (a && b && typeof a === 'object' && JSON.stringify(a) === JSON.stringify(b));
@@ -97,6 +98,7 @@ function mapForKey(key) {
   if (typeof key === 'number') return generateMap(key);
   if (/^ev_/.test(key)) return generateArena(EVENTS[key.slice(3)]);
   if (key === 'gb') return gbossArena();
+  if (key === 'sg') return siegeArena();
   if (/^tw_/.test(key)) return towerArena(+key.slice(3));
   return generateMap(0);
 }
@@ -104,7 +106,7 @@ function mapForKey(key) {
 /** Tạo G.R rỗng theo thông tin máy chủ gửi (bản đồ dựng lại tại máy, giống hệt máy chủ vì sinh bằng hạt giống cố định) */
 export function buildRuntime(init) {
   const prev = G.R, map = mapForKey(init.key);
-  const M = init.M || (typeof init.key === 'number' ? MAPS[init.key] : init.key === 'gb' ? gbossMeta() : towerMeta(+String(init.key).slice(3)));
+  const M = init.M || (typeof init.key === 'number' ? MAPS[init.key] : init.key === 'gb' ? gbossMeta() : init.key === 'sg' ? siegeMeta() : towerMeta(+String(init.key).slice(3)));
   G.R = {
     mapIndex: init.key, map, M, remote: true,
     mobs: [], drops: [], projs: [], eprojs: [], fx: [], texts: [], respawn: [],
@@ -190,7 +192,7 @@ export function applyState(S, patch) { for (const k in patch) S[k] = patch[k]; }
 // ---------------- SỰ KIỆN ----------------
 /** Sự kiện game máy chủ chuyển cho máy người chơi (để hiện chữ, rung màn hình, phát âm thanh, mở bảng kết quả…) */
 export const FORWARD_EVENTS = ['log', 'announce', 'levelUp', 'kill', 'playerDie', 'mapEnter', 'upgrade', 'craft', 'auto', 'points', 'pickup', 'skill', 'hit', 'basic',
-  'playerHit', 'bossCast', 'bossSlam', 'shake', 'skillLearn', 'potion', 'buy', 'reset', 'tierUp', 'quest', 'event', 'eventEnd', 'towerFloor', 'towerEnd', 'gbossEnd', 'inventory'];
+  'playerHit', 'bossCast', 'bossSlam', 'shake', 'skillLearn', 'potion', 'buy', 'reset', 'tierUp', 'quest', 'event', 'eventEnd', 'towerFloor', 'towerEnd', 'gbossEnd', 'siegeEnd', 'inventory'];
 /** Tham số sự kiện → dữ liệu gửi được (quái → tóm tắt có id) */
 export function packArg(a) {
   if (!a || typeof a !== 'object') return a;

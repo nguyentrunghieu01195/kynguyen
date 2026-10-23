@@ -6,7 +6,7 @@ import { ITEM, DROP } from '../config/balance.js';
 import { CFG } from '../config/constants.js';
 import { SLOTS, DROP_SLOTS, PIECE_DEF, PIECE_PREFIX, WEAPON_NAMES, SETS, WINGS, EXC_OPTS, RARITY_COLORS } from '../config/items.js';
 import { calcStats } from './stats.js';
-import { WEAPON_TYPES, ARMOR_SETS, TIER_ADJ, LINE_B_CHANCE } from '../config/gear.js';
+import { WEAPON_TYPES, ARMOR_SETS, TIER_ADJ, LINE_B_CHANCE, regularWeaponCount } from '../config/gear.js';
 import { ARMOR_SLOTS } from '../config/items.js';
 
 /** Loại vũ khí của món đồ (mặc định loại đầu nếu save cũ không có) */
@@ -72,7 +72,7 @@ export function makeItem(slot, tier, plus = 0, exc = null, cls = null, extra = {
 
 /** Thuộc tính ngẫu nhiên khi rơi: loại vũ khí / dòng giáp */
 export function randomVariant(slot) {
-  if (slot === 'weapon') return { wt: rint(0, WEAPON_TYPES[G.S ? G.S.cls : 'knight'].length - 1) };
+  if (slot === 'weapon') return { wt: rint(0, regularWeaponCount(G.S ? G.S.cls : 'knight') - 1) }; // loại đặc biệt không rơi ngẫu nhiên
   return { line: chance(LINE_B_CHANCE) ? 1 : 0 };
 }
 

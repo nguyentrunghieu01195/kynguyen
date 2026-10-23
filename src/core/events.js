@@ -49,6 +49,7 @@ export const EV = {
   EVENT_END: 'eventEnd',  // (result) đã rời đấu trường
   TOWER_FLOOR: 'towerFloor', // (floor, firstClear) vượt 1 tầng tháp
   TOWER_END: 'towerEnd',  // (result) kết thúc lượt leo tháp
+  SIEGE_END: 'siegeEnd',  // (result) kết thúc trận công thành
   GBOSS_END: 'gbossEnd',  // (result) kết thúc 1 lượt đánh Boss bang
   NET: 'net',             // trạng thái kết nối / dữ liệu máy chủ thay đổi
   TRADE: 'trade',         // giao dịch trực tiếp thay đổi (mời / trạng thái / kết thúc)

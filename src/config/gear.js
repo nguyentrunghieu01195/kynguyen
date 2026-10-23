@@ -13,22 +13,31 @@ export const TIER_ADJ = ['Thô', 'Thép', 'Xương', 'Băng Phong', 'Hỏa Ngụ
  *   skillArea: % bán kính kỹ năng · extraArrows: số mũi tên thêm cho Mưa Tên
  * Loại đầu tiên của mỗi class giữ tên cũ để tương thích save cũ.
  */
+/** Vũ khí đặc biệt chỉ có từ Công Thành Chiến (special: true): không rơi ngẫu nhiên, không rèn lại; hình vẽ dùng lại kiểu cơ bản cùng `id` */
+const SIEGE_NAMES = { knight: Array(6).fill('Vương Giả Kiếm'), wizard: Array(6).fill('Vương Giả Trượng'), archer: Array(6).fill('Vương Giả Cung') };
+/** Số loại vũ khí thường (không tính loại đặc biệt) và vị trí loại đặc biệt của mỗi class */
+export const regularWeaponCount = (cls) => WEAPON_TYPES[cls].filter((w) => !w.special).length;
+export const specialWeaponIndex = (cls) => WEAPON_TYPES[cls].findIndex((w) => w.special);
+
 export const WEAPON_TYPES = {
   knight: [
     { id: 'sword', name: 'Kiếm', names: WEAPON_NAMES.knight, desc: 'Cân bằng công và tốc', mods: {} },
     { id: 'axe', name: 'Rìu', desc: 'Sát thương +18%, tốc đánh −12%', mods: { dmg: 0.18, spd: -0.12 } },
     { id: 'mace', name: 'Chùy', desc: 'Chí mạng +6%, phòng thủ +8%', mods: { crit: 6, def: 0.08 } },
     { id: 'spear', name: 'Thương', desc: 'Tầm đánh +0.8, Xoáy Kiếm rộng hơn 25%, sát thương −4%', mods: { range: 0.8, skillArea: 0.25, dmg: -0.04 } },
+    { id: 'sword', special: true, name: 'Vương Giả Kiếm', names: SIEGE_NAMES.knight, desc: 'Chỉ có từ Công Thành Chiến · Sát thương +30%, chí mạng +8%', mods: { dmg: 0.3, crit: 8 } },
   ],
   wizard: [
     { id: 'staff', name: 'Trượng', names: WEAPON_NAMES.wizard, desc: 'Cân bằng công và tốc', mods: {} },
     { id: 'orb', name: 'Quả Cầu', desc: 'Tốc thi triển +18%, MP +15%, sát thương −8%', mods: { spd: 0.18, mp: 0.15, dmg: -0.08 } },
     { id: 'tome', name: 'Sách Phép', desc: 'Sát thương kỹ năng +25%, đánh thường −10%', mods: { skill: 0.25, basic: -0.1 } },
+    { id: 'staff', special: true, name: 'Vương Giả Trượng', names: SIEGE_NAMES.wizard, desc: 'Chỉ có từ Công Thành Chiến · Sát thương +30%, chí mạng +8%', mods: { dmg: 0.3, crit: 8 } },
   ],
   archer: [
     { id: 'bow', name: 'Cung', names: WEAPON_NAMES.archer, desc: 'Cân bằng công và tốc', mods: {} },
     { id: 'crossbow', name: 'Nỏ', desc: 'Sát thương +22%, tốc đánh −15%, tầm +1', mods: { dmg: 0.22, spd: -0.15, range: 1 } },
     { id: 'twinbow', name: 'Song Cung', desc: 'Tốc đánh +22%, sát thương −12%, Mưa Tên thêm 2 mũi', mods: { spd: 0.22, dmg: -0.12, extraArrows: 2 } },
+    { id: 'bow', special: true, name: 'Vương Giả Cung', names: SIEGE_NAMES.archer, desc: 'Chỉ có từ Công Thành Chiến · Sát thương +30%, chí mạng +8%', mods: { dmg: 0.3, crit: 8 } },
   ],
 };
 

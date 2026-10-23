@@ -132,7 +132,7 @@ export function updateMonsters(dt) {
     if (blockedAt(R.map, m.x, m.y)) { const f = nearestFree(R.map, m.x, m.y); m.x = f.x; m.y = f.y; } // lỡ bị đẩy vào vật cản
     const b = R.bounds; if (m.x < b.x0) m.x = b.x0; else if (m.x > b.x1) m.x = b.x1; if (m.y < b.y0) m.y = b.y0; else if (m.y > b.y1) m.y = b.y1;
   }
-  separate(active);
+  separate(active.filter((m) => !m.static)); // vật đứng yên (cổng, đại diện người chơi) không bị đẩy
   updateEnemyProjectiles(dt);
 
   for (let i = R.respawn.length - 1; i >= 0; i--) {

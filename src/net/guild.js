@@ -10,7 +10,8 @@ export const GD = {
   list: null,          // danh sách bang đang xem
   page: 0, q: '',
   chat: [],
-  boss: null, bossAt: 0,   // trạng thái Boss bang từ máy chủ
+  boss: null, bossAt: 0,
+  siege: null, siegeAt: 0,   // trạng thái Công thành chiến từ máy chủ   // trạng thái Boss bang từ máy chủ
   auction: { guild: null, world: null },
   onChat: null,        // giao diện đăng ký để vẽ lại khi có tin mới
 };
@@ -29,6 +30,9 @@ export const loadMine = async () => take(await apiReq('GET', '/api/guild'));
 export const loadList = async () => { GD.list = await apiReq('GET', '/api/guild/list?page=' + GD.page + '&q=' + encodeURIComponent(GD.q)); GD.page = GD.list.page; };
 export const createGuild = async (name) => take(await saveOp('/api/guild/create', { name }));
 export const loadBoss = async () => { GD.boss = await apiReq('GET', '/api/gboss'); GD.bossAt = Date.now(); };
+export const loadSiege = async () => { GD.siege = await apiReq('GET', '/api/siege'); GD.siegeAt = Date.now(); };
+export const registerSiege = async () => saveOp('/api/siege/register', {});
+export const distributeFund = async () => take(await apiReq('POST', '/api/guild/fund', {}));
 export const loadAuction = async (scope) => { GD.auction[scope] = await apiReq('GET', '/api/auction?scope=' + scope); };
 export const bidLot = async (id, amount) => saveOp('/api/auction/bid', { id, amount });
 export const claimQuest = async (id) => take(await saveOp('/api/guild/quest', { id }));

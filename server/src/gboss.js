@@ -12,7 +12,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { GBOSS, gbossStatus, rewardsForRank, AUCTION, nextBid } from '../../src/config/gboss.js';
 import { makeItem, rollExc } from '../../src/systems/items.js';
-import { WEAPON_TYPES, LINE_B_CHANCE } from '../../src/config/gear.js';
+import { WEAPON_TYPES, LINE_B_CHANCE, specialWeaponIndex } from '../../src/config/gear.js';
 import { DROP_SLOTS } from '../../src/config/items.js';
 import { TradeError, cleanItem, goodsText } from './market.js';
 
@@ -24,8 +24,8 @@ const emptyGoods = () => ({ items: [], jewels: {}, zen: 0 });
 
 /** Tạo món đồ cho 1 phần quà: loại đồ ngẫu nhiên, vũ khí thuộc lớp ngẫu nhiên */
 function lotItem(spec) {
-  const slot = DROP_SLOTS[rint(0, DROP_SLOTS.length - 1)], cls = CLASSES[rint(0, 2)];
-  const extra = slot === 'weapon' ? { wt: rint(0, WEAPON_TYPES[cls].length - 1) } : { line: Math.random() < LINE_B_CHANCE ? 1 : 0 };
+  const slot = spec.slot || DROP_SLOTS[rint(0, DROP_SLOTS.length - 1)], cls = spec.cls || CLASSES[rint(0, 2)];
+  const extra = slot === 'weapon' ? { wt: spec.special ? specialWeaponIndex(cls) : rint(0, WEAPON_TYPES[cls].filter((w) => !w.special).length - 1) } : { line: Math.random() < LINE_B_CHANCE ? 1 : 0 };
   return cleanItem(makeItem(slot, spec.tier, spec.plus || 0, spec.exc ? rollExc(slot, spec.exc) : null, cls, extra));
 }
 
@@ -145,6 +145,20 @@ export function createGBoss(dir, { guilds, store, market, notify = () => {}, ann
   setTimeout(tick, 1000);
   setInterval(tick, 3000).unref();
 
+  /** Tạo các phiên đấu giá bang từ danh sách quà (dùng cho xếp hạng Boss và quà công thành). accs = người đủ điều kiện */
+  function addLots({ gid, gname, rank = 0, specs, accs, mvp }) {
+    const now = Date.now(), ids = [];
+    for (const spec of specs) {
+      const goods = emptyGoods();
+      if (spec.item) { const it = lotItem(spec.item); if (it) goods.items.push(it); }
+      if (spec.jewels) for (const [k, n] of Object.entries(spec.jewels)) if (n > 0) goods.jewels[k] = n;
+      const lot = { id: nid(), round: 'extra', gid, gname, rank, goods, start: spec.start, diy: spec.diy, stage: 'guild', status: 'active', createdAt: now, endAt: now + AUCTION.guildMin * 60000, bid: null, eligible: accs, split: accs, mvp: mvp || accs[0] };
+      data.lots[lot.id] = lot; ids.push(lot.id);
+    }
+    trim(); touch();
+    return ids;
+  }
+
   const pubLot = (lot, accId, myGid) => ({
     id: lot.id, gid: lot.gid, gname: lot.gname, rank: lot.rank, goods: lot.goods, start: lot.start, diy: lot.diy || 0, stage: lot.stage, status: lot.status, endAt: lot.endAt,
     bid: lot.bid ? { name: lot.bid.name, amount: lot.bid.amount, mine: lot.bid.acc === accId } : null, next: nextBid(lot),
@@ -152,7 +166,7 @@ export function createGBoss(dir, { guilds, store, market, notify = () => {}, ann
   });
 
   return {
-    flush, dump: () => data, tick, addDamage, board,
+    flush, dump: () => data, tick, addDamage, board, addLots,
     /** Trạng thái Boss bang cho người chơi */
     status(accId) {
       const st = gbossStatus(), R = data.round, myGid = guilds.guildIdOf(accId);

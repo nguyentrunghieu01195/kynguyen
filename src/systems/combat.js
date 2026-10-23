@@ -6,6 +6,7 @@ import { CLASSES } from '../config/classes.js';
 import { PLAYER, POTION, MONSTER, mitigate } from '../config/balance.js';
 import { gainExp, expNeed, expRate } from './character.js';
 import { rollDrops } from './loot.js';
+import { SIEGE } from '../config/siege.js';
 
 /** Chữ bay. style: true/'big' (to), 'crit' (chí mạng, nảy to), 'skill' (sát thương kỹ năng), 'hurt' (người chơi mất máu) */
 export function addText(x, y, txt, col, style) {
@@ -35,6 +36,7 @@ export function hitMob(m, mult, opts) {
   let d = rnd(P.dmgMin, P.dmgMax) * mult;
   const crit = Math.random() * 100 < P.crit;
   if (crit) d *= PLAYER.critMult;
+  if (m.pvp || m.siegeGate) return siegeHit(m, d, mult, crit, opts);
   d = Math.max(1, Math.round(mitigate(d, m.def)));
   m.hp -= d;
   m.flash = 0.12;
@@ -49,6 +51,33 @@ export function hitMob(m, mult, opts) {
   }
   emit(EV.HIT, m, d, crit, sk);
   if (m.hp <= 0) killMob(m);
+}
+
+/**
+ * Công Thành Chiến: đánh vào người địch (m.pvp) hoặc Cổng Thành (m.siegeGate). Không giết "đại diện" tại máy này:
+ * sát thương được ghi vào E.out để máy chủ chuyển cho người bị đánh / trừ máu cổng.
+ *  - Người chơi: công thức thường (trừ phòng thủ thật của họ) × SIEGE.pvpCoef.
+ *  - Cổng: tính theo hệ số đòn (mult) nên không phụ thuộc cấp người đánh.
+ */
+function siegeHit(m, d, mult, crit, opts) {
+  const E = G.R.event;
+  if (!E || E.id !== 'siege' || E.over) return;
+  const sk = !!(opts && opts.skill);
+  let shown;
+  if (m.pvp) {
+    d = Math.max(1, Math.round(mitigate(d, m.def) * SIEGE.pvpCoef));
+    E.out.pvp[m.pid] = (E.out.pvp[m.pid] || 0) + d;
+    E.dmgOut += d;
+    m.hp = Math.max(1, m.hp - d); // chỉ để thanh máu nhảy ngay; máy chủ sẽ gửi lại máu thật
+    shown = d;
+  } else {
+    shown = Math.round(mult * SIEGE.gate.unit);
+    E.out.gate += shown;
+    m.hp = Math.max(1, m.hp - shown);
+  }
+  m.flash = 0.12; m.hpShow = 4;
+  addText(m.x, m.y, fmt(shown) + (crit ? '!' : ''), crit ? '#ffd54a' : sk ? '#ffb070' : '#ffffff', crit ? 'crit' : sk ? 'skill' : null);
+  emit(EV.HIT, m, shown, crit, sk);
 }
 
 export function killMob(m) {

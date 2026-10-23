@@ -107,6 +107,7 @@ export function createMarket(dir, accounts) {
   const flush = () => { if (!dirty) return; dirty = false; const tmp = file + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(data)); fs.renameSync(tmp, file); };
   const touch = () => { dirty = true; if (!timer) timer = setTimeout(() => { timer = null; flush(); }, 1000); };
   let notify = () => {}; // gắn từ index.js: báo người chơi online có thư mới
+  let taxHook = () => {}; // gắn từ index.js: một phần phí chợ chuyển vào quỹ bang giữ thành
 
   function mail(accId, text, goods) {
     const acc = accounts.get(accId);
@@ -136,6 +137,7 @@ export function createMarket(dir, accounts) {
 
   return {
     setNotify: (f) => (notify = f),
+    setTax: (f) => (taxHook = f),
     mail, flush,
     dump: () => data,
     /** Danh sách đang bán (lọc / sắp xếp / phân trang) */
@@ -188,6 +190,7 @@ export function createMarket(dir, accounts) {
       const { delta } = takeGoods(d, { items: [], jewels: {}, zen: L.price });
       delete data.listings[id];
       const fee = Math.floor(L.price * MARKET.fee), got = L.price - fee;
+      taxHook(fee); // thuế chợ: lấy từ phí chợ, người bán vẫn nhận đúng L.price − fee
       const buyer = String(d.name || acc.user).slice(0, 20);
       mail(L.seller, 'Đã bán ' + goodsText(L.goods) + ' cho ' + buyer + ' giá ' + L.price.toLocaleString('vi-VN') + ' Zen (phí chợ ' + fee.toLocaleString('vi-VN') + ').', { items: [], jewels: {}, zen: got });
       mail(acc.id, 'Đã mua ' + goodsText(L.goods) + ' của ' + L.sellerName + ' giá ' + L.price.toLocaleString('vi-VN') + ' Zen.', L.goods);

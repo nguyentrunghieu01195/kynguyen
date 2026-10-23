@@ -5,17 +5,17 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 
-export function createBackups(dir, { accounts, store, market, guilds, gboss, everyHours = 24, keep = 14 }) {
+export function createBackups(dir, { accounts, store, market, guilds, gboss, siege, everyHours = 24, keep = 14 }) {
   const bdir = path.join(dir, 'backups');
   fs.mkdirSync(bdir, { recursive: true });
   const list = () => fs.readdirSync(bdir).filter((f) => /^kng-\d{8}-\d{6}\.json\.gz$/.test(f)).sort().reverse()
     .map((f) => { const st = fs.statSync(path.join(bdir, f)); return { name: f, size: st.size, at: st.mtimeMs }; });
 
   function run(tag = 'auto') {
-    accounts.flush(); store.flush(); if (market) market.flush(); if (guilds) guilds.flush(); if (gboss) gboss.flush();
+    accounts.flush(); store.flush(); if (market) market.flush(); if (guilds) guilds.flush(); if (gboss) gboss.flush(); if (siege) siege.flush();
     const d = new Date(), pad = (n) => String(n).padStart(2, '0');
     const name = 'kng-' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + '-' + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds()) + '.json.gz';
-    const bundle = { v: 1, at: Date.now(), tag, ...accounts.dump(), players: store.dump(), market: market ? market.dump() : null, guilds: guilds ? guilds.dump() : null, gboss: gboss ? gboss.dump() : null };
+    const bundle = { v: 1, at: Date.now(), tag, ...accounts.dump(), players: store.dump(), market: market ? market.dump() : null, guilds: guilds ? guilds.dump() : null, gboss: gboss ? gboss.dump() : null, siege: siege ? siege.dump() : null };
     const tmp = path.join(bdir, name + '.tmp');
     fs.writeFileSync(tmp, zlib.gzipSync(JSON.stringify(bundle), { level: 9 }));
     fs.renameSync(tmp, path.join(bdir, name));
