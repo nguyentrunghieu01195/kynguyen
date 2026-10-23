@@ -24,8 +24,8 @@ const errOf = (e) => (e && e.message) || 'Có lỗi, thử lại nhé.';
 const ago = (t) => { const m = (Date.now() - t) / 60000; return m < 1 ? 'vừa xong' : m < 60 ? Math.round(m) + ' phút trước' : m < 1440 ? Math.round(m / 60) + ' giờ trước' : Math.round(m / 1440) + ' ngày trước'; };
 const left = (t) => { const h = (t - Date.now()) / 36e5; return h > 1 ? 'còn ' + Math.round(h) + ' giờ' : 'còn ' + Math.max(1, Math.round(h * 60)) + ' phút'; };
 const jewelIcon = (k, n) => '<div class="cell jw" style="color:' + JEWELS[k].color + '"><span class="jwi">◆</span>' + (n ? '<small class="pl">×' + n + '</small>' : '') + '</div>';
-const goodsIcon = (g) => (g.items.length ? itemCell(g.items[0], { act: '', selId: null }) : jewelIcon(Object.keys(g.jewels)[0], Object.values(g.jewels)[0]));
-function goodsName(g) {
+export const goodsIcon = (g) => (g.items.length ? itemCell(g.items[0], { act: '', selId: null }) : jewelIcon(Object.keys(g.jewels)[0], Object.values(g.jewels)[0]));
+export function goodsName(g) {
   if (g.items.length) { const it = g.items[0]; return '<b style="color:' + itemColor(it) + '">' + (it.exc ? '[HH] ' : '') + esc(itemFull(it)) + '</b>' + (it.slot === 'weapon' && it.cls ? ' <span class="muted">· ' + CLASSES[it.cls].name + '</span>' : ''); }
   const [k, n] = Object.entries(g.jewels)[0];
   return '<b style="color:' + JEWELS[k].color + '">' + n + ' × ' + JEWELS[k].name + '</b>';

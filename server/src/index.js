@@ -15,6 +15,9 @@ import { createAccounts, AuthError } from './accounts.js';
 import { createBackups } from './backup.js';
 import { createHost } from './host.js';
 import { createMarket, TradeError, MARKET, cleanGoods, goodsText, takeGoods as takeGoodsFn } from './market.js';
+import { createGuilds } from './guilds.js';
+import { createGBoss } from './gboss.js';
+import { claimGuildQ } from '../../src/systems/quests.js';
 import crypto from 'node:crypto';
 import { LIMITS, CLASSES, cleanName, cleanText, cleanLook, cleanStats, cleanRoom, cleanPos, ANNOUNCE, buildRank } from './protocol.js';
 
@@ -26,10 +29,18 @@ const DATA = process.env.DATA_DIR || path.join(ROOT, 'server', 'data');
 const store = createStore(DATA);
 const accounts = createAccounts(DATA);
 const market = createMarket(DATA, accounts);
+const guilds = createGuilds(DATA, { store });
+guilds.setNotify((accId) => host.refreshGuild(accId));
+guilds.setOnline((accId) => !!host.get(accId));
 market.setNotify((accId) => { const c = host.get(accId); if (c) setTimeout(() => host.autoClaim(c), 0); for (const s of sessions.values()) if (s.p && s.p.acc === accId) out(s.ws, { t: 'mail' }); });
+const gboss = createGBoss(DATA, {
+  guilds, store, market,
+  notify: (accIds, text) => { const set = new Set(accIds); for (const s of sessions.values()) if (s.p && set.has(s.p.acc)) out(s.ws, { t: 'sys', text, private: true, info: true }); },
+  announce: (text) => toAll({ t: 'sys', text }),
+});
 // Máy chủ chạy game cho người chơi có tài khoản (gắn hàm gửi/hiện diện ở dưới khi đã có sessions/rooms)
 const host = createHost({
-  accounts, store, market,
+  accounts, store, market, guilds, gboss,
   send: (s, msg) => out(s.ws, msg),
   onPresence(s, d) {
     if (d.look) { s.look = cleanLook(d.look); if (s.room) toRoom(s.room, { t: 'plook', id: s.p.id, look: s.look }, s); return; }
@@ -39,7 +50,7 @@ const host = createHost({
   },
   announceAll(kind, data, who) { const f = ANNOUNCE[kind]; if (f) toAll({ t: 'sys', text: f(data || {}, who) }); },
 });
-const backups = createBackups(DATA, { accounts, store, market, everyHours: +process.env.BACKUP_HOURS || 24, keep: +process.env.BACKUP_KEEP || 14 });
+const backups = createBackups(DATA, { accounts, store, market, guilds, gboss, everyHours: +process.env.BACKUP_HOURS || 24, keep: +process.env.BACKUP_KEEP || 14 });
 const ADMIN_RAW = process.env.ADMIN_PASSWORD || '';
 const ADMIN_WEAK = ADMIN_RAW && (ADMIN_RAW.length < 10 || ADMIN_RAW === 'doi-mat-khau-nay');
 const ADMIN_PASSWORD = ADMIN_WEAK ? '' : ADMIN_RAW;
@@ -140,6 +151,38 @@ async function api(req, res, url) {
       case 'GET /api/mail': return json(res, 200, { rows: market.mailOf(acc) });
       case 'POST /api/mail/claim': return await saveOp(req, res, acc, (d) => market.claim(acc, d));
       case 'POST /api/trade/lock': return await saveOp(req, res, acc, (d, b) => tradeLock(acc, d, b));
+      // ---- bang hội ----
+      case 'GET /api/guild': return json(res, 200, { guild: guilds.detail(acc.id) });
+      case 'GET /api/guild/list': return json(res, 200, guilds.list(acc.id, { page: +url.searchParams.get('page') || 0, q: url.searchParams.get('q') || '' }));
+      case 'GET /api/gboss': return json(res, 200, gboss.status(acc.id));
+      case 'GET /api/auction': return json(res, 200, gboss.lots(acc.id, url.searchParams.get('scope') === 'world' ? 'world' : 'guild'));
+      case 'POST /api/auction/bid': return await saveOp(req, res, acc, (S, b) => gboss.bid(acc.id, S, String(b.id || ''), b.amount));
+      case 'POST /api/guild/create': return await saveOp(req, res, acc, (S, b) => guilds.create(acc.id, S, b.name));
+      case 'POST /api/guild/quest': return await saveOp(req, res, acc, (S, b) => {
+        if (!guilds.guildIdOf(acc.id)) throw new TradeError('Anh chưa vào bang hội nào.');
+        const r = claimGuildQ(String(b.id || ''));
+        if (!r) throw new TradeError('Nhiệm vụ chưa hoàn thành hoặc đã nhận.');
+        return { ...guilds.addPts(acc.id, S, r.pts), all: r.all };
+      });
+      case 'POST /api/guild/donate': return await saveOp(req, res, acc, (S, b) => guilds.donate(acc.id, S, b));
+      case 'POST /api/guild/apply': case 'POST /api/guild/cancel': case 'POST /api/guild/accept': case 'POST /api/guild/reject': case 'POST /api/guild/kick':
+      case 'POST /api/guild/role': case 'POST /api/guild/transfer': case 'POST /api/guild/leave': case 'POST /api/guild/disband': case 'POST /api/guild/notice': {
+        if (limited('g:' + acc.id, 40, 60000)) return json(res, 429, { error: 'rate', message: 'Thao tác quá nhanh, chờ một chút.' });
+        const b = await readBody(req, 2048), who = String(b.acc || ''), op = url.pathname.slice('/api/guild/'.length);
+        switch (op) {
+          case 'apply': guilds.apply(acc.id, String(b.id || '')); break;
+          case 'cancel': guilds.cancelApp(acc.id, String(b.id || '')); break;
+          case 'accept': guilds.accept(acc.id, who); break;
+          case 'reject': guilds.reject(acc.id, who); break;
+          case 'kick': guilds.kick(acc.id, who); break;
+          case 'role': guilds.setRole(acc.id, who, String(b.role || '')); break;
+          case 'transfer': guilds.transfer(acc.id, who); break;
+          case 'leave': guilds.leave(acc.id); break;
+          case 'disband': guilds.disband(acc.id); break;
+          case 'notice': guilds.setNotice(acc.id, b.text); break;
+        }
+        return json(res, 200, { ok: true, guild: guilds.detail(acc.id) });
+      }
       case 'POST /api/password': {
         const b = await readBody(req, 4096);
         accounts.changePassword(acc, b.old, b.pass, token);
@@ -210,7 +253,7 @@ async function adminApi(req, res, url) {
         accounts: all.length, withChar: all.filter((a) => a.summary).length, banned: all.filter((a) => a.banned).length,
         active1d: all.filter((a) => a.lastLogin > day || a.saveAt > day).length, active7d: all.filter((a) => a.lastLogin > week || a.saveAt > week).length,
         profiles: store.all().length, online: [...sessions.values()].filter((s) => s.p).length,
-        market: market.adminStats(), trades: trades.size, host: host.load(), backups: backups.list(), backupEvery: +process.env.BACKUP_HOURS || 24, backupKeep: +process.env.BACKUP_KEEP || 14, uptime: Math.round(process.uptime()),
+        market: market.adminStats(), guilds: guilds.stats(), gboss: gboss.stats(), trades: trades.size, host: host.load(), backups: backups.list(), backupEvery: +process.env.BACKUP_HOURS || 24, backupKeep: +process.env.BACKUP_KEEP || 14, uptime: Math.round(process.uptime()),
       });
     }
     if (route === 'GET /api/admin/accounts') {
@@ -482,6 +525,16 @@ const HANDLERS = {
     s.annAt = now;
     toAll({ t: 'sys', text: f(m.data || {}, s.p.name) });
   },
+  gchat(s, m) {
+    const acc = s.p.acc, gid = acc && guilds.guildIdOf(acc), text = cleanText(m.text, LIMITS.chatLen), now = Date.now();
+    if (!gid || !text) return;
+    if (now - (s.gchatAt || 0) < LIMITS.chatCooldownMs) return out(s.ws, { t: 'sys', text: 'Bạn chat quá nhanh, chờ một chút nhé.', private: true });
+    s.gchatAt = now;
+    const msg = { t: 'gchat', from: s.p.name, text, ts: now };
+    guilds.chatPush(gid, msg);
+    const ids = new Set(guilds.memberIds(gid));
+    for (const o of sessions.values()) if (o.p && ids.has(o.p.acc)) out(o.ws, msg);
+  },
   rank(s) { out(s.ws, { t: 'rank', rank: rank() }); },
   ping(s) { out(s.ws, { t: 'pong' }); },
   ...TRADE_HANDLERS,
@@ -516,7 +569,7 @@ setInterval(() => {
 setInterval(() => { for (const ws of sessions.keys()) { if (ws.isAlive === false) { ws.terminate(); continue; } ws.isAlive = false; ws.ping(); } }, 30000);
 wss.on('connection', (ws) => { ws.isAlive = true; ws.on('pong', () => (ws.isAlive = true)); });
 
-const shutdown = () => { host.flushAll(); for (const T of [...trades.values()]) tradeClose(T, 'Máy chủ đang khởi động lại.'); store.flush(); accounts.flush(); market.flush(); process.exit(0); };
+const shutdown = () => { host.flushAll(); for (const T of [...trades.values()]) tradeClose(T, 'Máy chủ đang khởi động lại.'); store.flush(); accounts.flush(); market.flush(); guilds.flush(); gboss.flush(); process.exit(0); };
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 

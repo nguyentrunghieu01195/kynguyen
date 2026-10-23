@@ -151,7 +151,7 @@ export function render() {
   for (const d of R.map.decos) if (inView(d)) list.push({ z: d.x + d.y, k: 0, o: d });
   for (const m of R.mobs) if (inView(m)) list.push({ z: m.x + m.y, k: 1, o: m });
   if (p.dead <= 0) list.push({ z: p.x + p.y, k: 2, o: p });
-  if (!R.event) for (const o of NET.players.values()) if (inView(o)) list.push({ z: o.x + o.y, k: 3, o });
+  if (!R.event || R.event.room) for (const o of NET.players.values()) if (inView(o)) list.push({ z: o.x + o.y, k: 3, o });
   list.sort((a, b) => a.z - b.z);
   for (const e of list) {
     if (e.k === 0) A.drawDeco(ctx, e.o, t);
@@ -177,12 +177,14 @@ export function render() {
     const s = iso(p.x, p.y), y = s.y - A.heroHeight;
     ctx.font = '700 11px "Be Vietnam Pro", sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = '#000';
     ctx.strokeText(S.name, s.x, y); ctx.fillStyle = '#8fd0ff'; ctx.fillText(S.name, s.x, y);
+    if (S.guild) guildTag(ctx, S.guild.name, s.x, y - 13);
   }
   // Tên người chơi khác
-  if (!R.event) for (const o of NET.players.values()) if (inView(o)) {
+  if (!R.event || R.event.room) for (const o of NET.players.values()) if (inView(o)) {
     const s = iso(o.x, o.y), y = s.y - A.heroHeight, label = o.name + ' · Lv' + o.lv + (o.resets ? ' R' + o.resets : '');
     ctx.font = '700 11px "Be Vietnam Pro", sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = '#000';
     ctx.strokeText(label, s.x, y); ctx.fillStyle = '#ffc8f0'; ctx.fillText(label, s.x, y);
+    if (o.look && o.look.g) guildTag(ctx, o.look.g, s.x, y - 13);
   }
   drawTexts(ctx);
   drawWeather(ctx, t, dt);
@@ -192,3 +194,9 @@ export function render() {
   if (p.dead > 0) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = 'rgba(80,0,0,.35)'; ctx.fillRect(0, 0, W * DPR, H * DPR); }
 }
 
+/** Tên bang hội phía trên tên nhân vật */
+function guildTag(ctx, name, x, y) {
+  const label = '⟦' + name + '⟧';
+  ctx.font = '700 10px "Be Vietnam Pro", sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = '#000';
+  ctx.strokeText(label, x, y); ctx.fillStyle = '#ffd54a'; ctx.fillText(label, x, y);
+}

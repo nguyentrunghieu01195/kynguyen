@@ -17,6 +17,9 @@ import { initQuests, ensureDaily } from '../../src/systems/quests.js';
 import { initFashion, checkUnlocks } from '../../src/systems/fashion.js';
 import { initSkills } from '../../src/systems/skills.js';
 import { initEvents } from '../../src/systems/events.js';
+import { initGBoss, syncBoss, gbossHurt, gbossTakeDelta, gbossSetBoard } from '../../src/systems/gboss.js';
+import { gbossStatus } from '../../src/config/gboss.js';
+import { createArena } from './arena.js';
 import { computeOffline } from '../../src/systems/offline.js';
 import { itemFull } from '../../src/systems/items.js';
 import { migrate, isValidSave } from '../../src/core/save.js';
@@ -35,7 +38,7 @@ export const HOST = {
   actPerSec: 30,       // giới hạn số lệnh mỗi giây
 };
 
-export function createHost({ accounts, store, market, send, onPresence, announceAll }) {
+export function createHost({ accounts, store, market, guilds, gboss, send, onPresence, announceAll }) {
   const ctxs = new Map(); // accId -> ctx
   let CUR = null;
 
@@ -60,7 +63,8 @@ export function createHost({ accounts, store, market, send, onPresence, announce
   on(EV.KILL, (m) => { if (m.boss && !m.event) ann('boss', { boss: m.name }); });
   on(EV.RESET, (n) => ann('reset', { n }));
   on(EV.EVENT, (id, ok) => { if (ok) ann('event', { id }); });
-  initQuests(); initSkills(); initFashion(); initEvents();
+  on(EV.GBOSS_END, (res) => { if (CUR && res.delta > 0) gboss.addDamage(CUR.acc.id, res.key, res.delta); }); // phần sát thương cuối → tính cho bang
+  initQuests(); initSkills(); initFashion(); initEvents(); initGBoss();
 
   // ---- gửi dữ liệu ----
   function flushEvents(c) { const ev = c.out; c.out = []; return ev; }
@@ -90,6 +94,65 @@ export function createHost({ accounts, store, market, send, onPresence, announce
     if (sig !== c.lookSig) { c.lookSig = sig; onPresence(c.s, { look }); }
   }
 
+  // ---- Thấy chiêu thức của đồng đội: sao chép phần HÌNH ẢNH (hiệu ứng, đạn) sang màn hình các thành viên khác cùng đấu trường ----
+  const relayed = new WeakSet();
+  const RELAY_FX = new Set(['whirl', 'nova', 'dash', 'skyblade', 'meteor', 'frost', 'bolt', 'vortex', 'beam', 'boom', 'slash']);
+  const FX_KEEP = ['k', 'x', 'y', 'x0', 'y0', 'x1', 'y1', 'pts', 't', 'd', 'r', 'col', 'f', 'fire', 'crack', 'hitAt', 'size'];
+  const RELAY_CAP = 14; // tối đa mỗi tick cho mỗi người nhận (tránh gửi quá nhiều khi đông người)
+  function relayEffects(list) {
+    if (list.length < 2) return;
+    const outFx = list.map(() => []), outPj = list.map(() => []);
+    list.forEach((o, i) => {
+      const R = o.ref.R;
+      for (const f of R.fx) {
+        if (relayed.has(f) || f.foreign || f.follow || f.noRelay || !RELAY_FX.has(f.k)) continue;
+        relayed.add(f);
+        const v = { foreign: true }; for (const k of FX_KEEP) if (f[k] !== undefined) v[k] = f[k];
+        for (let j = 0; j < list.length; j++) if (j !== i) outFx[j].push(v);
+      }
+      for (const pr of R.projs) {
+        if (relayed.has(pr) || !pr.tgt) continue;
+        relayed.add(pr);
+        const v = { x: pr.x, y: pr.y, k: pr.k, spd: pr.spd || 10, tgt: { x: pr.tgt.x, y: pr.tgt.y } };
+        for (let j = 0; j < list.length; j++) if (j !== i) outPj[j].push(v);
+      }
+    });
+    list.forEach((o, j) => {
+      const R = o.ref.R;
+      for (const v of outFx[j].slice(0, RELAY_CAP)) { const c = { ...v }; relayed.add(c); R.fx.push(c); }
+      if (outPj[j].length) { R.vprojs = R.vprojs || []; for (const v of outPj[j].slice(0, RELAY_CAP)) R.vprojs.push({ ...v, tgt: { ...v.tgt } }); }
+    });
+  }
+
+  // ---- Boss Bang Hội: mỗi bang một đấu trường, một Boss duy nhất do máy chủ điều khiển ----
+  const arena = createArena();
+  let boardT = 0;
+  function stepArena(dt, now) {
+    const groups = new Map();
+    if (gbossStatus(now).open) {
+      for (const c of ctxs.values()) {
+        const E = c.R && c.R.event, gid = c.S && c.S.guild && c.S.guild.id;
+        if (!E || E.id !== 'gboss' || E.over || !gid) continue;
+        if (!groups.has(gid)) groups.set(gid, []);
+        groups.get(gid).push({ ref: c, x: c.R.p.x, y: c.R.p.y, dead: c.R.p.dead > 0 });
+      }
+    }
+    for (const list of groups.values()) relayEffects(list);
+    arena.update(dt, groups, (c, kind, o) => run(c, () => gbossHurt(kind, o)));
+    boardT += HOST.tickMs;
+    const doBoard = boardT >= 1000;
+    if (doBoard) boardT = 0;
+    for (const [gid, list] of groups) {
+      const st = arena.state(gid);
+      for (const o of list) {
+        const c = o.ref;
+        run(c, () => syncBoss(st));
+        if (doBoard) { const d = run(c, () => gbossTakeDelta()); if (d > 0) gboss.addDamage(c.acc.id, c.R.event.key, d, 1); }
+      }
+      if (doBoard) for (const o of list) { const board = gboss.board(gid, o.ref.acc.id); run(o.ref, () => gbossSetBoard(board)); }
+    }
+  }
+
   // ---- vòng lặp ----
   let last = Date.now(), snapT = 0, stateT = 0, loopMs = 0;
   setInterval(() => {
@@ -99,11 +162,12 @@ export function createHost({ accounts, store, market, send, onPresence, announce
     snapT += HOST.tickMs; stateT += HOST.tickMs;
     const doSnap = snapT >= HOST.snapMs, doState = stateT >= HOST.stateMs;
     if (doSnap) snapT = 0;
+    try { stepArena(dt, now); } catch (e) { console.error('[host] lỗi đấu trường bang', e); }
     if (doState) stateT = 0;
     for (const c of ctxs.values()) try {
       run(c, () => update(dt));
       const R = c.R, p = R.p;
-      onPresence(c.s, { room: R.event ? null : 'm' + R.mapIndex, pos: { x: p.x, y: p.y, tx: p.tx, ty: p.ty, f: p.face, mv: p.moving } });
+      onPresence(c.s, { room: R.event ? R.event.room || null : 'm' + R.mapIndex, pos: { x: p.x, y: p.y, tx: p.tx, ty: p.ty, f: p.face, mv: p.moving } });
       if (doSnap) snapshot(c);
       if (doState) pushState(c);
       if (now - c.persistAt > HOST.persistMs) { c.persistAt = now; persist(c); }
@@ -140,6 +204,7 @@ export function createHost({ accounts, store, market, send, onPresence, announce
     enter(c);
     try {
       G.S = migrate(S);
+      G.S.guild = guilds.brief(acc.id); // bang hội do máy chủ quyết định, không tin bản lưu
       fairness();
       calcStats();
       ensureDaily();
@@ -192,6 +257,11 @@ export function createHost({ accounts, store, market, send, onPresence, announce
     send(c.s, { t: 'ar', i: 0, s: patch, ev: flushEvents(c) });
     return { r: res && res.ok, patch };
   }
+  /** Cập nhật bang hội (tên, cấp, chức vụ → buff) của người đang chơi khi bang thay đổi */
+  function refreshGuild(accId) {
+    if (!ctxs.has(accId)) return;
+    try { withAcc(accId, (S) => { S.guild = guilds.brief(accId); }); } catch (e) { console.error('[host] refreshGuild', e); }
+  }
   /** Tự nhận hộp thư khi đang chơi */
   function autoClaim(c) {
     if (!(c.acc.mail && c.acc.mail.length)) return;
@@ -207,7 +277,7 @@ export function createHost({ accounts, store, market, send, onPresence, announce
   }
 
   return {
-    join, leave, action, withAcc, autoClaim,
+    join, leave, action, withAcc, autoClaim, refreshGuild,
     get: (accId) => ctxs.get(accId) || null,
     size: () => ctxs.size,
     load: () => ({ players: ctxs.size, tickMs: Math.round(loopMs * 100) / 100, budgetMs: HOST.tickMs }),

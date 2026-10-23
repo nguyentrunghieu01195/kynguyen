@@ -11,6 +11,7 @@ import { EVENTS } from '../config/events.js';
 import { generateMap } from '../systems/world.js';
 import { generateArena } from '../systems/events.js';
 import { towerArena, towerMeta } from '../systems/tower.js';
+import { gbossArena, gbossMeta } from '../systems/gboss.js';
 
 // ---------------- MẪU QUÁI (tham chiếu → khoá) ----------------
 const TPL = new Map(), TPL_BY_KEY = {};
@@ -87,7 +88,7 @@ export function packRuntime(R, cache, radius = 22) {
   const pk = (pr) => ({ x: r2(pr.x), y: r2(pr.y), k: pr.k, tx: pr.tgt ? r2(pr.tgt.x) : r2(pr.x), ty: pr.tgt ? r2(pr.tgt.y) : r2(pr.y) });
   return {
     t: r2(R.t), auto: R.auto, travel: !!R.travel, manualT: r2(R.manualT), boss: R.boss ? R.boss.id : null,
-    p: dp, mobs, drops: dropsOut, projs: R.projs.map(pk), eprojs: R.eprojs.map(pk), fx, texts, ev,
+    p: dp, mobs, drops: dropsOut, projs: R.projs.concat(R.vprojs || []).map(pk), eprojs: R.eprojs.map(pk), fx, texts, ev,
   };
 }
 
@@ -95,6 +96,7 @@ export function packRuntime(R, cache, radius = 22) {
 function mapForKey(key) {
   if (typeof key === 'number') return generateMap(key);
   if (/^ev_/.test(key)) return generateArena(EVENTS[key.slice(3)]);
+  if (key === 'gb') return gbossArena();
   if (/^tw_/.test(key)) return towerArena(+key.slice(3));
   return generateMap(0);
 }
@@ -102,7 +104,7 @@ function mapForKey(key) {
 /** Tạo G.R rỗng theo thông tin máy chủ gửi (bản đồ dựng lại tại máy, giống hệt máy chủ vì sinh bằng hạt giống cố định) */
 export function buildRuntime(init) {
   const prev = G.R, map = mapForKey(init.key);
-  const M = init.M || (typeof init.key === 'number' ? MAPS[init.key] : towerMeta(+String(init.key).slice(3)));
+  const M = init.M || (typeof init.key === 'number' ? MAPS[init.key] : init.key === 'gb' ? gbossMeta() : towerMeta(+String(init.key).slice(3)));
   G.R = {
     mapIndex: init.key, map, M, remote: true,
     mobs: [], drops: [], projs: [], eprojs: [], fx: [], texts: [], respawn: [],
@@ -188,7 +190,7 @@ export function applyState(S, patch) { for (const k in patch) S[k] = patch[k]; }
 // ---------------- SỰ KIỆN ----------------
 /** Sự kiện game máy chủ chuyển cho máy người chơi (để hiện chữ, rung màn hình, phát âm thanh, mở bảng kết quả…) */
 export const FORWARD_EVENTS = ['log', 'announce', 'levelUp', 'kill', 'playerDie', 'mapEnter', 'upgrade', 'craft', 'auto', 'points', 'pickup', 'skill', 'hit', 'basic',
-  'playerHit', 'bossCast', 'bossSlam', 'shake', 'skillLearn', 'potion', 'buy', 'reset', 'tierUp', 'quest', 'event', 'eventEnd', 'towerFloor', 'towerEnd', 'inventory'];
+  'playerHit', 'bossCast', 'bossSlam', 'shake', 'skillLearn', 'potion', 'buy', 'reset', 'tierUp', 'quest', 'event', 'eventEnd', 'towerFloor', 'towerEnd', 'gbossEnd', 'inventory'];
 /** Tham số sự kiện → dữ liệu gửi được (quái → tóm tắt có id) */
 export function packArg(a) {
   if (!a || typeof a !== 'object') return a;

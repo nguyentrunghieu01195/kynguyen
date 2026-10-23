@@ -25,6 +25,13 @@ function updateProjectiles(dt) {
   }
 }
 
+/** Đạn của đồng đội trong đấu trường bang (chỉ hình ảnh, bay tới vị trí đích rồi biến mất) */
+function updateVisualProjectiles(dt) {
+  const R = G.R;
+  if (!R.vprojs || !R.vprojs.length) return;
+  for (let i = R.vprojs.length - 1; i >= 0; i--) if (moveToward(R.vprojs[i], R.vprojs[i].tgt.x, R.vprojs[i].tgt.y, R.vprojs[i].spd, dt)) R.vprojs.splice(i, 1);
+}
+
 function updateEffects(dt) {
   const R = G.R;
   for (let i = R.fx.length - 1; i >= 0; i--) {
@@ -43,6 +50,7 @@ export function update(dt) {
   updateMonsters(dt);
   updateDrops(dt);
   updateProjectiles(dt);
+  updateVisualProjectiles(dt);
   updateEffects(dt);
   updateEvent(dt);
   R.saveT -= dt;

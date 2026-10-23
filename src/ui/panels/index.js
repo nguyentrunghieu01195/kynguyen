@@ -21,14 +21,18 @@ import skills from './skills.js';
 import { bigMapPanel } from '../minimap.js';
 import { cloudPanel } from './cloud.js';
 import { marketPanel, initMarket } from './market.js';
+import { guildPanel, initGuildUi } from './guild.js';
+import { auctionPanel, initAuctionUi } from './auction.js';
 import { tradePanel, onTradeEvent, TR } from './trade.js';
 import { on, EV } from '../../core/events.js';
 
-const PANEL_LIST = [character, inventory, upgrade, worldmap, shop, reset, settings, quests, offline, eventsPanel, resultPanel, towerResultPanel, chatPanel, rankPanel, fashion, skills, bigMapPanel, cloudPanel, marketPanel, tradePanel];
+const PANEL_LIST = [character, inventory, upgrade, worldmap, shop, reset, settings, quests, offline, eventsPanel, resultPanel, towerResultPanel, chatPanel, rankPanel, fashion, skills, bigMapPanel, cloudPanel, marketPanel, tradePanel, guildPanel, auctionPanel];
 export const PANELS = Object.fromEntries(PANEL_LIST.map((p) => [p.id, p]));
 
 export function initTradeUi() {
   initMarket(() => renderPanel());
+  initGuildUi(() => renderPanel());
+  initAuctionUi(() => renderPanel());
   on(EV.TRADE, (kind, m) => onTradeEvent(kind, m, openPanel, renderPanel));
 }
 

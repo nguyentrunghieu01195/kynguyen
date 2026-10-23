@@ -265,6 +265,7 @@ export function updateSkillTimers(dt) {
 
 /** Hiệu ứng kỹ năng có sát thương trễ / nhiều nhịp (gọi mỗi khung hình từ game.js) */
 export function updateSkillFx(f, dt) {
+  if (f.foreign) return; // hiệu ứng của đồng đội chỉ để xem, không tính sát thương ở đây
   const R = G.R;
   if (f.follow) { f.x = R.p.x; f.y = R.p.y; }
   if (f.hitAt != null && !f.hit && f.t >= f.hitAt) { f.hit = true; areaHit(f.x, f.y, f.r, f.mult, f.eff); emit(EV.SHAKE, f.k === 'skyblade' ? 9 : 5); }

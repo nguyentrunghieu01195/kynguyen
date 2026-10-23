@@ -33,13 +33,14 @@ export function cleanLook(look) {
   const id = (x) => (typeof x === 'string' && /^[a-z]{2,16}$/.test(x) ? x : null);
   if (look?.fa) out.fa = { o: id(look.fa.o), h: id(look.fa.h), a: id(look.fa.a) };
   out.tr = int(look?.tr, 1, 3, 1); // bậc nhân vật (hào quang)
+  const gn = cleanText(look?.g, 12); if (gn) out.g = gn; // tên bang hội
   return out;
 }
 
 export const cleanStats = (s) => ({ lv: int(s?.lv, 1, 400, 1), resets: int(s?.resets, 0, 9999), tower: int(s?.tower, 0, 100000), power: int(s?.power, 0, 1e12) });
 
 /** Tên phòng hợp lệ: 'm0'..'m99' (bản đồ thường). null = không ở phòng công khai (sự kiện/tháp) */
-export const cleanRoom = (r) => (typeof r === 'string' && /^m\d{1,2}$/.test(r) ? r : null);
+export const cleanRoom = (r) => (typeof r === 'string' && /^(m\d{1,2}|gb_[0-9a-f]{10})$/.test(r) ? r : null);
 
 export const cleanPos = (m) => ({ x: num(m?.x, 0, 128), y: num(m?.y, 0, 128), tx: m?.tx == null ? null : num(m.tx, 0, 128), ty: m?.ty == null ? null : num(m.ty, 0, 128), f: m?.f === -1 ? -1 : 1, mv: !!m?.mv });
 

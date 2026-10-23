@@ -21,6 +21,7 @@ import { claimMain, claimDaily, claimChest, doCheckin, claimTierStep } from '../
 import { buyFashion, toggleFashion } from '../systems/fashion.js';
 import { enterEvent, leaveEvent } from '../systems/events.js';
 import { enterTower } from '../systems/tower.js';
+import { enterGBoss } from '../systems/gboss.js';
 import { enterMap } from '../systems/world.js';
 import { claimOffline } from '../systems/offline.js';
 
@@ -89,6 +90,7 @@ export const ACTIONS = {
   enterEvent: [(a) => [oneOf(a[0], ['bc', 'ds'])], (k) => !!enterEvent(k)],
   leaveEvent: [() => [], () => { leaveEvent(); return true; }],
   enterTower: [() => [], () => !!enterTower()],
+  enterGBoss: [() => [], () => !!enterGBoss()],
   // --- tuỳ chọn (danh sách trắng) ---
   setPref: [(a) => [oneOf(a[0], ['autoSell', 'expRate', 'eventTest', 'art']), a[1]], (k, v) => {
     const S = G.S;

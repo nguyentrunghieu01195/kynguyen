@@ -226,6 +226,32 @@ Máy người chơi                         Máy chủ (server/src/host.js)
 - **Quà / đền bù:** trang quản trị → tài khoản → *Tặng quà* (Zen, ngọc) gửi vào hộp thư người chơi.
 - **Lưu ý triển khai:** máy chủ cần thư mục `src/` (Dockerfile đã chép sẵn). Khi sửa luật chơi trong `src/`, phải khởi động lại máy chủ.
 
+## Bang hội
+
+Cần **tài khoản** và đang trong game. Mở bằng nút 🏰 bên phải màn hình.
+
+- **Lập bang:** cấp 50 + 3.000.000 Zen, tên 2–12 ký tự không trùng. Người khác **xin vào** từ danh sách bang (xếp theo điểm), bang chủ / phó bang duyệt đơn.
+- **Chức vụ:** 👑 Bang chủ (phong / hạ phó bang, nhượng bang, đuổi, giải tán) · ⭐ Phó bang (tối đa 3: duyệt đơn, đuổi thành viên, sửa thông báo) · Thành viên.
+- **Quyên góp:** Zen (1.000 Zen = 1 điểm) và ngọc (Ước 200 / Hồn 500 / Hỗn 1.500 điểm). Điểm đủ mốc thì bang lên cấp (tối đa 10) → mở rộng sức chứa (20 + 5 × cấp) và cộng **buff cho mọi thành viên**: sát thương +1%, HP +1.5%, phòng thủ +1.5% mỗi cấp.
+- **Nhiệm vụ bang hằng ngày:** mỗi người 3 nhiệm vụ riêng/ngày (tab Nhiệm vụ; kho nhiệm vụ & thưởng ở `GUILD_QUESTS` trong `config/guild.js`, tiến độ theo dõi trong `systems/quests.js`). Mỗi nhiệm vụ +30 điểm cống hiến cho bang và Zen cho người làm, nhận đủ bộ thêm +40 điểm. Nhận thưởng qua máy chủ (`POST /api/guild/quest`).
+- **Chat bang** riêng (tab Chat) và tên bang hiện trên đầu nhân vật.
+- Mọi con số ở `src/config/guild.js`; luật & dữ liệu ở `server/src/guilds.js` (`guilds.json`, có trong sao lưu / khôi phục). Máy chủ gắn `S.guild` vào nhân vật khi vào game và mỗi lần bang thay đổi — không nhận từ máy người chơi. Buff tính trong `systems/stats.js`.
+- Chưa có: kho đồ bang, công thành chiến (cần bản đồ dùng chung nhiều người — xem lộ trình).
+
+## Boss Bang Hội & Đấu giá
+
+Hằng ngày lúc **12:00 và 20:00 (giờ Việt Nam)**, cổng mở 15 phút. Vào bằng 🏰 Bang hội → tab 🐲 Boss (cần cấp 30 và đã vào bang).
+
+- **Mỗi bang có một đấu trường riêng**, mọi thành viên bang vào chung và thấy nhau, cùng đánh **một Boss duy nhất** do máy chủ điều khiển (`server/src/arena.js`): Boss đuổi người gần nhất, đánh thường, và định kỳ **báo trước rồi đập đất** trúng nhiều người cùng lúc. Sát thương Boss tính theo % máu người bị đánh nên người cấp thấp vẫn tham gia được; chết thì hồi sinh tại điểm xuất phát.
+- Boss không thể hạ gục; **hết giờ mới tính điểm**. Điểm bang = tổng sát thương của mọi thành viên (máy chủ tính trên nhân vật thật). **Bảng xếp hạng các bang hiện ngay trong trận** (top 3 + hạng của bang mình) và trong tab Boss.
+- Thấy chiêu thức của đồng đội: máy chủ sao chép phần **hình ảnh** (hiệu ứng kỹ năng, đạn, vết chém) của mỗi người sang màn hình các thành viên khác trong đấu trường (`relayEffects` trong `server/src/host.js`). Hiệu ứng sao chép đánh dấu `foreign` nên **không gây sát thương lần nữa**. Hiệu ứng bám theo người (buff) và hiệu ứng của Boss không sao chép.
+- Nhờ tách đấu trường theo bang, mỗi phòng chỉ có vài chục người → nhẹ cho máy chủ; các bang không đánh trực tiếp nhau.
+- **Quà xếp hạng** (hạng 1: 4 phần, hạng 2: 3, hạng 3: 2, hạng 4–10: 1; ở `GBOSS_REWARDS`) thành các **phiên đấu giá**: 15 phút đầu chỉ người **đã đánh Boss của bang đó** được đặt giá (tiền thắng được chia đều cho những người đã đánh); không ai đặt → ra **Đấu giá thế giới** 30 phút, ai cũng đặt được (tiền không chia); vẫn không ai đặt → quà tặng người gây sát thương cao nhất bang. Mỗi lần trả giá phải cao hơn ≥ 5%; Zen bị giữ ngay khi đặt, bị vượt thì hoàn qua hộp thư và **báo ngay** cho người bị vượt. **Chống đặt giá phút chót:** đặt khi còn dưới 30 giây thì phiên được cộng thêm 30 giây (tối đa 10 phút; số ở `AUCTION` trong `src/config/gboss.js`). Mở bằng nút 🔨.
+- **Giá khởi điểm tính theo chi phí tự kiếm / tự ép** (`DIY` trong `src/config/gboss.js`): thời gian cày đủ đồ Hoàn Hảo + ngọc (số đo từ bot mô phỏng và bảng ép đồ có tính rớt cấp / vỡ đồ) × thu nhập cày 2M Zen/giờ, khởi điểm = 35% giá tự cày; đồ bậc cao × thêm. Mỗi phiên hiện dòng "Tự kiếm / tự ép ≈ …" để người chơi so sánh. Đổi `zenPerHour` / `startFrac` là cả bảng giá đổi theo.
+- **Chống treo máy hưởng ké:** phải **chiến đấu thực sự ≥ 3 phút** (`GBOSS.minActiveSec`; mỗi giây có gây sát thương mới được tính, nên đứng yên không cộng giờ) mới được tính là tham gia — nhận thưởng tham gia, được chia tiền đấu giá và đặt giá trong bang. Tính theo thời gian chứ không theo % sát thương nên người yếu vẫn đạt được. Tiến độ hiện trong tab Boss (⚠ = chưa đủ) và trên HUD trong trận. Biến môi trường `GBOSS_MIN_ACTIVE_SEC` chỉ dùng để thử nghiệm.
+- Mọi người đã đánh còn nhận thưởng tham gia qua hộp thư. Dữ liệu ở `gboss.json` (có trong sao lưu / khôi phục). Số liệu ở `src/config/gboss.js`; luật trong trận ở `src/systems/gboss.js`.
+- Lưu ý kỹ thuật: mỗi người chơi vẫn chạy mô phỏng riêng trên máy chủ; Boss "thật" nằm ở bộ não chung của bang và được đặt vào thế giới từng người mỗi 50 ms.
+
 ## Chợ & giao dịch giữa người chơi
 
 Cần **đăng nhập tài khoản** và có máy chủ. Mở bằng nút ⚖️ bên phải màn hình, hoặc **Túi đồ → Bán ở chợ**.

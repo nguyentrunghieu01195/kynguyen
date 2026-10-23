@@ -9,6 +9,7 @@ import { MAIN_QUESTS, DAILY_POOL, DAILY, CHECKIN, CHECKIN_ZEN_GROWTH } from '../
 import { grantReward, rewardText } from './rewards.js';
 import { TIER_QUESTS, TIER_RESETS, CLASS_TIERS } from '../config/skills.js';
 import { calcStats } from './stats.js';
+import { GUILD_QUESTS } from '../config/guild.js';
 
 /** Ngày hiện tại theo giờ máy, dạng YYYY-MM-DD */
 export const today = () => {
@@ -138,6 +139,35 @@ export function claimChest(i) {
   return r;
 }
 
+// ---------------- NHIỆM VỤ BANG HỘI (hằng ngày) ----------------
+/** Bộ nhiệm vụ bang của ngày hôm nay; null nếu chưa có bang */
+export function ensureGuildQ() {
+  if (!G.S.guild) return null;
+  const q = Q(), d = today();
+  if (q.gq && q.gq.date === d) return q.gq;
+  const rng = seededRng(d.split('-').reduce((a, b) => a * 31 + +b, 13)), pool = GUILD_QUESTS.pool.filter((x) => !x.req || x.req(G.S)), ids = [];
+  while (ids.length < GUILD_QUESTS.perDay && pool.length) ids.push(pool.splice(Math.floor(rng() * pool.length), 1)[0].id);
+  q.gq = { date: d, ids, prog: {}, claimed: {} };
+  return q.gq;
+}
+export const guildQList = () => { const D = ensureGuildQ(); return D ? D.ids.map((id) => GUILD_QUESTS.pool.find((x) => x.id === id)) : []; };
+export const guildQDone = (gq) => done(gq.goal, (ensureGuildQ().prog[gq.id]) || 0);
+/**
+ * Nhận thưởng 1 nhiệm vụ bang (chạy trên máy chủ): đánh dấu đã nhận, trả Zen cho người làm.
+ * Trả về { pts } = điểm cống hiến cộng cho bang (gồm thưởng đủ bộ), hoặc null nếu chưa làm xong / đã nhận.
+ */
+export function claimGuildQ(id) {
+  const D = ensureGuildQ(), gq = GUILD_QUESTS.pool.find((x) => x.id === id);
+  if (!D || !gq || !D.ids.includes(id) || D.claimed[id] || !guildQDone(gq)) return null;
+  D.claimed[id] = true;
+  grantReward({ zen: GUILD_QUESTS.zen(G.S.lv) });
+  let pts = GUILD_QUESTS.pts;
+  const all = D.ids.every((x) => D.claimed[x]);
+  if (all) pts += GUILD_QUESTS.allBonus;
+  emit(EV.QUEST);
+  return { pts, all };
+}
+
 // ---------------- ĐIỂM DANH ----------------
 export const canCheckin = () => Q().checkin.last !== today();
 export function checkinReward(count = Q().checkin.count) {
@@ -187,6 +217,12 @@ function progress(type, payload, amount = 1) {
   for (const dq of dailyList()) {
     if (D.claimed[dq.id] || !matches(dq.goal, type, payload)) continue;
     D.prog[dq.id] = (D.prog[dq.id] || 0) + amount;
+    changed = true;
+  }
+  const GQ = ensureGuildQ();
+  if (GQ) for (const gq of guildQList()) {
+    if (GQ.claimed[gq.id] || !matches(gq.goal, type, payload)) continue;
+    GQ.prog[gq.id] = (GQ.prog[gq.id] || 0) + amount;
     changed = true;
   }
   if (changed) emit(EV.QUEST);
