@@ -19,6 +19,7 @@ import { createGuilds } from './guilds.js';
 import { createGBoss } from './gboss.js';
 import { createSiege } from './siege.js';
 import { CASTLE } from '../../src/config/siege.js';
+import { clientIp, isLoopback, Bucket, audit, auditLog } from './guard.js';
 import { claimGuildQ } from '../../src/systems/quests.js';
 import crypto from 'node:crypto';
 import { LIMITS, CLASSES, cleanName, cleanText, cleanLook, cleanStats, cleanRoom, cleanPos, ANNOUNCE, buildRank } from './protocol.js';
@@ -122,7 +123,8 @@ function limited(key, max, windowMs) {
   return h.n > max;
 }
 setInterval(() => { const now = Date.now(); for (const [k, h] of hits) if (now - h.at > 15 * 60000) hits.delete(k); }, 60000);
-const ipOf = (req) => String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+const TRUST_PROXY = process.env.TRUST_PROXY === '1';
+const ipOf = (req) => clientIp(req.headers, req.socket.remoteAddress, TRUST_PROXY); // chỉ tin X-Forwarded-For từ proxy nội bộ
 const bearer = (req) => { const a = req.headers.authorization || ''; return a.startsWith('Bearer ') ? a.slice(7) : null; };
 const validSave = (d) => d && typeof d === 'object' && !Array.isArray(d) && CLASSES.includes(d.cls) && typeof d.name === 'string';
 
@@ -131,7 +133,8 @@ async function api(req, res, url) {
   const route = req.method + ' ' + url.pathname, ip = ipOf(req);
   if (route === 'GET /api/rank') return json(res, 200, rank());
   if (route === 'POST /api/register' || route === 'POST /api/login') {
-    if (limited('auth:' + ip, 20, 10 * 60000)) return json(res, 429, { error: 'rate', message: 'Thử quá nhiều lần, chờ vài phút rồi thử lại.' });
+    if (limited('auth:' + ip, 20, 10 * 60000)) { audit('auth_rate', ip); return json(res, 429, { error: 'rate', message: 'Thử quá nhiều lần, chờ vài phút rồi thử lại.' }); }
+    if (route === 'POST /api/register' && !isLoopback(ip) && limited('reg:' + ip, +process.env.REG_PER_IP || 6, 24 * 36e5)) { audit('reg_cap', ip); return json(res, 429, { error: 'rate', message: 'Đã đăng ký quá nhiều tài khoản từ địa chỉ này hôm nay.' }); }
     const b = await readBody(req, 4096);
     if (route === 'POST /api/login' && limited('user:' + String(b.user).toLowerCase(), 8, 10 * 60000)) return json(res, 429, { error: 'rate', message: 'Tài khoản này bị khoá tạm 10 phút vì nhập sai nhiều lần.' });
     try {
@@ -141,7 +144,7 @@ async function api(req, res, url) {
   }
   // Các API còn lại cần đăng nhập
   const token = bearer(req), acc = accounts.auth(token);
-  if (!acc) return json(res, 401, { error: 'auth', message: 'Phiên đăng nhập đã hết hạn, hãy đăng nhập lại.' });
+  if (!acc) { if (limited('bad401:' + ip, 120, 60000)) { audit('token_flood', ip); return json(res, 429, { error: 'rate', message: 'Quá nhiều yêu cầu không hợp lệ.' }); } return json(res, 401, { error: 'auth', message: 'Phiên đăng nhập đã hết hạn, hãy đăng nhập lại.' }); }
   try {
     switch (route) {
       case 'GET /api/me': return json(res, 200, accounts.info(acc));
@@ -195,6 +198,7 @@ async function api(req, res, url) {
       case 'POST /api/guild/role': case 'POST /api/guild/transfer': case 'POST /api/guild/leave': case 'POST /api/guild/disband': case 'POST /api/guild/notice': {
         if (limited('g:' + acc.id, 40, 60000)) return json(res, 429, { error: 'rate', message: 'Thao tác quá nhanh, chờ một chút.' });
         const b = await readBody(req, 2048), who = String(b.acc || ''), op = url.pathname.slice('/api/guild/'.length);
+        if ((who && !/^[a-f0-9]{16}$/.test(who)) || (b.id != null && b.id !== '' && !/^[a-f0-9]{10}$/.test(String(b.id)))) return json(res, 400, { error: 'bad_id', message: 'Mã không hợp lệ.' }); // chặn khoá tra cứu độc hại (__proto__…)
         switch (op) {
           case 'apply': guilds.apply(acc.id, String(b.id || '')); break;
           case 'cancel': guilds.cancelApp(acc.id, String(b.id || '')); break;
@@ -228,7 +232,7 @@ async function api(req, res, url) {
  * chưa có gì thay đổi) → lưu bản mới (rev+1) → trả về { rev, delta, ... } để client áp dụng y hệt.
  */
 async function saveOp(req, res, acc, fn) {
-  if (limited('op:' + acc.id, 60, 60000)) return json(res, 429, { error: 'rate', message: 'Thao tác quá nhanh, chờ một chút.' });
+  if (limited('op:' + acc.id, 60, 60000)) { audit('op_rate', acc.user); return json(res, 429, { error: 'rate', message: 'Thao tác quá nhanh, chờ một chút.' }); }
   const b = await readBody(req, 16 * 1024);
   if (!host.get(acc.id)) return json(res, 409, { error: 'not_playing', message: 'Hãy vào game rồi thử lại.' });
   // chạy trên nhân vật thật đang chơi trên máy chủ — không nhận dữ liệu nhân vật từ máy người chơi
@@ -273,6 +277,7 @@ async function adminApi(req, res, url) {
   if (!exp || exp < Date.now()) { if (t) adminTokens.delete(t); return json(res, 401, { error: 'auth', message: 'Phiên quản trị hết hạn, đăng nhập lại.' }); }
   try {
     if (route === 'POST /api/admin/logout') { adminTokens.delete(t); return json(res, 200, { ok: true }); }
+    if (route === 'GET /api/admin/audit') return json(res, 200, { rows: auditLog() });
     if (route === 'GET /api/admin/stats') {
       const all = accounts.list(), day = Date.now() - 864e5, week = Date.now() - 7 * 864e5;
       return json(res, 200, {
@@ -559,13 +564,7 @@ const HANDLERS = {
     chatLog.push(msg); if (chatLog.length > LIMITS.chatHistory) chatLog.shift();
     toAll(msg);
   },
-  ann(s, m) {
-    if (s.ctx) return; // chế độ máy chủ: thông báo do máy chủ tự phát
-    const f = ANNOUNCE[m.kind], now = Date.now();
-    if (!f || now - (s.annAt || 0) < LIMITS.annCooldownMs) return;
-    s.annAt = now;
-    toAll({ t: 'sys', text: f(m.data || {}, s.p.name) });
-  },
+  ann() { /* thông báo toàn máy chủ chỉ do máy chủ tự phát: tin từ máy khách / khách có thể bị giả mạo */ },
   gchat(s, m) {
     const acc = s.p.acc, gid = acc && guilds.guildIdOf(acc), text = cleanText(m.text, LIMITS.chatLen), now = Date.now();
     if (!gid || !text) return;
@@ -581,12 +580,17 @@ const HANDLERS = {
   ...TRADE_HANDLERS,
 };
 
+const ipOfWs = (ws) => { const r = ws._socket && ws._socket.remoteAddress; return String(r || '?'); };
 const wss = new WebSocketServer({ server, path: '/ws', maxPayload: LIMITS.msgBytes, perMessageDeflate: { threshold: 256, zlibDeflateOptions: { level: 3 } } }); // nén tin nhắn: giảm ~70% dung lượng mạng
 wss.on('connection', (ws) => {
-  const s = { ws, p: null, room: null, pos: null, look: null };
+  const s = { ws, p: null, room: null, pos: null, look: null, bucket: new Bucket(40, 80), strikes: 0, ip: ipOfWs(ws) };
   sessions.set(ws, s);
   s.helloTimer = setTimeout(() => ws.close(4001, 'hello timeout'), LIMITS.helloTimeoutMs);
   ws.on('message', (buf) => {
+    if (!process.env.LOAD_TEST && !s.bucket.take()) { // tràn tin nhắn: bỏ qua, lặp lại nhiều lần thì ngắt kết nối
+      if (++s.strikes >= 60) { audit('ws_flood', (s.p && s.p.name) || s.ip); ws.close(4008, 'flood'); }
+      return;
+    }
     let m;
     try { m = JSON.parse(buf); } catch (e) { return; }
     const h = HANDLERS[m && m.t];

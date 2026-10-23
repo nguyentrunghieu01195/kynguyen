@@ -8,6 +8,7 @@
 // Code luật chơi dùng biến toàn cục G (G.S / G.R / G.P). Node chạy 1 luồng nên mỗi lần xử lý 1 người chơi
 // ta "đổi ngữ cảnh": gán G = dữ liệu của người đó → chạy → cất lại (enter/exit).
 import { G } from '../../src/core/state.js';
+import { audit } from './guard.js';
 import { on, EV, log } from '../../src/core/events.js';
 import { update } from '../../src/systems/game.js';
 import { calcStats } from '../../src/systems/stats.js';
@@ -302,7 +303,7 @@ export function createHost({ accounts, store, market, guilds, gboss, siege, send
     if (!c) return send(s, { t: 'ar', i: m.i, err: 'not_playing' });
     const now = Date.now();
     c.acts = c.acts.filter((t) => now - t < 1000);
-    if (c.acts.length >= HOST.actPerSec) return send(s, { t: 'ar', i: m.i, err: 'rate' });
+    if (c.acts.length >= HOST.actPerSec) { audit('act_rate', (s.p && s.p.name) || '?', String(m.a || '').slice(0, 20)); return send(s, { t: 'ar', i: m.i, err: 'rate' }); }
     c.acts.push(now);
     const res = run(c, () => runAction(String(m.a || ''), m.args));
     checkRuntime(c);

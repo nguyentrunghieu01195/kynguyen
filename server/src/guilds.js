@@ -3,6 +3,7 @@
 //
 // Mỗi tài khoản thuộc tối đa 1 bang. Chức vụ: leader (bang chủ) > officer (phó bang) > member (thành viên).
 import fs from 'node:fs';
+import { own } from './guard.js';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { GUILD, guildLevelOf, guildCap } from '../../src/config/guild.js';
@@ -30,7 +31,7 @@ export function createGuilds(dir, { store }) {
   const reindex = () => { byAcc.clear(); for (const g of Object.values(data.guilds)) for (const a of Object.keys(g.members)) byAcc.set(a, g.id); };
   reindex();
 
-  const guildOf = (accId) => data.guilds[byAcc.get(accId)] || null;
+  const guildOf = (accId) => own(data.guilds, byAcc.get(accId)) || null;
   const need = (accId) => { const g = guildOf(accId); if (!g) throw bad('Anh chưa vào bang hội nào.'); return g; };
   const roleOf = (g, accId) => (g.members[accId] ? g.members[accId].role : null);
   const atLeast = (g, accId, role) => (ROLE_RANK[roleOf(g, accId)] || 0) >= ROLE_RANK[role];
@@ -94,8 +95,8 @@ export function createGuilds(dir, { store }) {
     setOnline: (fn) => { isOnline = fn; },
     setCastle: (fn) => { isCastle = fn; },
     /** Báo máy chủ game cập nhật S.guild của mọi thành viên bang (vd. đổi chủ thành) */
-    refresh: (gid) => { const g = data.guilds[gid]; if (g) syncAll(g); },
-    addFund: (gid, n) => { const g = data.guilds[gid]; if (g && n > 0) { g.fund = (g.fund || 0) + Math.floor(n); touch(); } },
+    refresh: (gid) => { const g = own(data.guilds, gid); if (g) syncAll(g); },
+    addFund: (gid, n) => { const g = own(data.guilds, gid); if (g && n > 0) { g.fund = (g.fund || 0) + Math.floor(n); touch(); } },
     /** Bang chủ rút toàn bộ quỹ để chia cho thành viên (trả { ids, amount } — nơi gọi gửi thư) */
     takeFund(accId) {
       const g = need(accId);
@@ -108,8 +109,8 @@ export function createGuilds(dir, { store }) {
     idByName: (name) => (Object.values(data.guilds).find((g) => g.name === name) || {}).id || null,
     flush, dump: () => data, brief, detail, list,
     guildIdOf: (accId) => byAcc.get(accId) || null,
-    nameOf: (gid) => (data.guilds[gid] ? data.guilds[gid].name : null),
-    memberIds: (gid) => (data.guilds[gid] ? Object.keys(data.guilds[gid].members) : []),
+    nameOf: (gid) => (own(data.guilds, gid) ? own(data.guilds, gid).name : null),
+    memberIds: (gid) => (own(data.guilds, gid) ? Object.keys(own(data.guilds, gid).members) : []),
     count: () => Object.keys(data.guilds).length,
 
     /** Lập bang: trừ Zen trên nhân vật S */
@@ -130,7 +131,7 @@ export function createGuilds(dir, { store }) {
 
     apply(accId, gid) {
       if (guildOf(accId)) throw bad('Anh đã ở trong một bang.');
-      const g = data.guilds[gid];
+      const g = own(data.guilds, gid);
       if (!g) throw bad('Bang không tồn tại.', 404);
       if (g.apps[accId]) throw bad('Anh đã gửi đơn vào bang này rồi.');
       if (Object.keys(g.apps).length >= GUILD.maxApps) throw bad('Bang này đang có quá nhiều đơn chờ duyệt.');
@@ -138,7 +139,7 @@ export function createGuilds(dir, { store }) {
       g.apps[accId] = { at: Date.now(), cls: p.cls || 'knight', lv: p.lv || 1 };
       touch();
     },
-    cancelApp(accId, gid) { const g = data.guilds[gid]; if (g && g.apps[accId]) { delete g.apps[accId]; touch(); } },
+    cancelApp(accId, gid) { const g = own(data.guilds, gid); if (g && g.apps[accId]) { delete g.apps[accId]; touch(); } },
 
     accept(accId, target) {
       const g = need(accId);

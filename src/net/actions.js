@@ -29,7 +29,9 @@ import { claimOffline } from '../systems/offline.js';
 // ---------------- KIỂM TRA THAM SỐ ----------------
 const num = (v, lo, hi) => { v = +v; if (!Number.isFinite(v)) throw new Error('bad'); return Math.max(lo, Math.min(hi, v)); };
 const int = (v, lo, hi) => Math.floor(num(v, lo, hi));
-const id = (v) => { if (typeof v !== 'string' || !/^[a-zA-Z0-9_-]{1,32}$/.test(v)) throw new Error('bad'); return v; };
+// mã dạng chữ-số ngắn; chặn tên thuộc tính của Object (__proto__, constructor…) để không chạm tới nguyên mẫu khi dùng làm khoá tra cứu
+const PROTO = new Set(['__proto__', 'constructor', 'prototype', 'hasOwnProperty', 'isPrototypeOf', 'propertyIsEnumerable', 'toString', 'toLocaleString', 'valueOf']);
+const id = (v) => { if (typeof v !== 'string' || !/^[a-zA-Z0-9_-]{1,32}$/.test(v) || PROTO.has(v)) throw new Error('bad'); return v; };
 const optId = (v) => (v == null || v === '' ? null : id(v));
 const bool = (v) => !!v;
 const oneOf = (v, list) => { if (!list.includes(v)) throw new Error('bad'); return v; };
@@ -121,7 +123,7 @@ export function runAction(name, args) {
   if (!A || !G.S || !G.R) return { error: 'unknown' };
   let clean;
   try { clean = A[0](Array.isArray(args) ? args : []); } catch (e) { return { error: 'bad_args' }; }
-  return { r: A[1](...clean) };
+  try { return { r: A[1](...clean) }; } catch (e) { return { error: 'failed' }; } // lỗi bất ngờ trong hành động không được làm hỏng phiên
 }
 
 // ---------------- ĐIỀU PHỐI ----------------

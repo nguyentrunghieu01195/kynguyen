@@ -7,6 +7,7 @@
 //    người nhận bấm nhận (hoặc game tự nhận) → lại là một thao tác có rev như trên.
 //  - Đồ đang treo chợ / đang khoá trong giao dịch được giữ ở máy chủ (market.json). Máy chủ tắt giữa chừng → bật lại tự trả về hộp thư.
 import fs from 'node:fs';
+import { own } from './guard.js';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
@@ -176,19 +177,19 @@ export function createMarket(dir, accounts) {
     },
     /** Huỷ bán → hàng về hộp thư */
     cancel(acc, id) {
-      const L = data.listings[id];
+      const L = own(data.listings, id);
       if (!L || L.seller !== acc.id) throw new TradeError('Không tìm thấy món hàng của anh.', 404);
-      delete data.listings[id]; touch();
+      delete own(data.listings, id); touch();
       mail(acc.id, 'Đã huỷ bán, trả lại: ' + goodsText(L.goods) + '.', L.goods);
     },
     /** Mua: trừ Zen người mua (d), hàng về hộp thư người mua, tiền (trừ phí) về hộp thư người bán */
     buy(acc, d, id) {
       sweep();
-      const L = data.listings[id];
+      const L = own(data.listings, id);
       if (!L) throw new TradeError('Món hàng này vừa được người khác mua hoặc đã gỡ.', 410);
       if (L.seller === acc.id) throw new TradeError('Không thể mua hàng của chính mình.');
       const { delta } = takeGoods(d, { items: [], jewels: {}, zen: L.price });
-      delete data.listings[id];
+      delete own(data.listings, id);
       const fee = Math.floor(L.price * MARKET.fee), got = L.price - fee;
       taxHook(fee); // thuế chợ: lấy từ phí chợ, người bán vẫn nhận đúng L.price − fee
       const buyer = String(d.name || acc.user).slice(0, 20);

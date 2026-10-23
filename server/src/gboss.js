@@ -8,6 +8,7 @@
 //        vẫn không ai đặt → quà gửi cho người gây sát thương cao nhất của bang đó
 // Tiền đặt giá bị trừ ngay trên nhân vật (escrow); bị vượt giá thì hoàn qua hộp thư. Mọi thứ nhận qua hộp thư.
 import fs from 'node:fs';
+import { own } from './guard.js';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { GBOSS, gbossStatus, rewardsForRank, AUCTION, nextBid } from '../../src/config/gboss.js';
@@ -190,7 +191,7 @@ export function createGBoss(dir, { guilds, store, market, notify = () => {}, ann
     },
     /** Đặt giá: trừ Zen trên nhân vật S (escrow); hoàn tiền người bị vượt qua hộp thư */
     bid(accId, S, id, rawAmount) {
-      const lot = data.lots[id], amount = Math.floor(+rawAmount);
+      const lot = own(data.lots, id), amount = Math.floor(+rawAmount);
       if (!lot || lot.status !== 'active') throw bad('Phiên đấu giá này đã kết thúc.', 410);
       if (lot.endAt <= Date.now()) throw bad('Phiên đấu giá vừa hết giờ.', 410);
       if (lot.stage === 'guild' && !lot.eligible.includes(accId)) throw bad('Chỉ người đã đánh Boss của bang ' + lot.gname + ' mới được đặt giá.', 403);
