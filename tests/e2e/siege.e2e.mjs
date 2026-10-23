@@ -46,10 +46,10 @@ await wait(15000);
 gate = lastEv(cs[1]).gateInfo; console.log('cổng sau', gate && Math.round(gate.hp), 'open', gate && gate.open);
 // ===== B vào Ngai Vàng (C chỉ AUTO): chiếm ngai sau 10s, cộng giờ giữ =====
 const pos = (c) => { const x = c.got.filter((m) => m.t === 'snap').pop(); return x && x.s.p ? [x.s.p.x, x.s.p.y, x.s.p.hp, x.s.p.dead] : null; };
-console.log('B trước', JSON.stringify(pos(cs[1])));
-const a1 = await cs[1].act('auto'); const mv = await cs[1].act('move', 20, 20, true); console.log('auto', JSON.stringify(a1.r), 'move', JSON.stringify(mv.r));
-for (let k = 0; k < 5; k++) { await wait(2000); console.log('B', JSON.stringify(pos(cs[1])), 'auto?', lastEv(cs[1]) && 1); }
-let holder = null; for (let i = 0; i < 40 && !holder; i++) { await wait(1000); const b = lastEv(cs[1]).board; holder = b.teams.find((t) => t.holder); }
+// AUTO của B tự phá cổng rồi tự đi chiếm ngai (không ra lệnh đi tay). C rời trận để không có địch gần (AUTO luôn ưu tiên đánh địch trong 6.5 ô)
+await cs[2].act('leaveEvent'); await wait(3000);
+await wait(1500); console.log('B (AUTO) đang ở', JSON.stringify(pos(cs[1])));
+let holder = null; for (let i = 0; i < 40 && !holder; i++) { await wait(1000); const b = lastEv(cs[1]).board; holder = b.teams.find((t) => t.holder); if (i % 5 === 0) console.log('  +' + i + 's B', JSON.stringify(pos(cs[1])), 'gate', JSON.stringify(lastEv(cs[1]).gateInfo), 'cap', JSON.stringify(b.cap), 'C', JSON.stringify(pos(cs[2]))); }
 const bd = lastEv(cs[1]).board; console.log('chủ ngai:', holder && holder.name, 'board', JSON.stringify(bd.teams));
 assert(holder && holder.name === 'Long', 'B (bang Long) chiếm ngai');
 await wait(6000); const b2 = lastEv(cs[1]).board.teams.find((t) => t.name === 'Long'); assert(b2.hold >= 4, 'giờ giữ tăng: ' + b2.hold);

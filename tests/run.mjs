@@ -15,9 +15,10 @@ const mode = process.argv[2] || 'unit';
 const dirs = mode === 'all' ? ['unit', 'e2e'] : [mode];
 const files = dirs.flatMap((d) => fs.readdirSync(path.join(ROOT, 'tests', d)).filter((f) => f.endsWith('.mjs')).sort().map((f) => path.join('tests', d, f)));
 const filter = process.argv[3];
-let failed = 0;
+let failed = 0, ran = 0;
 for (const f of files) {
   if (filter && !f.includes(filter)) continue;
+  ran++;
   const t0 = Date.now();
   const r = await new Promise((res) => {
     const p = spawn('node', [f], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -31,5 +32,5 @@ for (const f of files) {
 }
 // dọn thư mục tạm còn sót
 for (const n of fs.readdirSync(os.tmpdir())) if (n.startsWith('kng-test-')) fs.rmSync(path.join(os.tmpdir(), n), { recursive: true, force: true });
-console.log(failed ? '\n' + failed + ' test THẤT BẠI' : '\nTất cả test đạt (' + files.length + ' file).');
+console.log(failed ? '\n' + failed + ' test THẤT BẠI' : '\nTất cả test đạt (' + ran + ' file).');
 process.exit(failed ? 1 : 0);

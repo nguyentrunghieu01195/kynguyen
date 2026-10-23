@@ -3,7 +3,7 @@
 // Ở đây mỗi người chơi có thêm các "đại diện" (mob) của người địch và của Cổng Thành đặt đúng vị trí do máy chủ gửi —
 // nên toàn bộ code đánh quái hiện có (chọn mục tiêu, kỹ năng, đạn, AUTO) dùng được để đánh người địch; sát thương được ghi vào E.out
 // và máy chủ chuyển sang người bị đánh.
-import { G } from '../core/state.js';
+import { G, HOOKS } from '../core/state.js';
 import { emit, EV, log, announce } from '../core/events.js';
 import { fmt, seededRng } from '../core/utils.js';
 import { CFG } from '../config/constants.js';
@@ -175,6 +175,41 @@ export function siegeFinish(result) {
   announce(result.winner ? '🏆 ' + result.winner + ' chiếm thành!' : 'Trận kết thúc');
   emit(EV.SIEGE_END, { key: E.key, reason: 'end', ...result, active: Math.floor(E.active) });
 }
+
+// ---------------- AUTO TRONG TRẬN ----------------
+const FIGHT_NEAR = 6.5;   // có người địch trong tầm này → dừng việc khác để đánh
+const THRONE_GUARD = 12;  // đang đứng trên ngai: chỉ rời đi đánh địch trong tầm này
+const nearestFoe = (p, maxD) => {
+  let best = null, bd = maxD;
+  for (const m of G.R.mobs) { if (!m.pvp || m.invuln || m.hp <= 0) continue; const d = Math.hypot(m.x - p.x, m.y - p.y); if (d < bd) { bd = d; best = m; } }
+  return best;
+};
+/**
+ * AUTO khi đang trong trận công thành (gắn vào HOOKS.auto): 1) địch ở gần → đánh;
+ * 2) phe công, cổng chưa vỡ → đánh cổng; 3) cổng đã vỡ (hoặc phe thủ) → đứng giữ Ngai Vàng, chỉ rời đi đánh địch ở gần.
+ * Trả true nếu đã quyết định (người chơi vừa ra lệnh tay thì để yên 2.5 giây).
+ */
+export function siegeAuto() {
+  const R = G.R, E = R && R.event;
+  if (!E || E.id !== 'siege' || E.over) return false;
+  const p = R.p;
+  if (R.manualT > 0) return true;
+  const th = SIEGE.throne, gate = E.gateInfo, onThrone = Math.hypot(p.x - th.x, p.y - th.y) <= th.r * 0.8;
+  const foe = nearestFoe(p, onThrone ? THRONE_GUARD : FIGHT_NEAR);
+  if (foe) { if (p.target !== foe) p.target = foe; p.tx = null; return true; }
+  if (E.team.role === 'att' && gate && !gate.open) {
+    const gm = R.mobs.find((m) => m.siegeGate);
+    if (gm) { p.target = gm; p.tx = null; return true; }
+    return false; // chưa có cổng → AUTO thường
+  }
+  if (gate && (gate.open || E.team.role === 'def')) {
+    p.target = null;
+    if (!onThrone) { if (p.tx == null) { p.tx = th.x + (Math.random() - 0.5) * th.r; p.ty = th.y + (Math.random() - 0.5) * th.r; } } else p.tx = null; // đứng giữ ngai
+    return true;
+  }
+  return false;
+}
+HOOKS.auto = siegeAuto;
 
 export const siegeActive = () => { const E = G.R && G.R.event; return E && E.id === 'siege' ? Math.floor(E.active) : 0; };
 export const inSiege = () => !!(G.R && G.R.event && G.R.event.id === 'siege' && !G.R.event.over);

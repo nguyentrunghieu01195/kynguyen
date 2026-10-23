@@ -1,5 +1,5 @@
 // Cập nhật người chơi mỗi khung hình + chế độ tự động cày (AUTO).
-import { G } from '../core/state.js';
+import { G, HOOKS } from '../core/state.js';
 import { log, emit, EV } from '../core/events.js';
 import { dist, clamp, rint, moveToward } from '../core/utils.js';
 import { CFG, SPAWN } from '../config/constants.js';
@@ -26,6 +26,7 @@ function autoThink() {
       return;
     }
   }
+  if (HOOKS.auto && HOOKS.auto()) return; // chế độ riêng (công thành: ưu tiên địch / cổng / ngai)
   if (R.manualT > 0 || R.travel) return;
   // Nhặt đồ rơi gần khi không bị đánh (class đánh xa hay bỏ sót đồ vì đứng xa chỗ quái chết)
   if (!(p.hurtT > 0)) {
