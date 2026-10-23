@@ -36,7 +36,14 @@ export const MATS = {
   wood: { o: '#3a2410', d: '#6a4422', b: '#a2703a', l: '#d8a468', kind: 'matte', name: 'Gỗ' },
   capeWhite: { o: '#646a8c', d: '#cdd3ea', b: '#fbfcff', l: '#ffffff', kind: 'matte', name: 'Áo choàng trắng' },
 };
-const M = (n) => MATS[n] || MATS.steel;
+let ALIAS = null; // tên chất liệu → chất liệu thay thế (đổi màu theo bộ giáp cụ thể của game)
+const M = (n) => MATS[(ALIAS && ALIAS[n]) || n] || MATS.steel;
+/** Tạo chất liệu động từ một màu: viền · tối · gốc · sáng */
+function dynMat(hex, kind) {
+  const key = 'dyn' + hex + kind;
+  if (!MATS[key]) MATS[key] = { o: mix(hex, '#000000', 0.66), d: mix(hex, '#000000', 0.4), b: hex, l: mix(hex, '#ffffff', 0.45), kind, name: key };
+  return key;
+}
 
 // ---------------- BỐN BỘ (bậc 1 · 3 · 6 trong game = chỉ số 0 · 2 · 5) ----------------
 export const TIERS = {
@@ -345,7 +352,7 @@ export function buildHero(o) {
     for (const [a, b, r, m] of [[0.22, 0.5, 14, eMat], [0.5, 0.76, 13.4, dMat], [0.76, 1.0, 12.6, eMat]]) part(layer, limb(lerp2(A.el, A.wr, a), lerp2(A.el, A.wr, b), r, r - 0.6), m, 0.55);
   };
   // giáp vai: 3 thiết kế khác hẳn nhau theo bậc (khung gốc tại khớp vai, +x là hướng ra trước)
-  const pauldron = (layer, sh, ang, sc) => {
+  const pauldron0 = (layer, sh, ang, sc) => {
     const tf = (x, y) => { const [u, v] = rot(x * sc, y * sc, ang); return [sh[0] + u, sh[1] + v - 4]; };
     fill(layer, ell(tf, 4, 20, 40 * (tier === 0 ? 0.8 : 1), 14), '#10081a', { a: 0.3 }); // bóng tiếp xúc
     const P_ = (d, m, k) => part(layer, xf(d, tf), m, k);
@@ -380,6 +387,20 @@ export function buildHero(o) {
       P_('M -34 6 Q 4 22 42 2 L 42 10 Q 4 30 -34 16 Z', 'gold', 0.5);
       stroke(layer, xf('M 2 -28 Q 8 -10 4 14', tf), M('gold').l, 3.5, { a: 0.9 });
     }
+  };
+
+  const style = o.set ? o.set.style : null;
+  const pauldron = (layer, sh, ang, sc) => {
+    pauldron0(layer, sh, ang, sc);
+    if (!style) return;
+    const tf = (x, y) => { const [u, v] = rot(x * sc, y * sc, ang); return [sh[0] + u, sh[1] + v - 4]; }, P_ = (d, m, k) => part(layer, xf(d, tf), m, k);
+    if (style === 'bronze') { for (const x of [-16, 0, 16]) fill(layer, ell(tf, x, -10, 2.6, 2.6), '#f0c080'); stroke(layer, xf('M -26 2 Q 2 14 32 0', tf), M('gold').b, 3, {}); }
+    else if (style === 'fur') { for (const [x, y] of [[-20, -6], [-8, -14], [6, -16], [20, -8]]) P_('M ' + (x - 7) + ' ' + y + ' Q ' + (x - 5) + ' ' + (y - 14) + ' ' + x + ' ' + (y - 16) + ' Q ' + (x + 5) + ' ' + (y - 12) + ' ' + (x + 7) + ' ' + y + ' Z', 'clothW', 0.4); }
+    else if (style === 'ice') { for (const [x, h, w] of [[-14, 34, 8], [2, 46, 9], [18, 30, 7]]) P_('M ' + (x - w) + ' -14 L ' + x + ' ' + (-14 - h) + ' L ' + (x + w) + ' -14 Z', 'crystal', 0.5); }
+    else if (style === 'dragon') { P_('M 28 -8 Q 62 -20 66 -58 Q 46 -38 22 -26 Z', 'darkmetal', 0.5); P_('M -6 -26 Q -14 -52 -4 -72 Q 6 -50 8 -28 Z', 'darkmetal', 0.5); stroke(layer, xf('M -24 -6 Q 2 -16 30 -8', tf), M('gold').l, 2.4, { a: 0.9 }); }
+    else if (style === 'leaf') { for (const [x, y, r] of [[-18, -14, -0.6], [0, -22, 0], [18, -14, 0.6]]) P_(ell((a, b) => [a, b], x, y, 6, 14, r), 'arch0', 0.4); }
+    else if (style === 'magma') { stroke(layer, xf('M -18 -10 L -6 -2 L -10 8 M 10 -14 L 18 -4 L 12 6', tf), '#ffae3a', 3, { a: 0.95 }); }
+    else if (style === 'shadow') { P_('M -10 -24 Q -6 -44 6 -54 Q 8 -36 4 -22 Z', 'orbP', 0.4); }
   };
 
   // ============ arm_back ============
@@ -583,6 +604,29 @@ export function buildHero(o) {
     }
   }
 
+  // ============ [BỘ GIÁP] điểm nhấn theo kiểu bộ giáp của game ============
+  if (o.set) {
+    const st = o.set.style, ch = (d, m, k) => part('armor_chest', xf(d, T2), m, k), hx2 = (d, m, k) => part('helmet', xf(d, HD), m, k);
+    if (cls === 'knight' || cls === 'archer') {
+      if (st === 'bronze') { for (const [x, y] of [[-30, -70], [38, -68], [-34, -44], [40, -42]]) fill('armor_chest', ell(T2, x, y, 3, 3), '#f0c080'); stroke('armor_chest', xf('M 6 -86 L 6 -22', T2), M('gold').b, 4, {}); }
+      else if (st === 'fur') { for (let i = 0; i < 6; i++) ch('M ' + (-34 + i * 14) + ' -84 Q ' + (-30 + i * 14) + ' -100 ' + (-24 + i * 14) + ' -86 Z', 'clothW', 0.4); }
+      else if (st === 'ice') { for (const [x, y, w] of [[-26, -56, 8], [6, -66, 10], [36, -54, 8]]) ch('M ' + (x - w) + ' ' + (y + 18) + ' L ' + x + ' ' + y + ' L ' + (x + w) + ' ' + (y + 18) + ' Z', 'crystal', 0.5); }
+      else if (st === 'dragon') { for (let r = 0; r < 3; r++) for (let i = 0; i < 4; i++) ch('M ' + (-30 + i * 22 + r * 8) + ' ' + (-72 + r * 16) + ' q 9 12 18 0 q -9 -4 -18 0 Z', 'gold', 0.3); }
+      else if (st === 'magma') { stroke('armor_chest', xf('M -30 -70 L -14 -56 L -22 -40 L -6 -28 M 22 -74 L 30 -58 L 16 -46', T2), '#ffae3a', 3.4, { a: 0.95 }); }
+      else if (st === 'leaf') { for (const [x, y, r] of [[-26, -60, -0.7], [30, -58, 0.7], [-6, -40, 0.3]]) ch(ell((a, b) => [a, b], x, y, 6, 15, r), 'arch0', 0.4); }
+      else if (st === 'shadow') { stroke('armor_chest', xf('M -20 -70 L 6 -52 L 32 -70 M 6 -52 L 6 -28', T2), '#a07aff', 3.4, { a: 0.95 }); }
+    }
+    if (!o.hide?.helmet && st !== 'cloth' && st !== 'demon') {
+      if (st === 'ice') { hx2('M -10 -318 L -4 -360 L 6 -322 Z', 'crystal', 0.5); hx2('M 12 -318 L 24 -352 L 30 -314 Z', 'crystal', 0.5); hx2('M -30 -310 L -40 -340 L -16 -312 Z', 'crystal', 0.5); }
+      else if (st === 'dragon') { hx2('M 40 -312 Q 80 -330 90 -372 Q 66 -350 36 -334 Z', 'darkmetal', 0.5); hx2('M -42 -316 Q -80 -330 -92 -366 Q -64 -348 -34 -332 Z', 'darkmetal', 0.5); }
+      else if (st === 'fur') { for (const x of [-52, 62]) for (let i = 0; i < 3; i++) hx2('M ' + (x - 7) + ' ' + (-270 + i * 12) + ' Q ' + (x + (x < 0 ? -14 : 14)) + ' ' + (-272 + i * 12) + ' ' + (x + 6) + ' ' + (-258 + i * 12) + ' Z', 'clothW', 0.4); }
+      else if (st === 'bronze') stroke('helmet', xf('M -40 -304 Q 6 -334 58 -304', HD), M('gold').b, 5, {});
+      else if (st === 'leaf') { hx2(ell(HD, 6, -334, 7, 18, 0.2), 'arch0', 0.4); hx2(ell(HD, -14, -326, 6, 14, -0.5), 'arch0', 0.4); }
+      else if (st === 'magma') stroke('helmet', xf('M -20 -322 L -6 -346 L 6 -326 L 20 -350 L 30 -320', HD), '#ffae3a', 3.4, { a: 0.95 });
+      else if (st === 'shadow') hx2('M -4 -322 L 6 -366 L 16 -322 Z', 'orbP', 0.5);
+    }
+  }
+
   // ============ [CỘNG] điểm nhấn theo cấp cộng: ngọc, rune (viền sáng vẽ ở drawChibi) ============
   if (o.pl) {
     const gem = (layer, tf, x, y, r, col) => { part(layer, ell(tf, x, y, r, r), 'crystal', 0.35); fill(layer, ell(tf, x, y, r * 0.55, r * 0.55), col, { a: 0.9 }); };
@@ -735,6 +779,12 @@ const ellipsePathLocal = ellipsePathAbs;
 let TINT = 0;
 /** Vẽ Kiếm Sĩ lên c (đã đặt gốc tại giữa hai bàn chân, 1 đơn vị = 1 đơn vị phác; caller tự scale 0.25 cho cỡ 80px) */
 export function drawChibi(c, o) {
+  const cl = o.cls || 'knight';
+  ALIAS = null;
+  if (o.set) { const e = dynMat(o.set.e, o.set.kind), d = dynMat(o.set.d, 'metal'), m = CLS_MATS[cl][o.tier]; ALIAS = { [m.e]: e, [m.d]: d }; if (o.tier === 5) Object.assign(ALIAS, { angel: e, gold: d, clothW: e }); }
+  try { return drawChibi0(c, o); } finally { ALIAS = null; }
+}
+function drawChibi0(c, o) {
   const B = buildHero(o);
   // bóng đổ dưới chân
   c.save(); c.fillStyle = 'rgba(0,0,0,0.38)'; c.beginPath(); c.ellipse(B.fall ? B.pel[0] + 10 : B.pel[0] + 4, 2, B.fall ? 96 : 62, 13, 0, 0, 6.283); c.fill(); c.restore();

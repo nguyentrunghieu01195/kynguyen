@@ -3,15 +3,27 @@
 import { drawChibi } from './chibi.js';
 import { resolveLook } from './hero.js';
 import { drawWings, outfitBody, outfitSkirt, headwear, HEADWEAR_HIDES_HAIR, auraLayer } from './gear.js';
+import { ARMOR_SETS } from '../../../config/gear.js';
 import { glowColor } from '../../paint.js';
 
 export const HERO_HEIGHT = 100;
 const SC = 0.3, RES = 2, W = 150, H = 150, OX = 60, OY = 130; // 1 đơn vị phác = 0.3px game; canvas nháp RES× cho nét
 const cache = new Map();
+const latest = new Map();           // khung gần nhất đã dựng cho cùng một bộ trang bị / tư thế (dự phòng khi hết ngân sách dựng)
+let pending = false, builds = 0;          // mỗi khung hình chỉ dựng tối đa 2 khung mới (~12ms/khung) để đông người không bị giật
 
 /** Bậc giáp trong game (0..5+) → 3 bộ mẫu: 0 Bộ Da / vải, 2 Bộ Xương, 5 Bộ Thiên Thần */
 const tierOf = (eq) => { const t = eq && eq.armor ? eq.armor.tier || 0 : 0; return t <= 1 ? 0 : t <= 4 ? 2 : 5; };
 const fashionKey = (eq, fa) => [eq.wings ? eq.wings.tier + ':' + (eq.wings.plus >= 7 ? 1 : 0) : '', fa ? (fa.outfit || '') + '/' + (fa.head || '') : ''].join('|');
+
+/** Bộ giáp cụ thể của game → thông số đổi màu / điểm nhấn. Ba bộ mẫu tự vẽ tay (Da, Xương, Thiên Thần dòng 0) giữ nguyên chất liệu. */
+const METAL = { bronze: 1, ice: 1, dragon: 1, magma: 1, angel: 1, demon: 1 };
+function setOf(eq) {
+  const a = eq && eq.armor; if (!a) return null;
+  const line = a.line || 0, ar = ARMOR_SETS[a.tier] && (ARMOR_SETS[a.tier][line] || ARMOR_SETS[a.tier][0]); if (!ar) return null;
+  if (line === 0 && (a.tier === 0 || a.tier === 2 || a.tier === 5)) return null;
+  return { id: ar.id, e: ar.color, d: ar.trim, style: ar.style, kind: METAL[ar.style] ? 'metal' : ar.style === 'bone' || ar.style === 'shadow' ? 'bone' : 'matte' };
+}
 
 /** Cấp cộng → mức hiển thị: 0 thường · 1 bóng (+3) · 2 viền vàng (+5) · 3 sáng xanh (+7) · 4 vàng (+9) · 5 đỏ (+11) · 6 cầu vồng (+13) · 7 tối đa (+15) */
 const lvOf = (p) => (p >= 15 ? 7 : p >= 13 ? 6 : p >= 11 ? 5 : p >= 9 ? 4 : p >= 7 ? 3 : p >= 5 ? 2 : p >= 3 ? 1 : 0);
@@ -51,13 +63,22 @@ export function drawHero(c, cls, eq, t, o) {
   const wingT = Math.floor(t * 3 / 6.2832 * 12) / 12 * (6.2832 / 3);            // cánh vỗ mượt hơn thân
   const t4 = Math.round(t * 4) / 4; // màu cầu vồng đổi theo bước 0.25s để cache không bị tràn
   const pl = { armor: plusOf(eq.armor, t4), helm: plusOf(eq.helm, t4), gloves: plusOf(eq.gloves, t4), boots: plusOf(eq.boots, t4), pants: plusOf(eq.pants, t4), weapon: plusOf(eq.weapon, t4) };
+  const set = setOf(eq);
   const wglow = L.weapon.special ? '#ffcf3a' : glowColor(L.weapon.plus, Math.round(t * 4) / 4) || null;
-  const key = cls + L.weapon.type + (L.weapon.special ? 'S' : '') + (wglow || '') + plKey(pl) + tier + gender + pose + (k == null ? '' : k) + tq.toFixed(3) + '|' + fashionKey(eq, fa) + (L.wings ? wingT.toFixed(2) : '');
+  const key = cls + L.weapon.type + (L.weapon.special ? 'S' : '') + (wglow || '') + plKey(pl) + (set ? set.id : '') + tier + gender + pose + (k == null ? '' : k) + tq.toFixed(3) + '|' + fashionKey(eq, fa) + (L.wings ? wingT.toFixed(2) : '');
 
   groundGlows(c, L, t);
   if (L.aura) { c.save(); c.scale(1.15, 1.15); auraLayer(c, L.aura, t, false); c.restore(); }
   let cv = cache.get(key);
+  const base = key.replace(/-?\d+\.\d+/g, '');
   if (!cv) {
+    if (!pending) { pending = true; requestAnimationFrame(() => { builds = 0; pending = false; }); } // ngân sách dựng tính theo từng khung hình
+    if (builds >= 2 && latest.has(base)) cv = latest.get(base);
+    else if (builds >= 2) cv = null;
+  }
+  if (!cv && builds >= 2) { /* chưa có khung nào: bỏ qua lượt này, khung sau sẽ dựng */ }
+  else if (!cv) {
+    builds++;
     if (cache.size > 150) cache.clear();
     cv = document.createElement('canvas'); cv.width = W * RES; cv.height = H * RES;
     const g = cv.getContext('2d');
@@ -70,13 +91,16 @@ export function drawHero(c, cls, eq, t, o) {
     };
     if (L.head) inject.helmet = (_c, B) => { const [hx, hy] = B.joints.head; g.save(); toPx(); g.translate(hx * SC, hy * SC); g.rotate(B.P.lean + B.P.tilt); g.scale(1.56, 1.56); g.translate(0, -6); headwear(g, L.head, tq); g.restore(); };
     g.scale(RES, RES); g.translate(OX, OY); g.scale(SC, SC);
-    drawChibi(g, { pl, cls, wtype: L.weapon.type, special: !!L.weapon.special, wglow, tier, gender, pose, t: tq, k, crown: !!L.head, inject,
+    drawChibi(g, { pl, set, cls, wtype: L.weapon.type, special: !!L.weapon.special, wglow, tier, gender, pose, t: tq, k, crown: !!L.head, inject,
       hide: { chest: !!L.outfit, helmet: !!L.head, hair: !!(L.head && HEADWEAR_HIDES_HAIR[L.head.style]) } });
     cache.set(key, cv);
   }
+  if (cv) latest.set(base, cv);
+  if (cv) {
   c.save(); c.scale(o.face || 1, 1);
   c.drawImage(cv, -OX, -OY, W, H);
   c.restore();
+  }
   sparks(c, L, t);
   if (L.aura) { c.save(); c.scale(1.15, 1.15); auraLayer(c, L.aura, t, true); c.restore(); }
 }

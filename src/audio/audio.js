@@ -4,6 +4,10 @@
 // Trình duyệt chỉ cho phát âm thanh sau thao tác đầu tiên của người chơi → unlock() khi chạm/bấm phím.
 import { G } from '../core/state.js';
 import { on, EV } from '../core/events.js';
+import { WEAPON_TYPES } from '../config/gear.js';
+import { SIEGE } from '../config/siege.js';
+import { GBOSS } from '../config/gboss.js';
+import { nightLevel } from '../render/juice.js';
 
 const PREF_KEY = 'kng_audio';
 export const AUD = (() => { try { return Object.assign({ sfx: 0.7, music: 0.35 }, JSON.parse(localStorage.getItem(PREF_KEY) || '{}')); } catch (e) { return { sfx: 0.7, music: 0.35 }; } })();
@@ -84,11 +88,34 @@ const SFX = {
   bossWarn: () => { tone({ type: 'sawtooth', f: 110, f2: 220, glide: 1.1, d: 1.1, a: 0.15, vol: 0.12 }); tone({ type: 'sine', f: 55, f2: 110, glide: 1.1, d: 1.1, a: 0.15, vol: 0.25 }); },
   bossSpawn: () => { tone({ type: 'sawtooth', f: 65, d: 1.4, a: 0.1, vol: 0.15 }); tone({ type: 'sawtooth', f: 69, d: 1.4, a: 0.1, vol: 0.12 }); noise({ filter: 'lowpass', f: 400, q: 0.5, d: 1.2, vol: 0.2 }); },
   click: () => tone({ type: 'triangle', f: 1200, f2: 900, d: 0.04, vol: 0.06 }),
+  // --- vũ khí theo loại ---
+  swingAxe: () => { noise({ f: 900, f2: 300, q: 0.6, d: 0.2, vol: 0.26 }); tone({ type: 'sine', f: 90, f2: 50, d: 0.18, vol: 0.25, at: 0.08 }); },
+  swingMace: () => { noise({ filter: 'lowpass', f: 700, f2: 200, q: 0.5, d: 0.15, vol: 0.22 }); tone({ type: 'sine', f: 70, f2: 40, d: 0.2, vol: 0.4, at: 0.1 }); },
+  swingSpear: () => noise({ f: 3000, f2: 1200, q: 1.6, d: 0.09, vol: 0.2 }),
+  twang: () => { tone({ type: 'square', f: 220, f2: 110, d: 0.08, vol: 0.1 }); noise({ f: 2200, q: 2, d: 0.05, vol: 0.08 }); },
+  cast: () => { arp([784, 1047, 1319], 0.03, { type: 'sine', d: 0.2, vol: 0.08 }); noise({ f: 5000, q: 2, d: 0.15, vol: 0.05 }); },
+  tome: () => { noise({ f: 2500, f2: 1200, q: 1, d: 0.1, vol: 0.12 }); arp([660, 880], 0.05, { type: 'triangle', d: 0.15, vol: 0.08, at: 0.05 }); },
+  // --- bước chân theo mặt đất ---
+  stepGrass: () => noise({ filter: 'lowpass', f: 700, q: 0.5, d: 0.06, vol: 0.05 }),
+  stepStone: () => { noise({ f: 1800, q: 2, d: 0.03, vol: 0.07 }); tone({ type: 'sine', f: 200, f2: 120, d: 0.03, vol: 0.06 }); },
+  stepSnow: () => noise({ f: 3500, q: 0.8, d: 0.09, vol: 0.06 }),
+  stepSand: () => noise({ filter: 'lowpass', f: 1500, q: 0.4, d: 0.08, vol: 0.045 }),
+  stepMud: () => noise({ filter: 'lowpass', f: 400, q: 0.5, d: 0.12, vol: 0.08 }),
+  // --- Công thành / Boss bang ---
+  horn: () => { tone({ type: 'sawtooth', f: 98, f2: 110, glide: 1.2, d: 1.4, a: 0.25, vol: 0.12 }); tone({ type: 'sawtooth', f: 147, f2: 165, glide: 1.2, d: 1.4, a: 0.25, vol: 0.08, det: 8 }); noise({ filter: 'lowpass', f: 500, q: 0.4, d: 1.2, a: 0.3, vol: 0.1 }); },
+  gateHit: () => { tone({ type: 'sine', f: 80, f2: 40, d: 0.25, vol: 0.5 }); noise({ filter: 'lowpass', f: 700, f2: 120, q: 0.5, d: 0.3, vol: 0.35 }); tone({ type: 'triangle', f: 180, f2: 90, d: 0.1, vol: 0.2 }); },
+  gateBreak: () => { tone({ type: 'sine', f: 90, f2: 30, d: 0.8, vol: 0.6 }); noise({ filter: 'lowpass', f: 2500, f2: 100, q: 0.4, d: 1.2, vol: 0.45 }); for (let i = 0; i < 8; i++) tone({ type: 'square', f: 300 + Math.random() * 600, f2: 120, d: 0.05, vol: 0.06, at: 0.2 + i * 0.07 }); },
+  throneMine: () => { arp([523, 659, 784, 1047, 1319], 0.07, { type: 'triangle', d: 0.4, vol: 0.15 }); tone({ type: 'sine', f: 130, d: 0.7, a: 0.03, vol: 0.25 }); },
+  throneLost: () => arp([392, 330, 262], 0.12, { type: 'sawtooth', d: 0.3, vol: 0.1 }),
+  victory: () => { arp([523, 659, 784, 1047, 784, 1047, 1319], 0.12, { type: 'triangle', d: 0.5, vol: 0.16 }); arp([1047, 1319, 1568, 2093], 0.12, { type: 'sine', d: 0.7, vol: 0.06, at: 0.3 }); },
+  defeat: () => arp([392, 349, 294, 220], 0.2, { type: 'triangle', d: 0.55, vol: 0.15 }),
+  mail: () => arp([1047, 1319], 0.08, { type: 'sine', d: 0.3, vol: 0.08 }),
+  ping: () => tone({ type: 'sine', f: 1568, d: 0.08, vol: 0.05 }),
   thunder: () => { noise({ filter: 'lowpass', f: 300, f2: 60, q: 0.3, d: 2.2, a: 0.03, vol: 0.35 }); },
 };
 const SKILL_SOUND = { whirl: 'whoosh', slam: 'boom', warcry: 'buff', charge: 'dash', skyblade: 'whoosh', meteor: 'whoosh', frost: 'frost', manashield: 'buff', chain: 'zap', blackhole: 'vortex', arrowrain: 'arrow', pierce: 'laser', focus: 'buff', icearrow: 'frost', phoenix: 'roar' };
 
-const lastAt = {}, MIN_GAP = { hit: 0.045, crit: 0.06, kill: 0.05, zen: 0.06, hurt: 0.12, arrow: 0.05, swing: 0.05, fire: 0.06 };
+const lastAt = {}, MIN_GAP = { gateHit: 0.12, stepGrass: 0.1, stepStone: 0.1, stepSnow: 0.1, stepSand: 0.1, stepMud: 0.1, ping: 0.4, hit: 0.045, crit: 0.06, kill: 0.05, zen: 0.06, hurt: 0.12, arrow: 0.05, swing: 0.05, fire: 0.06 };
 let voices = 0;
 export function play(name) {
   if (!ctx || ctx.state !== 'running' || AUD.sfx <= 0) return;
@@ -113,6 +140,8 @@ const MUSIC = {
   coast: { root: 261.6, scale: [0, 2, 4, 7, 9], step: 0.55, chords: [[0, 4, 7], [5, 9, 12], [-3, 0, 4], [7, 11, 14]] },
   volcano: { root: 155.6, scale: [0, 1, 3, 6, 7, 10], step: 0.45, chords: [[0, 3, 6], [1, 5, 8], [-2, 1, 5], [0, 3, 7]] },
   fallen: { root: 185, scale: [0, 2, 3, 6, 7, 10], step: 0.6, chords: [[0, 3, 7], [-3, 0, 3], [-6, -3, 0], [-5, -1, 2]] },
+  siege: { root: 146.8, scale: [0, 3, 5, 6, 7, 10], step: 0.26, chords: [[0, 3, 7], [-2, 1, 5], [-5, -2, 2], [-4, 0, 3]], drums: true, heavy: true },
+  bossfight: { root: 130.8, scale: [0, 1, 3, 6, 7, 10], step: 0.3, chords: [[0, 3, 6], [1, 4, 8], [-2, 1, 5], [-6, -3, 0]], drums: true, heavy: true },
   battle: { root: 164.8, scale: [0, 3, 5, 7, 10], step: 0.28, chords: [[0, 3, 7], [-4, 0, 3], [-2, 2, 5], [-5, -2, 2]], drums: true },
 };
 const hz = (root, semi) => root * Math.pow(2, semi / 12);
@@ -120,7 +149,7 @@ let mus = null, musTimer = null;
 function musicKey() {
   const R = G.R;
   if (!R) return null;
-  if (R.event) return 'battle';
+  if (R.event) return R.event.id === 'siege' ? 'siege' : R.event.id === 'gboss' ? 'bossfight' : 'battle';
   const id = R.M && R.M.id;
   return MUSIC[id] ? id : 'meadow';
 }
@@ -143,6 +172,10 @@ function scheduleMusic() {
       const semi = M.scale[mus.prev % M.scale.length] + 12 * Math.floor(mus.prev / M.scale.length);
       tone({ type: 'triangle', f: hz(M.root, semi), d: M.step * 1.6, a: 0.01, vol: 0.05, at, bus: musBus });
     }
+    if (M.heavy) {
+      if (b % 2 === 0) tone({ type: 'sine', f: hz(M.root / 4, ch[0]), f2: hz(M.root / 8, ch[0]), d: 0.12, vol: 0.2, at, bus: musBus });
+      if (b % 16 === 0) for (const n of ch) tone({ type: 'sawtooth', f: hz(M.root, n), d: 0.35, a: 0.03, vol: 0.05, at, bus: musBus });
+    }
     if (M.drums) {
       if (b % 4 === 0) tone({ type: 'sine', f: 110, f2: 40, d: 0.18, vol: 0.25, at, bus: musBus });
       if (b % 4 === 2) noise({ f: 2000, q: 0.8, d: 0.08, vol: 0.08, at, bus: musBus });
@@ -152,16 +185,49 @@ function scheduleMusic() {
   }
 }
 
+// ---------------- MÔI TRƯỜNG: gió, mưa, chim ban ngày, dế ban đêm ----------------
+const WIND = { tundra: 0.5, canyon: 0.45, desert: 0.4, coast: 0.3, meadow: 0.12, volcano: 0.35, fallen: 0.3, swamp: 0.1, darkwood: 0.18, crypt: 0.08 };
+const RAIN = { darkwood: 0.35 };
+let amb = null, nextBird = 0, nextCricket = 0;
+function ambEnsure() {
+  if (amb || !ctx) return;
+  const mk = (type, f, q) => { const sr = ctx.createBufferSource(); sr.buffer = noiseBuf; sr.loop = true; const fl = ctx.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q; const g = ctx.createGain(); g.gain.value = 0; sr.connect(fl); fl.connect(g); g.connect(musBus); sr.start(); return { g, fl }; };
+  amb = { wind: mk('lowpass', 500, 0.7), rain: mk('highpass', 3500, 0.5) };
+}
+function ambTick() {
+  if (!ctx || ctx.state !== 'running') return;
+  ambEnsure();
+  const R = G.R, id = R && !R.event && R.M && R.M.id, now = ctx.currentTime, on_ = AUD.music > 0 && id;
+  amb.wind.g.gain.setTargetAtTime(on_ ? (WIND[id] || 0.1) * 0.6 : 0, now, 0.8);
+  amb.wind.fl.frequency.setTargetAtTime(350 + 250 * Math.sin(now * 0.4) + 120 * Math.sin(now * 1.1), now, 0.3);
+  amb.rain.g.gain.setTargetAtTime(on_ ? (RAIN[id] || 0) * 0.5 : 0, now, 0.8);
+  if (!on_) return;
+  const night = nightLevel(), green = id === 'meadow' || id === 'coast' || id === 'swamp';
+  if (green && night < 0.3 && now > nextBird) { nextBird = now + 2.5 + Math.random() * 4; const f0 = 2200 + Math.random() * 800; for (let i = 0; i < 2 + Math.floor(Math.random() * 2); i++) tone({ type: 'sine', f: f0, f2: f0 * 1.4, d: 0.07, vol: 0.035, at: i * 0.11, bus: musBus }); }
+  if (green && night > 0.5 && now > nextCricket) { nextCricket = now + 0.9 + Math.random() * 1.5; for (let i = 0; i < 3; i++) tone({ type: 'sine', f: 4200, d: 0.03, vol: 0.02, at: i * 0.06, bus: musBus }); }
+}
+const SURFACE = { tundra: 'stepSnow', desert: 'stepSand', swamp: 'stepMud', crypt: 'stepStone', volcano: 'stepStone', fallen: 'stepStone', canyon: 'stepStone' };
+let stepAcc = 0;
+function stepTick() {
+  const R = G.R, p = R && R.p;
+  if (!p || p.dead > 0 || !p.moving) { stepAcc = 0.25; return; }
+  stepAcc += 0.05;
+  if (stepAcc >= 0.33) { stepAcc = 0; const id = R.event ? 'arena' : R.M && R.M.id; play(SURFACE[id] || (R.event ? 'stepStone' : 'stepGrass')); }
+}
+
 // ---------------- NỐI VỚI SỰ KIỆN GAME ----------------
 export function initAudio() {
-  const go = () => { unlock(); if (!musTimer) musTimer = setInterval(scheduleMusic, 200); };
+  const go = () => { unlock(); if (!musTimer) { musTimer = setInterval(() => { scheduleMusic(); ambTick(); }, 200); setInterval(stepTick, 50); } };
   addEventListener('pointerdown', go, { passive: true });
   addEventListener('keydown', go);
   document.addEventListener('click', (e) => { if (e.target.closest('button')) play('click'); });
   document.addEventListener('uitap', () => play('click'));
 
-  on(EV.BASIC, (k) => play(k === 'melee' ? 'swing' : k === 'fire' ? 'fire' : 'arrow'));
-  on(EV.HIT, (m, d, crit) => play(crit ? 'crit' : 'hit'));
+  on(EV.BASIC, (k) => {
+    const S = G.S, w = S && S.equip && S.equip.weapon, wt = S && WEAPON_TYPES[S.cls] && WEAPON_TYPES[S.cls][(w && w.wt) || 0], id = wt && wt.id;
+    play({ axe: 'swingAxe', mace: 'swingMace', spear: 'swingSpear', crossbow: 'twang', orb: 'cast', staff: 'cast', tome: 'tome' }[id] || (k === 'melee' ? 'swing' : k === 'fire' ? 'fire' : 'arrow'));
+  });
+  on(EV.HIT, (m, d, crit) => play(m && m.name === 'Cổng Thành' ? 'gateHit' : crit ? 'crit' : 'hit'));
   on(EV.KILL, (m) => play(m.boss ? 'boom' : 'kill'));
   on(EV.SKILL, (id) => play(SKILL_SOUND[id] || 'whoosh'));
   on(EV.SHAKE, (n) => { if (n >= 5) play('boom'); });
@@ -174,8 +240,15 @@ export function initAudio() {
   on(EV.UPGRADE, (o) => play(o === 'success' ? 'upOk' : o === 'break' ? 'upBreak' : 'upFail'));
   on(EV.CRAFT, (ok) => play(ok ? 'upOk' : 'upFail'));
   on(EV.BOSS_CAST, () => play('bossWarn'));
-  on(EV.ANNOUNCE, (msg) => { if (/BOSS .* xuất hiện/.test(msg)) play('bossSpawn'); });
+  on(EV.ANNOUNCE, (msg) => { if (typeof msg === 'string' && (msg.startsWith(SIEGE.icon) || msg.startsWith(GBOSS.icon))) play('horn'); if (/BOSS .* xuất hiện/.test(msg)) play('bossSpawn'); });
   on(EV.MAP_ENTER, () => { mus = null; });
+  on(EV.SIEGE_GATE, () => play('gateBreak'));
+  on(EV.SIEGE_THRONE, (mine) => play(mine ? 'throneMine' : 'throneLost'));
+  on(EV.SIEGE_END, (r) => play(r && r.winner && G.S && G.S.guild && G.S.guild.name === r.winner ? 'victory' : 'defeat'));
+  on(EV.GBOSS_END, () => play('victory'));
+  on(EV.MAIL, () => play('mail'));
+  on(EV.CHAT, () => play('ping'));
+  on(EV.TRADE, () => play('ping'));
   // sấm ở Rừng Hắc Ám, khớp với chớp sáng của thời tiết (chu kỳ 17 giây)
   let lastThunder = -1;
   setInterval(() => { const R = G.R; if (!R || !R.M || R.M.id !== 'darkwood') return; const k = Math.floor(R.t / 17); if (k !== lastThunder) { lastThunder = k; setTimeout(() => play('thunder'), 400); } }, 250);

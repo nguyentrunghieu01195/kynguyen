@@ -50,6 +50,8 @@ export const EV = {
   TOWER_FLOOR: 'towerFloor', // (floor, firstClear) vượt 1 tầng tháp
   TOWER_END: 'towerEnd',  // (result) kết thúc lượt leo tháp
   SIEGE_END: 'siegeEnd',  // (result) kết thúc trận công thành
+  SIEGE_GATE: 'siegeGate', // Cổng Thành vừa bị phá
+  SIEGE_THRONE: 'siegeThrone', // (mine) Ngai Vàng đổi chủ; mine = bang của mình giữ
   GBOSS_END: 'gbossEnd',  // (result) kết thúc 1 lượt đánh Boss bang
   NET: 'net',             // trạng thái kết nối / dữ liệu máy chủ thay đổi
   TRADE: 'trade',         // giao dịch trực tiếp thay đổi (mời / trạng thái / kết thúc)

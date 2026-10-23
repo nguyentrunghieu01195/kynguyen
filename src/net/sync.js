@@ -192,7 +192,7 @@ export function applyState(S, patch) { for (const k in patch) S[k] = patch[k]; }
 // ---------------- SỰ KIỆN ----------------
 /** Sự kiện game máy chủ chuyển cho máy người chơi (để hiện chữ, rung màn hình, phát âm thanh, mở bảng kết quả…) */
 export const FORWARD_EVENTS = ['log', 'announce', 'levelUp', 'kill', 'playerDie', 'mapEnter', 'upgrade', 'craft', 'auto', 'points', 'pickup', 'skill', 'hit', 'basic',
-  'playerHit', 'bossCast', 'bossSlam', 'shake', 'skillLearn', 'potion', 'buy', 'reset', 'tierUp', 'quest', 'event', 'eventEnd', 'towerFloor', 'towerEnd', 'gbossEnd', 'siegeEnd', 'inventory'];
+  'playerHit', 'bossCast', 'bossSlam', 'shake', 'skillLearn', 'potion', 'buy', 'reset', 'tierUp', 'quest', 'event', 'eventEnd', 'towerFloor', 'towerEnd', 'gbossEnd', 'siegeEnd', 'siegeGate', 'siegeThrone', 'inventory'];
 /** Tham số sự kiện → dữ liệu gửi được (quái → tóm tắt có id) */
 export function packArg(a) {
   if (!a || typeof a !== 'object') return a;

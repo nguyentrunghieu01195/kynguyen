@@ -137,7 +137,12 @@ export function syncSiege(view) {
     if (!gm) { gm = createMob(GATE_TPL, 1, SIEGE.gate.x, SIEGE.gate.y, { event: true, noRespawn: true, static: true, kind: 'gate', hpMul: 1, dmgMul: 0 }); gm.siegeGate = true; gm.angry = true; gm.name = GATE_TPL.name; }
     gm.maxHp = g.max; gm.hp = Math.max(1, g.hp); gm.invuln = E.team.role === 'def'; // phe thủ không đánh cổng nhà
   } else if (gm) { const i = R.mobs.indexOf(gm); if (i >= 0) R.mobs.splice(i, 1); if (R.p.target === gm) R.p.target = null; }
+  if (g && g.open && E._gateWas === false) emit(EV.SIEGE_GATE);
+  E._gateWas = g ? !!g.open : E._gateWas;
   E.gateInfo = g ? { hp: g.hp, max: g.max, open: g.open } : null;
+  const hold = view.board && view.board.teams.find((x) => x.holder), hs = hold ? hold.slot : -1;
+  if (E._holder !== undefined && hs !== E._holder && hs >= 0) emit(EV.SIEGE_THRONE, hs === E.team.slot);
+  E._holder = hs;
   E.board = view.board;
 }
 

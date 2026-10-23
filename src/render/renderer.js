@@ -3,6 +3,7 @@ import { G } from '../core/state.js';
 
 import { CFG, SPAWN, SAFE_RADIUS } from '../config/constants.js';
 import { SIEGE } from '../config/siege.js';
+import { drawThrone, drawGateRuins, drawTeamMarker, drawBossRing, drawAllyRing, drawGateBar } from './siegeArt.js';
 import { iso, isoRadius, VIEW, camPos } from './iso.js';
 import { art } from './art/index.js';
 import { NET } from '../net/client.js';
@@ -79,6 +80,7 @@ function drawWaterShimmer(R, v, t) {
 export const clearMapCache = () => Object.keys(mapCache).forEach((k) => delete mapCache[k]);
 
 function drawBars(c, m, A) {
+  if (m.tpl && m.tpl.id === 'sgate') { drawGateBar(c, m, A); return; }
   const s = iso(m.x, m.y), h = A.mobHeight(m) + 10, show = m.hpShow > 0 || m === G.R.p.target || m.boss || m.elite;
   c.textAlign = 'center';
   if (show) {
@@ -158,6 +160,7 @@ export function render() {
   }
   for (const d of R.drops) if (inView(d)) A.drawDrop(ctx, d, t);
   if (R.event && R.event.id === 'siege') drawSiegeGround(ctx, R, t);
+  if (R.event && R.event.id === 'gboss') { for (const m of R.mobs) if (m.shared && inView(m)) drawBossRing(ctx, m, t); drawAllyRing(ctx, p.x, p.y, '#ffd54a'); for (const o of NET.players.values()) if (inView(o)) drawAllyRing(ctx, o.x, o.y, '#ffd54a'); }
   // Vùng cảnh báo chiêu boss (vẽ dưới chân, trước quái)
   for (const m of R.mobs) if (m.cast) {
     const c = m.cast, s = iso(c.x, c.y), r = isoRadius(c.r), k = Math.min(1, c.t / c.d);
@@ -172,11 +175,13 @@ export function render() {
   const list = [];
   for (const d of R.map.decos) if (inView(d)) list.push({ z: d.x + d.y, k: 0, o: d });
   for (const m of R.mobs) if (inView(m) && !m.pvp) list.push({ z: m.x + m.y, k: 1, o: m }); // người địch vẽ bằng sprite người chơi (NET.players)
+  if (R.event && R.event.id === 'siege') list.push({ z: SIEGE.throne.x + SIEGE.throne.y, k: 4 });
   list.push({ z: p.x + p.y, k: 2, o: p }); // người chơi gục thì vẽ tư thế nằm
   if (!R.event || R.event.room) for (const o of NET.players.values()) if (inView(o)) list.push({ z: o.x + o.y, k: 3, o });
   list.sort((a, b) => a.z - b.z);
   for (const e of list) {
-    if (e.k === 0) A.drawDeco(ctx, e.o, t);
+    if (e.k === 4) { const B = R.event.board, hd = B && B.teams.find((x) => x.holder); drawThrone(ctx, t, hd ? SIEGE.teamColors[hd.slot] : '#ffd54a', B && B.cap ? Math.min(1, B.cap.frac) : 0); }
+    else if (e.k === 0) A.drawDeco(ctx, e.o, t);
     else if (e.k === 1) {
       A.drawMob(ctx, e.o, t);
       if (e.o.stun > 0 || e.o.slowT > 0) drawStatus(ctx, e.o, A, t);
@@ -200,6 +205,7 @@ export function render() {
     ctx.font = '700 11px "Be Vietnam Pro", sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = '#000';
     ctx.strokeText(S.name, s.x, y); ctx.fillStyle = '#8fd0ff'; ctx.fillText(S.name, s.x, y);
     if (S.guild) guildTag(ctx, S.guild.name, s.x, y - 13);
+    if (R.event && R.event.id === 'siege' && R.event.team) drawTeamMarker(ctx, s.x, y - 26, SIEGE.teamColors[R.event.team.slot], t);
   }
   // Tên người chơi khác
   if (!R.event || R.event.room) for (const o of NET.players.values()) if (inView(o)) {
@@ -207,6 +213,7 @@ export function render() {
     ctx.font = '700 11px "Be Vietnam Pro", sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = '#000';
     ctx.strokeText(label, s.x, y); ctx.fillStyle = '#ffc8f0'; ctx.fillText(label, s.x, y);
     if (o.look && o.look.g) guildTag(ctx, o.look.g, s.x, y - 13);
+    if (R.event && R.event.id === 'siege' && o.look && o.look.g) drawTeamMarker(ctx, s.x, y - 26, teamColor(R, o.look.g), t);
   }
   drawLighting(ctx, t);
   drawParticles(ctx, t, dt);
@@ -229,6 +236,7 @@ function guildTag(ctx, name, x, y) {
 const teamColor = (R, name) => { const T = R.event.board && R.event.board.teams.find((t) => t.name === name); return T ? SIEGE.teamColors[T.slot] : '#ddd'; };
 /** Vòng Ngai Vàng (màu theo bang đang giữ) + vòng màu phe dưới chân các nhân vật */
 function drawSiegeGround(ctx, R, t) {
+  if (R.event.gateInfo && R.event.gateInfo.open) drawGateRuins(ctx);
   const B = R.event.board, th = SIEGE.throne, s = iso(th.x, th.y), r = isoRadius(th.r);
   const holder = B && B.teams.find((x) => x.holder), col = holder ? SIEGE.teamColors[holder.slot] : '#ffd54a';
   ctx.save();
