@@ -127,6 +127,8 @@ table.st td:last-child { color: var(--zen); font-variant-numeric: tabular-nums; 
 .cell.r-good { box-shadow: 0 0 6px rgba(159, 208, 255, .35); }
 .cell.r-high { box-shadow: 0 0 8px rgba(255, 213, 74, .45); }
 .cell.r-excellent, .cell.exc { border-color: #5dff7a; animation: kn-glow 2.4s ease-in-out infinite; }
+.cell.r-royal, .cell.r-royal.exc { border-color: #ffd34a; animation: kn-royal 2s ease-in-out infinite; background: radial-gradient(circle at 50% 40%, #4a3a14, #0d0b08); }
+@keyframes kn-royal { 0%, 100% { box-shadow: 0 0 8px 1px rgba(255, 211, 74, .6), inset 0 0 8px rgba(255, 211, 74, .35); } 50% { box-shadow: 0 0 18px 4px rgba(255, 211, 74, .9), inset 0 0 14px rgba(255, 211, 74, .55); } }
 .cell.r-wings { box-shadow: 0 0 12px 2px rgba(214, 168, 255, .6); }
 .cell.empty { border: 1px dashed var(--line-dd); background: rgba(0, 0, 0, .4); box-shadow: inset 0 2px 6px rgba(0, 0, 0, .6); color: var(--muted-2); }
 .cell.sel { outline: none; border-color: var(--gold) !important; box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--gold); background: radial-gradient(circle at 50% 40%, #3a2e18, #0d0b08); animation: none; }

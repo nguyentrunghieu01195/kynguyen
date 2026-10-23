@@ -16,7 +16,7 @@ const MIN_ACTIVE = +process.env.SIEGE_MIN_ACTIVE_SEC || SIEGE.minActiveSec; // b
 const bad = (msg, status = 400) => new TradeError(msg, status);
 const fmtZ = (n) => n.toLocaleString('vi-VN');
 
-export function createSiege(dir, { guilds, store, market, gboss, notify = () => {}, announce = () => {}, onResult = () => {} }) {
+export function createSiege(dir, { guilds, store, market, gboss, notify = () => {}, announce = () => {}, onResult = () => {}, refresh = () => {} }) {
   fs.mkdirSync(dir, { recursive: true });
   const file = path.join(dir, 'siege.json');
   let data = { owner: null, reg: { key: null, attackers: [] }, history: [], lastKey: null };
@@ -25,14 +25,30 @@ export function createSiege(dir, { guilds, store, market, gboss, notify = () => 
   const flush = () => { if (!dirty) return; dirty = false; const tmp = file + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(data)); fs.renameSync(tmp, file); };
   const touch = () => { dirty = true; if (!timer) timer = setTimeout(() => { timer = null; flush(); }, 1000); };
   const brain = createBrain();
-  let pending = null, processed = true, debug = false;
+  let pending = null, processed = true, debug = false, forced = null; // forced: trận do quản trị ép bắt đầu ({ endAt })
   const act = new Map(); // accId -> { gid, active, lv } (thời gian chiến đấu thực sự mỗi người, do host báo mỗi giây)
 
   const ownerGid = () => (data.owner ? data.owner.gid : null);
 
+  /** Hoàn phí đăng ký của các bang công qua hộp thư */
+  function refundFees(fees, why) {
+    for (const f of fees || []) {
+      if (!f.payer || !(f.fee > 0) || !market || !market.mail) continue;
+      market.mail(f.payer, SIEGE.icon + ' Hoàn phí đăng ký công thành (' + why + '): ' + fmtZ(f.fee) + ' Zen.', { items: [], jewels: {}, zen: f.fee });
+    }
+  }
+  // Máy chủ khởi động lại giữa lúc đang diễn ra trận → trận bị huỷ: hoàn phí đăng ký, đặt lại danh sách đăng ký
+  if (data.battle) {
+    refundFees(data.battle.fees, 'máy chủ khởi động lại giữa trận');
+    console.log('[siege] trận ' + data.battle.key + ' bị huỷ do khởi động lại; đã hoàn phí ' + (data.battle.fees || []).length + ' bang');
+    data.battle = null; data.reg = { key: null, attackers: [] };
+    dirty = true; flush();
+  }
+
   // ---------------- BẮT ĐẦU / KẾT THÚC TRẬN ----------------
   function startBattle(st, teams, battleSec, gateHp) {
     brain.start(teams, battleSec, gateHp);
+    data.battle = { key: data.lastKey, at: Date.now(), fees: data.reg.attackers.map((a) => ({ payer: a.payer, fee: a.fee, name: a.name })) }; touch();
     setGateOpen(false);
     processed = false;
     const names = teams.map((t) => t.name).join(' · ');
@@ -46,6 +62,7 @@ export function createSiege(dir, { guilds, store, market, gboss, notify = () => 
     const r = brain.result() || brain.finish();
     if (!r) return;
     const prev = data.owner;
+    data.battle = null; forced = null;
     if (r.winnerGid && (!prev || prev.gid !== r.winnerGid)) data.owner = { gid: r.winnerGid, name: r.winner, since: Date.now() };
     data.history.unshift({ key: data.lastKey, at: Date.now(), winner: r.winnerGid ? { gid: r.winnerGid, name: r.winner } : null, gateBroken: r.gateBroken, teams: r.teams.map((t) => ({ name: t.name, role: t.role, hold: t.hold, kills: t.kills })) });
     data.history.length = Math.min(data.history.length, 12);
@@ -80,6 +97,7 @@ export function createSiege(dir, { guilds, store, market, gboss, notify = () => 
     try {
       if (data.owner && !guilds.nameOf(data.owner.gid)) { data.owner = null; touch(); } // bang chủ thành đã giải tán
       if (debug) { if (brain.exists() && !brain.active()) finalize(); return; }
+      if (forced) { if (brain.active() && now >= forced.endAt) brain.finish(); if (brain.exists() && !brain.active()) finalize(); return; }
       // sang tuần mới: đặt lại danh sách đăng ký
       if (!brain.active() && data.reg.key !== st.key) { data.reg = { key: st.key, attackers: [] }; touch(); }
       if (brain.active() && st.phase !== 'battle') { brain.finish(); finalize(); return; }
@@ -121,7 +139,7 @@ export function createSiege(dir, { guilds, store, market, gboss, notify = () => 
       if ((S.zen || 0) < SIEGE.regFee) throw bad('Cần ' + fmtZ(SIEGE.regFee) + ' Zen phí đăng ký.');
       S.zen -= SIEGE.regFee;
       data.reg.key = data.reg.key || st.key;
-      data.reg.attackers.push({ gid, name: guilds.nameOf(gid), at: Date.now() });
+      data.reg.attackers.push({ gid, name: guilds.nameOf(gid), at: Date.now(), payer: accId, fee: SIEGE.regFee });
       touch();
       notify(guilds.memberIds(gid), SIEGE.icon + ' Bang đã đăng ký công thành! Trận diễn ra Chủ nhật 20:00 (giờ VN).');
       return { status: this.status(accId) };
@@ -150,6 +168,52 @@ export function createSiege(dir, { guilds, store, market, gboss, notify = () => 
       };
     },
 
+    // ---- quản trị ----
+    adminView() {
+      const st = siegeStatus();
+      return {
+        st: { phase: st.phase, startAt: st.startAt, endAt: st.endAt, regCloseAt: st.regCloseAt, secLeft: st.secLeft, secUntil: st.secUntil, forced: !!forced },
+        owner: data.owner ? { gid: data.owner.gid, name: guilds.nameOf(data.owner.gid) || data.owner.name, since: data.owner.since } : null,
+        reg: data.reg.attackers.map((a) => ({ gid: a.gid, name: guilds.nameOf(a.gid) || a.name, at: a.at, fee: a.fee || 0, payer: a.payer ? (store.findByAccount && (store.findByAccount(a.payer) || {}).name) || a.payer : null })),
+        battle: brain.active() ? { board: brain.board(), gate: brain.gate() } : null,
+        history: data.history,
+      };
+    },
+    /** Huỷ đăng ký của 1 bang công (hoàn phí qua hộp thư) */
+    adminCancelReg(gid) {
+      if (brain.active()) throw bad('Trận đang diễn ra, dùng Huỷ trận.');
+      const i = data.reg.attackers.findIndex((a) => a.gid === gid);
+      if (i < 0) throw bad('Bang này chưa đăng ký.', 404);
+      const [a] = data.reg.attackers.splice(i, 1);
+      refundFees([a], 'quản trị huỷ đăng ký'); touch();
+      notify(guilds.memberIds(gid), SIEGE.icon + ' Quản trị đã huỷ đăng ký công thành của bang; phí đã hoàn qua hộp thư.');
+    },
+    /** Ép bắt đầu trận ngay (bỏ qua lịch): cần ≥ 1 bang công đã đăng ký; trận kéo dài như thường */
+    adminForceStart() {
+      if (brain.active()) throw bad('Trận đang diễn ra.');
+      const attackers = data.reg.attackers.filter((a) => guilds.nameOf(a.gid));
+      if (!attackers.length) throw bad('Chưa có bang công nào đăng ký.');
+      const teams = attackers.map((a) => ({ gid: a.gid, name: guilds.nameOf(a.gid), role: 'att' }));
+      if (data.owner && guilds.nameOf(data.owner.gid)) teams.unshift({ gid: data.owner.gid, name: guilds.nameOf(data.owner.gid), role: 'def' });
+      forced = { endAt: Date.now() + SIEGE.battleMin * 60000 };
+      data.lastKey = 'sgforce' + Date.now();
+      startBattle(null, teams, SIEGE.battleMin * 60);
+    },
+    /** Huỷ trận đang diễn ra: không đổi chủ thành, hoàn phí đăng ký, đẩy mọi người ra khỏi trận */
+    adminCancelBattle() {
+      if (!brain.active()) throw bad('Không có trận nào đang diễn ra.');
+      refundFees(data.battle && data.battle.fees, 'quản trị huỷ trận');
+      brain.clear(); processed = true; forced = null; data.battle = null; data.reg = { key: null, attackers: [] }; act.clear(); touch();
+      pending = { cancelled: true, winner: null, winnerGid: null, gateBroken: false, teams: [], key: data.lastKey, changed: false };
+      announce(SIEGE.icon + ' Quản trị đã huỷ trận công thành. Phí đăng ký được hoàn lại.');
+    },
+    /** Đặt / gỡ chủ thành (gid = null để gỡ) */
+    adminSetOwner(gid) {
+      if (gid && !guilds.nameOf(gid)) throw bad('Không tìm thấy bang.', 404);
+      const prev = data.owner && data.owner.gid;
+      data.owner = gid ? { gid, name: guilds.nameOf(gid), since: Date.now() } : null; touch();
+      for (const g of [prev, gid]) if (g) refresh(g);
+    },
     stats: () => ({ owner: data.owner ? data.owner.name : null, registered: data.reg.attackers.length, battles: data.history.length }),
 
     // ---- chỉ dùng để thử nghiệm (bật bằng SIEGE_TEST=1): bắt đầu trận ngay, bỏ qua lịch ----

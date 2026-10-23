@@ -279,7 +279,11 @@ Hằng tuần **Chủ nhật 20:00 (giờ VN)**, trận kéo dài **30 phút**. 
 - Dữ liệu: `siege.json` (chủ thành, đăng ký, lịch sử; có trong sao lưu / khôi phục). Số liệu ở `src/config/siege.js`; luật trong trận ở `src/systems/siege.js`.
 - **Thử tải** (`node tools/load/siege-load.mjs 100 45`, 100 bot AUTO cùng 1 trận, máy dev): tick máy chủ trung bình **~21 ms / 50 ms** (đỉnh ~27 ms), mạng ~6 KB/giây mỗi người sau nén (~4.4 Mbit/s tổng). Máy chủ yếu hơn thì hạ `SIEGE.maxPerGuild` (hoặc `maxProxies`).
 - Kiểm thử trên máy: đặt `SIEGE_TEST=1` để dùng `POST /api/siege/_debug` (bắt đầu trận ngay, bỏ qua lịch), `SIEGE_MIN_ACTIVE_SEC` để hạ thời gian chiến đấu tối thiểu.
-- Chưa có: liên minh nhiều bang, bang chủ tự đặt mức thuế, danh hiệu trên đầu, ưu tiên mục tiêu cổng / ngai cho AUTO.
+- **AUTO trong trận:** địch trong 6,5 ô → đánh trước; phe công mà cổng chưa vỡ → đánh cổng; cổng vỡ (hoặc phe thủ) → đứng giữ Ngai Vàng, chỉ rời đi đánh địch trong 12 ô (`siegeAuto` trong `systems/siege.js`, gắn qua `HOOKS.auto`).
+- **Vũ khí Vương Giả** có hình riêng: toả sáng vàng khi cầm, hào quang vàng dưới chân, ô vật phẩm viền vàng nhấp nháy (độ hiếm `royal`), icon bọc ánh vàng.
+- **Máy chủ khởi động lại giữa trận** → trận bị huỷ, phí đăng ký **được hoàn** qua hộp thư (siege.json lưu dấu `battle` đang diễn ra).
+- **Trang quản trị** `/admin` → tab *Công thành*: xem trạng thái, bang đã đăng ký (huỷ + hoàn phí), **ép bắt đầu trận** (bỏ qua lịch, cần ≥ 1 bang công), **huỷ trận đang diễn ra** (hoàn phí, không đổi chủ thành), đặt / gỡ chủ thành, xem bảng điểm trận và lịch sử.
+- Chưa có: liên minh nhiều bang, bang chủ tự đặt mức thuế, danh hiệu trên đầu.
 
 ## Chợ & giao dịch giữa người chơi
 

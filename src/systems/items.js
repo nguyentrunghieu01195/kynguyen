@@ -44,6 +44,7 @@ export const itemFull = (it) => itemName(it) + (it.plus ? ' +' + it.plus : '');
 
 export function itemRarity(it) {
   if (it.slot === 'wings') return 'wings';
+  if (it.slot === 'weapon' && weaponType(it).special) return 'royal'; // vũ khí Vương Giả (công thành)
   if (it.exc) return 'excellent';
   if (it.plus >= 7) return 'high';
   if (it.plus >= 4) return 'good';

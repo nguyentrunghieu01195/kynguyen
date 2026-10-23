@@ -31,7 +31,7 @@ function resolveLook(cls, eq, fa) {
   if (L.outfit) Object.assign(L, OUTFIT_COLORS[L.outfit.style](L.outfit));
   // Vũ khí
   const w = eq.weapon, types = WEAPON_TYPES[cls], wt = w ? types[w.wt || 0] || types[0] : types[0];
-  L.weapon = { type: wt.id, tier: w ? w.tier : 0, plus: w ? w.plus : 0, col: w ? (ARMOR_SETS[w.tier][0].color) : '#aaa' };
+  L.weapon = { type: wt.id, tier: w ? w.tier : 0, plus: w ? w.plus : 0, col: w ? (ARMOR_SETS[w.tier][0].color) : '#aaa', special: !!wt.special };
   // Đủ bộ 5 món → hào quang theo màu bộ
   const cnt = {};
   for (const sl of ARMOR_SLOTS) if (eq[sl]) { const k = eq[sl].tier + ':' + (eq[sl].line || 0); cnt[k] = (cnt[k] || 0) + 1; }

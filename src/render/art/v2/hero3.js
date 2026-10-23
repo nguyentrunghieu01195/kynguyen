@@ -154,7 +154,8 @@ export function drawHero(c, cls, eq, t, o) {
   const atkQ = o.atk > 0 ? Math.max(0.001, Math.round((o.atk / 0.3) * 12) / 12 * 0.3) : 0;
   const L = resolveLook(cls, eq, o.fa), P = pose(L, tq, { moving, atk: atkQ }), g = G[cls] || G.knight;
   const glT = Math.round(t * 4) / 4;
-  const W = { ...L.weapon, gl: glowColor(L.weapon.plus, glT) }, wtype = W.type, drawW = WEAPONS[wtype];
+  // Vũ khí Vương Giả: luôn toả sáng vàng và ánh vàng (hào quang dưới chân vẽ ở phần mặt đất, ngoài cache)
+  const W = { ...L.weapon, gl: L.weapon.special ? '#ffcf3a' : glowColor(L.weapon.plus, glT), ...(L.weapon.special ? { col: '#ffd34a' } : {}) }, wtype = W.type, drawW = WEAPONS[wtype];
   const starter = !eq.armor || (eq.armor.tier === 0 && !(eq.armor.line > 0));
   const outfit = L.outfit;
   // Chất liệu theo trang bị
@@ -171,6 +172,7 @@ export function drawHero(c, cls, eq, t, o) {
   };
 
   // --- Mặt đất (hệ px): hào quang đủ bộ, +9, thời trang
+  if (L.weapon.special) { c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.3 + Math.sin(t * 3.2) * 0.1; c.fillStyle = rgrad(c, 0, 0, 2, 24, '#ffd34a', 'rgba(0,0,0,0)'); c.scale(1, 0.42); pCirc(c, 0, 0, 24); c.fill(); c.restore(); }
   if (L.setGlow) { c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.28 + Math.sin(t * 2.5) * 0.08; c.fillStyle = rgrad(c, 0, 0, 2, 26, L.setGlow, 'rgba(0,0,0,0)'); c.scale(1, 0.42); pCirc(c, 0, 0, 26); c.fill(); c.restore(); }
   if (L.minPlus >= 9) {
     const ac = glowColor(L.minPlus, t) || '#ffd700';

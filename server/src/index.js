@@ -45,6 +45,7 @@ const siege = createSiege(DATA, {
   notify: (accIds, text) => { const set = new Set(accIds); for (const s of sessions.values()) if (s.p && set.has(s.p.acc)) out(s.ws, { t: 'sys', text, private: true, info: true }); },
   announce: (text) => toAll({ t: 'sys', text }),
   onResult: (r) => { for (const t of r.teams) guilds.refresh(t.gid); },
+  refresh: (gid) => guilds.refresh(gid),
 });
 guilds.setCastle((gid) => siege.ownerGid() === gid);
 market.setTax((fee) => { const g = siege.ownerGid(); if (g) guilds.addFund(g, Math.floor(fee * CASTLE.taxShare)); }); // thuế chợ → quỹ bang giữ thành
@@ -293,6 +294,17 @@ async function adminApi(req, res, url) {
     if (route === 'GET /api/admin/online') {
       return json(res, 200, { rows: [...sessions.values()].filter((s) => s.p).map((s) => ({ pid: s.p.id, name: s.p.name, lv: s.p.lv, resets: s.p.resets, acc: s.p.acc ? (accounts.get(s.p.acc) || {}).user : null, room: s.room })) });
     }
+    // ---- Công thành chiến ----
+    if (route === 'GET /api/admin/siege') return json(res, 200, siege.adminView());
+    if (route === 'POST /api/admin/siege/cancel-reg') { const b = await readBody(req, 2048); siege.adminCancelReg(String(b.gid || '')); return json(res, 200, siege.adminView()); }
+    if (route === 'POST /api/admin/siege/start') { siege.adminForceStart(); return json(res, 200, siege.adminView()); }
+    if (route === 'POST /api/admin/siege/cancel-battle') { siege.adminCancelBattle(); return json(res, 200, siege.adminView()); }
+    if (route === 'POST /api/admin/siege/owner') {
+      const b = await readBody(req, 2048), name = cleanText(b.name, 20);
+      const gid = name ? guilds.idByName(name) : null;
+      if (name && !gid) return json(res, 404, { error: 'not_found', message: 'Không tìm thấy bang tên "' + name + '".' });
+      siege.adminSetOwner(gid); return json(res, 200, siege.adminView());
+    }
     if (route === 'POST /api/admin/backup') return json(res, 200, { name: backups.run('manual'), list: backups.list() });
     if (route === 'POST /api/admin/announce') {
       const b = await readBody(req, 4096), text = cleanText(b.text, 200);
@@ -353,7 +365,11 @@ async function adminApi(req, res, url) {
         }
       }
     }
-  } catch (e) { if (e instanceof AuthError) return json(res, e.status, { error: e.code, message: e.message }); throw e; }
+  } catch (e) {
+    if (e instanceof AuthError) return json(res, e.status, { error: e.code, message: e.message });
+    if (e instanceof TradeError) return json(res, e.status, { error: 'admin', message: e.message });
+    throw e;
+  }
   return json(res, 404, { error: 'not_found' });
 }
 

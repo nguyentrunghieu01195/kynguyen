@@ -31,6 +31,13 @@ const ICON = {
     pRR(c, -2.5, 11, 5, 12, 1.5); fs(c, '#5a3420', '#1a0a04', 1.2);
     pCirc(c, 0, 25, 3.5); fs(c, ORB[tier], '#1a0a04', 1.2);
   },
+  /** Vũ khí Vương Giả (chỉ có từ công thành): vũ khí thường bọc hào quang vàng + lấp lánh. arg = 'loại:bậc' */
+  special(c, arg) {
+    const [kind, tier] = arg.split(':');
+    c.save(); c.fillStyle = rgrad(c, 32, 32, 4, 31, 'rgba(255,214,74,.85)', 'rgba(255,214,74,0)'); pCirc(c, 32, 32, 31); c.fill(); c.restore();
+    c.save(); c.shadowColor = '#ffd34a'; c.shadowBlur = 8; ICON[kind](c, +tier); c.restore();
+    sparkle(c, 12, 14, 4, '#fff6c0'); sparkle(c, 52, 44, 3, '#ffe27a'); sparkle(c, 50, 12, 2.5, '#ffffff');
+  },
   staff(c, tier) {
     const T = tones(SETS[tier].color);
     c.translate(32, 32); c.rotate(Math.PI / 4);
@@ -370,7 +377,7 @@ const urlCache = {};
 export function iconURL(kind, arg) { const k = kind + ':' + arg; return urlCache[k] || (urlCache[k] = iconCanvas(kind, arg).toDataURL()); }
 
 export function itemIconKind(it) {
-  if (it.slot === 'weapon') { const L = WEAPON_TYPES[it.cls || 'knight'], W = L[it.wt || 0] || L[0]; return [W.id, it.tier]; }
+  if (it.slot === 'weapon') { const L = WEAPON_TYPES[it.cls || 'knight'], W = L[it.wt || 0] || L[0]; return W.special ? ['special', W.id + ':' + it.tier] : [W.id, it.tier]; }
   if (it.slot === 'wings') return ['wings', it.tier];
   return [it.slot, it.tier + '_' + (it.line || 0)];
 }
@@ -380,7 +387,7 @@ export function itemIconHTML(it) {
 }
 
 // ---------------- VẬT RƠI TRÊN ĐẤT ----------------
-const RARITY_BEAM = { excellent: '#5dff7a', high: '#ffd54a', good: '#9fd0ff' };
+const RARITY_BEAM = { excellent: '#5dff7a', high: '#ffd54a', good: '#9fd0ff', royal: '#ffd34a' };
 export function makeDrawDrop(iso, rarityOf, labelOf) {
   return function drawDrop(c, d, t) {
     const s = iso(d.x, d.y), b = Math.sin(t * 4 + d.x * 3) * 2;

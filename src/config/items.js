@@ -49,4 +49,4 @@ export const WINGS = [
   { name: 'Cánh Thiên Sứ', dmg: 30, abs: 28, color: '#ffd700' },
 ];
 
-export const RARITY_COLORS = { normal: '#ffffff', good: '#9fd0ff', high: '#ffd54a', excellent: '#5dff7a', wings: '#d6a8ff' };
+export const RARITY_COLORS = { normal: '#ffffff', good: '#9fd0ff', high: '#ffd54a', excellent: '#5dff7a', wings: '#d6a8ff', royal: '#ffd34a' };

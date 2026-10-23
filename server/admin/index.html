@@ -62,7 +62,31 @@ tr.click:hover{background:#1a140c}
       <button data-tab="dash" class="act">Tổng quan</button>
       <button data-tab="acc">Tài khoản</button>
       <button data-tab="online">Đang online</button>
+      <button data-tab="siege">Công thành</button>
     </div>
+
+    <section id="tab-siege" class="hidden">
+      <div class="card">
+        <h2>🏯 Công Thành Chiến</h2>
+        <div class="kv" id="sgInfo"></div>
+        <div class="row" style="margin-top:10px">
+          <input id="sgOwner" placeholder="Tên bang để đặt làm chủ thành (để trống = gỡ chủ thành)">
+          <button class="sec" id="sgSetOwner">Đặt chủ thành</button>
+        </div>
+        <div class="msg" id="sgMsg"></div>
+      </div>
+      <div class="card">
+        <h2>Bang đăng ký công thành</h2>
+        <table><thead><tr><th>Bang</th><th class="hide-m">Người đăng ký</th><th>Phí</th><th></th></tr></thead><tbody id="sgReg"></tbody></table>
+        <div class="row" style="margin-top:10px">
+          <button class="green" id="sgStart">Ép bắt đầu trận ngay</button>
+          <button class="red" id="sgCancel">Huỷ trận đang diễn ra</button>
+        </div>
+        <p class="muted">Ép bắt đầu bỏ qua lịch (cần ≥ 1 bang công đăng ký, trận kéo dài 30 phút). Huỷ trận: không đổi chủ thành, hoàn phí đăng ký và đẩy mọi người ra khỏi trận.</p>
+      </div>
+      <div class="card" id="sgLive"></div>
+      <div class="card"><h2>Lịch sử</h2><table><thead><tr><th>Thời gian</th><th>Thắng</th><th class="hide-m">Giữ ngai</th></tr></thead><tbody id="sgHist"></tbody></table></div>
+    </section>
 
     <section id="tab-dash">
       <div class="card"><h2>Số liệu</h2><div class="grid" id="stats"></div></div>
@@ -132,8 +156,8 @@ tr.click:hover{background:#1a140c}
   function show() { $('login').classList.add('hidden'); $('app').classList.remove('hidden'); $('btnOut').classList.remove('hidden'); tab('dash'); }
   function tab(t) {
     document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('act', b.dataset.tab === t));
-    for (const k of ['dash', 'acc', 'online']) $('tab-' + k).classList.toggle('hidden', k !== t);
-    ({ dash: loadDash, acc: loadAcc, online: loadOnline })[t]();
+    for (const k of ['dash', 'acc', 'online', 'siege']) $('tab-' + k).classList.toggle('hidden', k !== t);
+    ({ dash: loadDash, acc: loadAcc, online: loadOnline, siege: loadSiege })[t]();
   }
 
   async function loadDash() {
@@ -195,11 +219,37 @@ tr.click:hover{background:#1a140c}
       '<td class="row"><button class="sec" data-p="' + p.pid + '" data-pa="kick">Ngắt</button><button class="red" data-p="' + p.pid + '" data-pa="ban">Khoá</button></td></tr>').join('') : '<tr><td colspan="4" class="muted">Không có ai online.</td></tr>';
   }
 
+  // ---- Công thành chiến ----
+  const hms = (s) => { s = Math.max(0, Math.round(s)); const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60); return (h ? h + 'g ' : '') + m + 'p ' + (s % 60) + 's'; };
+  function renderSiege(j) {
+    const phase = j.battle ? '🔥 Đang diễn ra' : { battle: '🔥 Đang diễn ra', reg: '📝 Đang mở đăng ký', closed: '⏳ Đã đóng đăng ký, chờ giờ đánh' }[j.st.phase] || j.st.phase;
+    $('sgInfo').innerHTML = '<div>Trạng thái</div><div>' + phase + (j.st.forced ? ' <span class="tag ban">ép bắt đầu</span>' : '') + '</div>' +
+      '<div>Trận kế tiếp</div><div>' + fmt(j.st.startAt) + (j.st.phase === 'battle' ? ' (còn ' + hms(j.st.secLeft) + ')' : ' (sau ' + hms(j.st.secUntil) + ')') + '</div>' +
+      '<div>Đóng đăng ký</div><div>' + fmt(j.st.regCloseAt) + '</div>' +
+      '<div>Chủ thành</div><div>' + (j.owner ? '<b>' + esc(j.owner.name) + '</b> từ ' + fmt(j.owner.since) : '<span class="muted">chưa có</span>') + '</div>';
+    $('sgReg').innerHTML = j.reg.length ? j.reg.map((r) => '<tr><td><b>' + esc(r.name) + '</b></td><td class="hide-m">' + esc(r.payer || '—') + ' · ' + fmt(r.at) + '</td><td>' + Number(r.fee).toLocaleString('vi-VN') + '</td><td><button class="sec" data-sgcancel="' + esc(r.gid) + '">Huỷ + hoàn phí</button></td></tr>').join('') : '<tr><td colspan="4" class="muted">Chưa có bang nào đăng ký.</td></tr>';
+    $('sgStart').disabled = !!j.battle || !j.reg.length; $('sgCancel').disabled = !j.battle;
+    const b = j.battle;
+    $('sgLive').classList.toggle('hidden', !b);
+    if (b) $('sgLive').innerHTML = '<h2>Trận đang diễn ra · còn ' + hms(b.board.left) + '</h2><p>🚪 Cổng Thành: ' + (b.gate.open ? '<b>đã vỡ</b>' : Math.ceil((b.gate.hp / b.gate.max) * 100) + '%') + '</p><table><thead><tr><th>Bang</th><th>Phe</th><th>Giữ ngai</th><th>Hạ gục</th></tr></thead><tbody>' +
+      b.board.teams.map((t) => '<tr><td>' + (t.holder ? '👑 ' : '') + '<b>' + esc(t.name) + '</b></td><td>' + (t.role === 'def' ? 'thủ' : 'công') + '</td><td>' + hms(t.hold) + '</td><td>' + t.kills + '</td></tr>').join('') + '</tbody></table>';
+    $('sgHist').innerHTML = j.history.length ? j.history.map((h) => '<tr><td>' + fmt(h.at) + '</td><td>' + (h.winner ? '🏆 <b>' + esc(h.winner.name) + '</b>' : '—') + (h.gateBroken ? '' : ' <span class="muted">(cổng chưa vỡ)</span>') + '</td><td class="hide-m muted">' + h.teams.map((t) => esc(t.name) + ' ' + hms(t.hold)).join(' · ') + '</td></tr>').join('') : '<tr><td colspan="3" class="muted">Chưa có trận nào.</td></tr>';
+  }
+  async function loadSiege() { renderSiege(await api('GET', 'siege')); }
+  async function sgDo(path, body, okText, confirmText) {
+    if (confirmText && !confirm(confirmText)) return;
+    try { renderSiege(await api('POST', 'siege/' + path, body || {})); msg('sgMsg', '✔ ' + okText, true); } catch (e) { msg('sgMsg', e.message); }
+  }
+
   // ---- sự kiện ----
   $('btnIn').onclick = login;
   $('apw').onkeydown = (e) => { if (e.key === 'Enter') login(); };
   $('btnOut').onclick = async () => { try { await api('POST', 'logout'); } catch (e) {} logoutLocal(); };
   document.querySelectorAll('.tabs button').forEach((b) => (b.onclick = () => tab(b.dataset.tab)));
+  $('sgStart').onclick = () => sgDo('start', {}, 'Đã ép bắt đầu trận.', 'Bắt đầu trận công thành NGAY BÂY GIỜ với các bang đã đăng ký?');
+  $('sgCancel').onclick = () => sgDo('cancel-battle', {}, 'Đã huỷ trận, phí đã hoàn.', 'Huỷ trận đang diễn ra? Mọi người bị đẩy ra, phí đăng ký hoàn lại, chủ thành không đổi.');
+  $('sgSetOwner').onclick = () => sgDo('owner', { name: $('sgOwner').value }, $('sgOwner').value.trim() ? 'Đã đặt chủ thành.' : 'Đã gỡ chủ thành.', $('sgOwner').value.trim() ? null : 'Gỡ chủ thành hiện tại?');
+  $('sgReg').onclick = (e) => { const g = e.target.dataset.sgcancel; if (g) sgDo('cancel-reg', { gid: g }, 'Đã huỷ đăng ký, phí đã hoàn.', 'Huỷ đăng ký của bang này và hoàn phí?'); };
   $('btnBackup').onclick = async () => { try { msg('bmsg', 'Đang sao lưu…', true); const j = await api('POST', 'backup'); renderBackups(j.list); msg('bmsg', '✔ Đã tạo ' + j.name, true); } catch (e) { msg('bmsg', e.message); } };
   $('bklist').onclick = (e) => { const n = e.target.dataset.dl; if (n) download('backup/' + n, n); };
   $('btnAnn').onclick = async () => { try { const j = await api('POST', 'announce', { text: $('ann').value }); $('ann').value = ''; msg('amsg', '✔ Đã gửi tới ' + j.sent + ' kết nối.', true); } catch (e) { msg('amsg', e.message); } };
