@@ -34,6 +34,7 @@ export function cleanLook(look) {
   if (look?.fa) out.fa = { o: id(look.fa.o), h: id(look.fa.h), a: id(look.fa.a) };
   out.tr = int(look?.tr, 1, 3, 1); // bậc nhân vật (hào quang)
   const gn = cleanText(look?.g, 12); if (gn) out.g = gn; // tên bang hội
+  if (look?.gd === 'f') out.gd = 'f'; // nhân vật nữ
   return out;
 }
 

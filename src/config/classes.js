@@ -1,4 +1,6 @@
 // Định nghĩa class nhân vật. Thêm class mới: thêm 1 entry + công thức trong STAT_FORMULA.
+/** Class đã có bản nhân vật nữ (các class còn lại sẽ thêm sau) */
+export const FEMALE_CLASSES = ['knight'];
 export const CLASSES = {
   knight: {
     name: 'Kiếm Sĩ',

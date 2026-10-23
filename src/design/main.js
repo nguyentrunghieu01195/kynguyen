@@ -9,6 +9,8 @@ import { CLASSES } from '../config/classes.js';
 import { SETS, WINGS, JEWELS, RARITY_COLORS, ARMOR_SLOTS, SLOT_NAMES, WEAPON_NAMES, PIECE_PREFIX } from '../config/items.js';
 import { CFG } from '../config/constants.js';
 import { iso } from '../render/iso.js';
+import { emit, EV } from '../core/events.js';
+import { initParticles, drawParticles } from '../render/particles.js';
 import v2 from '../render/art/v2/index.js';
 import classic from '../render/art/classic/index.js';
 import { iconURL, iconCanvas } from '../render/art/v2/items.js';
@@ -37,7 +39,7 @@ function frame() {
     const { c, dpr, w, h } = e;
     c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, w, h);
     if (e.bg) { c.fillStyle = e.bg; c.fillRect(0, 0, w, h); }
-    c.save(); e.draw(c, t, w, h); c.restore();
+    c.save(); try { e.draw(c, t, w, h); } catch (er) { if (!e.err) console.error('Design Sheet: lỗi khi vẽ', er); e.err = true; } c.restore(); // một khung lỗi không làm chết cả trang
   }
   requestAnimationFrame(frame);
 }
@@ -114,7 +116,7 @@ function diorama(mi, w, h, zoom, focusFn, town) {
     c.drawImage(Gd.off, -Gd.OX, -Gd.OY);
     const list = [...state.decos.map((d) => ({ z: d.x + d.y, f: () => v2.drawDeco(c, d, t) })),
       ...state.mobs.map((m, i) => ({ z: m.x + m.y, f: () => { animateMob(m, t, i * 0.6); v2.drawMob(c, m, t); } })),
-      { z: state.f.x + state.f.y, f: () => { const s = iso(state.f.x, state.f.y); c.save(); c.translate(s.x, s.y); v2.drawHero(c, ['knight', 'wizard', 'archer'][mi % 3], equipSet(['knight', 'wizard', 'archer'][mi % 3], mi, mi * 2 + 1, mi >= 3 ? mi - 2 : 0), t, { face: 1, moving: false, atk: 0 }); c.restore(); } }];
+      { z: state.f.x + state.f.y, f: () => { const s = iso(state.f.x, state.f.y); c.save(); c.translate(s.x, s.y); v2.drawHero(c, ['knight', 'wizard', 'archer'][mi % 3], equipSet(['knight', 'wizard', 'archer'][mi % 3], Math.min(5, mi), mi * 2 + 1, mi >= 3 ? Math.min(3, mi - 2) : 0), t, { face: 1, moving: false, atk: 0 }); c.restore(); } }];
     list.sort((a, b) => a.z - b.z).forEach((o) => o.f());
   }, M.theme.bg);
 }
@@ -169,6 +171,20 @@ function diorama(mi, w, h, zoom, focusFn, town) {
     c.save(); c.translate(280, 450); v2.drawHero(c, cls, starter(cls), t, { face: 1, moving: false, atk: 0 }); c.restore();
     c.save(); c.translate(280, 300); c.scale(1.5, 1.5); v2.drawHero(c, cls, starter(cls), t, { face: 1, moving: false, atk: 0 }); c.restore();
   }, '#0b0a10'));
+  // Kiếm Sĩ nam / nữ: bản chi tiết (mắt long lanh, tóc từng lọn, giáp có chi tiết) + tư thế bị đánh / gục
+  const cK = card(s, 'S1+', 'Kiếm Sĩ nam & nữ (bản chi tiết)', 'Phóng 3× · hàng dưới: đứng · đi · đánh · kỹ năng · bị đánh · gục ngã.');
+  const knightEq = (tier, plus) => equipSet('knight', tier, plus);
+  for (const gd of ['m', 'f']) {
+    add(cK, '<div class="rowlab">' + (gd === 'm' ? 'Nam' : 'Nữ') + '</div>');
+    const g = gridOf(cK, 'g3');
+    for (const tier of [0, 2, 5]) tile(g, 'Bậc ' + (tier + 1), SETS[tier].name, canvas(300, 380, (c, t) => {
+      c.save(); c.translate(150, 360); c.scale(3.3, 3.3); v2.drawHero(c, 'knight', knightEq(tier, tier >= 3 ? 9 : 0), t, { face: 1, moving: false, atk: 0, gd }); c.restore();
+    }, '#0b0a10'));
+    const g2 = gridOf(cK, 'g6');
+    [['Đứng', {}], ['Đi bộ', { moving: true }], ['Đánh', { atk: 0.15 }], ['Kỹ năng', { atk: 0.28 }], ['Bị đánh', { hurt: true }], ['Gục ngã', { dead: true }]].forEach(([n, o]) => tile(g2, n, '', canvas(150, 160, (c, t) => {
+      c.translate(o.dead ? 36 : 60, 140); c.scale(1.45, 1.45); v2.drawHero(c, 'knight', knightEq(1, 0), o.moving ? t : 0.4, { face: 1, moving: false, atk: 0, gd, ...o });
+    }, '#0b0a10')));
+  }
   const c2 = card(s, 'S2', 'Tư thế', 'Đứng thở · Đi bộ · Đánh thường · Kỹ năng (lặp lại).');
   for (const cls of ['knight', 'wizard', 'archer']) {
     add(c2, '<div class="rowlab">' + CLASSES[cls].name + '</div>');
@@ -305,6 +321,28 @@ function diorama(mi, w, h, zoom, focusFn, town) {
     if (ph < 1) v2.drawProjectile(c, { x: -1.6 + 3.4 * ph, y: 0.6 - 1.2 * ph, tgt: tg, k: 'fire' }, t); else v2.drawFx(c, { k: 'boom', x: 1.8, y: -0.6, t: (ph - 1) * 0.8, d: 0.25 }, t);
     v2.drawFx(c, { k: 'click', x: -1, y: 1.6, t: t % 0.6, d: 0.6 }, t);
   });
+}
+
+// ======================= G+. HẠT HIỆU ỨNG =======================
+{
+  initParticles();
+  const s = section('g2', 'G+. Hạt hiệu ứng', 'tia lửa · vòng xung kích · linh hồn · bụi · vệt đạn · lên cấp (vòng lặp 7 giây)');
+  const cd = card(s, 'G7', 'Chuỗi hiệu ứng', 'Đánh thường → kỹ năng → chí mạng → hạ quái → lên cấp → đạn lửa; người chạy luôn có bụi dưới chân');
+  const m = mob(MAPS[0].mobs[0], { x: 2, y: 0, face: -1 });
+  const R = { p: { x: -2, y: 0, moving: true, dead: 0 }, projs: [], eprojs: [], M: { theme: MAPS[0].theme }, texts: [] };
+  const STEPS = [[0.4, () => emit(EV.HIT, m, 120, false, false)], [1.2, () => emit(EV.HIT, m, 300, false, true)], [2.0, () => emit(EV.HIT, m, 900, true, false)], [3.0, () => emit(EV.KILL, { ...m, boss: false, c1: '#7ad07a' })], [4.2, () => emit(EV.LEVEL_UP, 5, 1)], [5.4, () => emit(EV.HIT, { ...m, size: 1.6, boss: true }, 5000, true, true)]];
+  let lastT = 0, fired = new Set();
+  cd.appendChild(canvas(640, 280, (c, t, w, h) => {
+    const dt = Math.min(0.05, Math.max(0.001, t - lastT)); lastT = t;
+    const ph = t % 7; if (ph < 0.1) fired.clear();
+    G.R = R;
+    for (const [at, fn] of STEPS) if (ph >= at && !fired.has(at)) { fired.add(at); fn(); }
+    R.projs = ph > 5.8 && ph < 6.4 ? [{ x: -1.6 + 3.6 * ((ph - 5.8) / 0.6), y: 0, k: 'fire' }] : [];
+    groundPatch(c, MAPS[0].theme, w / 2, -10, 8, 1.4); c.translate(w / 2, 170); c.scale(1.5, 1.5);
+    if (ph < 3.05 || ph > 3.5) v2.drawMob(c, m, t);
+    c.save(); const s0 = iso(R.p.x, R.p.y); c.translate(s0.x, s0.y); v2.drawHero(c, 'knight', equipSet('knight', 3, 9), t, { face: 1, moving: true, atk: 0 }); c.restore();
+    drawParticles(c, t, dt);
+  }, '#09080c'));
 }
 
 // ======================= H. GIAO DIỆN =======================

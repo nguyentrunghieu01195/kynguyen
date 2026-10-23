@@ -2,12 +2,55 @@
 // Chỉ đọc trạng thái game + lắng nghe event bus, không thay đổi logic.
 import { G } from '../core/state.js';
 import { on, EV } from '../core/events.js';
-import { iso, VIEW } from './iso.js';
+import { iso, VIEW, worldToScreen } from './iso.js';
 
 // ---------------- TUỲ CHỌN (lưu riêng, không nằm trong save nhân vật) ----------------
 const PREF_KEY = 'kng_fx_prefs';
-export const FXP = (() => { try { return Object.assign({ shake: true, weather: true }, JSON.parse(localStorage.getItem(PREF_KEY) || '{}')); } catch (e) { return { shake: true, weather: true }; } })();
+export const FXP = (() => { try { return Object.assign({ shake: true, weather: true, particles: true, daynight: true }, JSON.parse(localStorage.getItem(PREF_KEY) || '{}')); } catch (e) { return { shake: true, weather: true, particles: true, daynight: true }; } })();
 export const setFxPref = (k, v) => { FXP[k] = v; try { localStorage.setItem(PREF_KEY, JSON.stringify(FXP)); } catch (e) { /* bỏ qua */ } };
+
+// ---------------- NGÀY ĐÊM & ÁNH SÁNG ----------------
+// Chu kỳ theo giờ thật (mỗi vòng DAY_LEN giây). Ban đêm phủ tông xanh tối (multiply), đuốc / pha lê / dung nham / nhân vật toả quầng sáng.
+const DAY_LEN = 1500;
+const smooth = (a, b, x) => { const k = Math.min(1, Math.max(0, (x - a) / (b - a))); return k * k * (3 - 2 * k); };
+/** Mức "đêm" 0 (ban ngày) .. 1 (nửa đêm) */
+export function nightLevel(now = Date.now()) {
+  if (typeof FXP.nightOverride === 'number') return FXP.nightOverride; // tuỳ chọn ẩn để thử: localStorage kng_fx_prefs {"nightOverride":0.7}
+  const ph = ((now / 1000) % DAY_LEN) / DAY_LEN, s = 0.5 + 0.5 * Math.cos(ph * 6.2832);
+  return 1 - smooth(0.1, 0.5, s);
+}
+const NIGHT_MAX = { crypt: 0.35, volcano: 0.3, fallen: 0.4, darkwood: 0.65, arena_bc: 0, arena_ds: 0 }; // bản đồ vốn tối: giảm mức đêm
+const LIGHT_KINDS = { torch: ['255,170,70', 100, 0.42], crystal: null, basalt: ['255,90,20', 78, 0.22] };
+export function drawLighting(c, t) {
+  const R = G.R;
+  if (FXP.daynight === false || !R || R.event) return;
+  const id = R.M.id.startsWith('tower_') ? 'tower' : R.M.id, mx = NIGHT_MAX[id] == null ? 1 : NIGHT_MAX[id];
+  const k = nightLevel() * mx;
+  if (k < 0.03) return;
+  const { W, H, DPR } = VIEW, w = W * DPR, h = H * DPR;
+  c.save(); c.setTransform(1, 0, 0, 1, 0, 0);
+  // hoàng hôn / bình minh: ánh cam nhẹ ở giai đoạn chuyển
+  const warm = Math.sin(Math.min(1, k) * Math.PI) * 0.09;
+  if (warm > 0.01) { c.fillStyle = 'rgba(255,140,60,' + warm.toFixed(3) + ')'; c.fillRect(0, 0, w, h); }
+  // tối dần sang xanh đêm
+  c.globalCompositeOperation = 'multiply';
+  const lerp = (a, b) => Math.round(a + (b - a) * k);
+  c.fillStyle = 'rgb(' + lerp(255, 112) + ',' + lerp(255, 126) + ',' + lerp(255, 186) + ')'; c.fillRect(0, 0, w, h);
+  // quầng sáng: đuốc, pha lê, dung nham, và quanh nhân vật
+  c.globalCompositeOperation = 'screen'; // 'screen' không cháy trắng trên nền sáng như 'lighter'
+  const pool = (x, y, r, rgb, a) => { const g = c.createRadialGradient(x, y, 2, x, y, r); g.addColorStop(0, 'rgba(' + rgb + ',' + a.toFixed(3) + ')'); g.addColorStop(1, 'rgba(' + rgb + ',0)'); c.fillStyle = g; c.fillRect(x - r, y - r, r * 2, r * 2); };
+  const lights = R.map._lights || (R.map._lights = (R.map.decos || []).filter((d) => d.kind === 'torch' || d.kind === 'crystal' || d.kind === 'basalt'));
+  const Z = VIEW.Z * DPR;
+  for (const d of lights) {
+    const s = worldToScreen(d.x, d.y); if (s.x < -150 || s.y < -150 || s.x > W + 150 || s.y > H + 150) continue;
+    const flick = d.kind === 'torch' ? 1 + Math.sin(t * 13 + d.x * 3) * 0.06 : 1 + Math.sin(t * 2 + d.seed * 9) * 0.1;
+    const spec = LIGHT_KINDS[d.kind];
+    if (spec) pool(s.x * DPR, (s.y - 34 * VIEW.Z) * DPR, spec[1] * Z * flick, spec[0], spec[2] * k);
+    else { const col = (d.col || '#b48cff'); const m = /#(..)(..)(..)/.exec(col); pool(s.x * DPR, (s.y - 30 * VIEW.Z) * DPR, 84 * Z * flick, m ? parseInt(m[1], 16) + ',' + parseInt(m[2], 16) + ',' + parseInt(m[3], 16) : '180,140,255', 0.3 * k); }
+  }
+  const p = worldToScreen(R.p.x, R.p.y); pool(p.x * DPR, (p.y - 24 * VIEW.Z) * DPR, 120 * Z, '255,214,150', 0.2 * k); // đèn của người chơi
+  c.restore();
+}
 
 // ---------------- RUNG MÀN HÌNH ----------------
 let shake = 0;

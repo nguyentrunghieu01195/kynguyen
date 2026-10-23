@@ -39,6 +39,8 @@ export default {
         [0, 0.25, 0.5, 0.75, 1].map((v) => btn(v ? Math.round(v * 100) + '%' : 'Tắt', 'vol', { k, v }, { cls: 'sm ' + (Math.abs(AUD[k] - v) < 0.13 ? 'green' : '') })).join('') + '</div>').join('') +
       '<h4>Hiệu ứng màn hình</h4><div class="row">' + btn('Rung màn hình: ' + (FXP.shake ? 'BẬT' : 'TẮT'), 'fxPref', { k: 'shake' }, { cls: 'sm ' + (FXP.shake ? 'green' : '') }) +
         btn('Thời tiết: ' + (FXP.weather ? 'BẬT' : 'TẮT'), 'fxPref', { k: 'weather' }, { cls: 'sm ' + (FXP.weather ? 'green' : '') }) +
+        btn('Ngày đêm: ' + (FXP.daynight !== false ? 'BẬT' : 'TẮT'), 'fxPref', { k: 'daynight' }, { cls: 'sm ' + (FXP.daynight !== false ? 'green' : '') }) +
+        btn('Hạt hiệu ứng: ' + (FXP.particles !== false ? 'BẬT' : 'TẮT'), 'fxPref', { k: 'particles' }, { cls: 'sm ' + (FXP.particles !== false ? 'green' : '') }) +
         btn('Sáng hơn (ngoài trời): ' + (FXP.outdoor ? 'BẬT' : 'TẮT'), 'fxPref', { k: 'outdoor' }, { cls: 'sm ' + (FXP.outdoor ? 'green' : '') }) + '</div>' +
       '<h4>Đồ hoạ</h4><div class="row">' +
       Object.values(ART_PACKS).map((a) => btn(a.name, 'artStyle', { v: a.id }, { cls: 'sm ' + (art().id === a.id ? 'green' : '') })).join('') + '</div>' +
@@ -56,7 +58,7 @@ export default {
   actions: {
     expRate: (d) => act('setPref', 'expRate', +d.v),
     vol: (d) => { setVolume(d.k, +d.v); if (d.k === 'sfx') play('zen'); },
-    fxPref: (d) => { setFxPref(d.k, !FXP[d.k]); document.documentElement.classList.toggle('outdoor', !!FXP.outdoor); },
+    fxPref: (d) => { setFxPref(d.k, d.k === 'particles' || d.k === 'daynight' ? FXP[d.k] === false : !FXP[d.k]); document.documentElement.classList.toggle('outdoor', !!FXP.outdoor); },
     artStyle: (d) => { setArt(d.v); applyUiIcons(); return act('setPref', 'art', d.v); },
     eventTest: () => act('setPref', 'eventTest', !G.S.eventTest),
     netConnectUrl: () => { connect($('neturl').value.trim()); },

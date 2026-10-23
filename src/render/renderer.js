@@ -7,7 +7,8 @@ import { iso, isoRadius, VIEW, camPos } from './iso.js';
 import { art } from './art/index.js';
 import { NET } from '../net/client.js';
 import { fashionLook } from '../systems/fashion.js';
-import { shakeOffset, drawTexts, drawVignette, drawWeather, drawTierAuraBack, drawTierAuraFront } from './juice.js';
+import { drawParticles } from './particles.js';
+import { drawLighting, shakeOffset, drawTexts, drawVignette, drawWeather, drawTierAuraBack, drawTierAuraFront } from './juice.js';
 
 let lastNow = 0;
 
@@ -17,6 +18,7 @@ function eqOf(p) {
   const eq = {};
   for (const [sl, v] of Object.entries((p.look && p.look.eq) || {})) eq[sl] = { slot: sl, tier: v[0], plus: v[1], cls: p.look.cls, wt: sl === 'weapon' ? v[2] || 0 : 0, line: sl !== 'weapon' ? v[2] || 0 : 0 };
   p.fa = p.look && p.look.fa ? { outfit: p.look.fa.o || null, head: p.look.fa.h || null, aura: p.look.fa.a || null } : null;
+  p.gd = p.look && p.look.gd === 'f' ? 'f' : null;
   p._lookRef = p.look; p._eq = eq;
   return eq;
 }
@@ -55,6 +57,24 @@ function drawGround(cam, vw, vh) {
   for (let ci = c0; ci <= c1; ci++) for (let cj = d0; cj <= d1; cj++) list.push([ci, cj]);
   list.sort((a, b) => a[0] + a[1] - (b[0] + b[1]));
   for (const [ci, cj] of list) { const e = chunkCanvas(ci, cj); ctx.drawImage(e.off, e.x0, e.y0); }
+  drawWaterShimmer(R, { iMin, iMax, jMin, jMax }, performance.now() / 1000);
+}
+/** Mặt nước / biển / dung nham lấp lánh theo thời gian (nền được vẽ sẵn nên chồng thêm ánh nhấp nháy mỗi khung) */
+const SHIMMER = { water: ['255,255,255', 0.55], sea: ['255,255,255', 0.55], swamp: ['200,255,170', 0.4], lava: ['255,200,90', 0.7] };
+function drawWaterShimmer(R, v, t) {
+  const spec = SHIMMER[R.M.theme.edgeKind];
+  if (!spec || !R.map.tiles) return;
+  const W = R.map.w || CFG.MAP_W, H = R.map.h || CFG.MAP_H;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (let i = Math.max(0, Math.floor(v.iMin) - 1); i <= Math.min(W - 1, Math.ceil(v.iMax)); i++) for (let j = Math.max(0, Math.floor(v.jMin) - 1); j <= Math.min(H - 1, Math.ceil(v.jMax)); j++) {
+    if (R.map.tiles[i][j].kind !== 'edge') continue;
+    const ph = (t * 0.9 + ((i * 131 + j * 17) % 97) * 0.37) % 3; // mỗi ô nhấp nháy 1 lần mỗi ~3 giây, lệch pha
+    if (ph > 0.9 || ((i * 7 + j * 13) % 5) > 1) continue;
+    const a = Math.sin((ph / 0.9) * Math.PI) * spec[1], s = iso(i + 0.3 + ((i * 3 + j) % 4) * 0.12, j + 0.5 + ((j * 5 + i) % 3) * 0.1);
+    ctx.globalAlpha = a * 0.8; ctx.fillStyle = 'rgb(' + spec[0] + ')';
+    ctx.beginPath(); ctx.ellipse(s.x, s.y, 7 + (ph / 0.9) * 4, 2.2 + (ph / 0.9) * 1.4, 0, 0, 6.283); ctx.fill();
+  }
+  ctx.restore();
 }
 export const clearMapCache = () => Object.keys(mapCache).forEach((k) => delete mapCache[k]);
 
@@ -152,7 +172,7 @@ export function render() {
   const list = [];
   for (const d of R.map.decos) if (inView(d)) list.push({ z: d.x + d.y, k: 0, o: d });
   for (const m of R.mobs) if (inView(m) && !m.pvp) list.push({ z: m.x + m.y, k: 1, o: m }); // người địch vẽ bằng sprite người chơi (NET.players)
-  if (p.dead <= 0) list.push({ z: p.x + p.y, k: 2, o: p });
+  list.push({ z: p.x + p.y, k: 2, o: p }); // người chơi gục thì vẽ tư thế nằm
   if (!R.event || R.event.room) for (const o of NET.players.values()) if (inView(o)) list.push({ z: o.x + o.y, k: 3, o });
   list.sort((a, b) => a.z - b.z);
   for (const e of list) {
@@ -166,7 +186,7 @@ export function render() {
         ctx.beginPath(); ctx.ellipse(s.x, s.y - r * 0.8, r, r * 1.05, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 0.7; ctx.stroke(); ctx.restore();
       }
     }
-    else if (e.k === 2) { const s = iso(p.x, p.y); ctx.save(); ctx.translate(s.x, s.y); drawBuffAura(ctx, p, t); drawTierAuraBack(ctx, S.tier, t); p.fa = fashionLook(S); A.drawHero(ctx, S.cls, S.equip, t, p); drawTierAuraFront(ctx, S.tier, t, -A.heroHeight + 12); ctx.restore(); }
+    else if (e.k === 2) { const s = iso(p.x, p.y); ctx.save(); ctx.translate(s.x, s.y); drawBuffAura(ctx, p, t); drawTierAuraBack(ctx, S.tier, t); p.fa = fashionLook(S); p.gd = S.gender === 'f' ? 'f' : null; p.hurt = p.hurtT > 0; A.drawHero(ctx, S.cls, S.equip, t, { ...p, dead: p.dead > 0 }); drawTierAuraFront(ctx, S.tier, t, -A.heroHeight + 12); ctx.restore(); }
     else { const o = e.o, s = iso(o.x, o.y); ctx.save(); ctx.translate(s.x, s.y); const tr = (o.look && o.look.tr) || 1, ot = t + (o.id.charCodeAt(0) % 7); drawTierAuraBack(ctx, tr, ot); A.drawHero(ctx, (o.look && o.look.cls) || 'knight', eqOf(o), ot, o); drawTierAuraFront(ctx, tr, ot, -A.heroHeight + 12); ctx.restore(); }
   }
 
@@ -188,6 +208,8 @@ export function render() {
     ctx.strokeText(label, s.x, y); ctx.fillStyle = '#ffc8f0'; ctx.fillText(label, s.x, y);
     if (o.look && o.look.g) guildTag(ctx, o.look.g, s.x, y - 13);
   }
+  drawLighting(ctx, t);
+  drawParticles(ctx, t, dt);
   drawTexts(ctx);
   drawWeather(ctx, t, dt);
   ctx.setTransform(1, 0, 0, 1, 0, 0);

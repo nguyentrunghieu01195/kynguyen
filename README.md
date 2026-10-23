@@ -378,7 +378,7 @@ Khi kết nối máy chủ: EXP tối đa x3 (`onlineMaxExpRate`) và tắt ch�
 
 ## Nhân vật theo Character Style Guide (Claude Design N0)
 
-- File gốc: `design/Character Style Guide.html`. Bản vẽ trong game: `src/render/art/v2/hero3.js`.
+- File gốc: `design/Character Style Guide.html`. Bản vẽ trong game: `src/render/art/v2/chibi.js` (renderer 3 class) + `heroDraw.js` (cầu nối drawHero, cache, cánh / thời trang). Xem trực tiếp: `/characters.html` (thêm `#80` để mở sẵn cỡ 80px).
 - Hình học lấy trực tiếp từ style guide (hệ phác 4×, cao 320 = 80px, gốc giữa 2 chân, mặt hướng phải), 12 lớp đúng thứ tự,
   đổ bóng 3 tông + dải sáng trên-trái + viền = màu gốc làm tối (hàm `part`). Bộ Da khớp đúng bảng màu của guide.
 - Trang bị đổi chất liệu theo bộ giáp; vũ khí, cánh, thời trang, vai/huy hiệu/mào các bậc cao tái dùng đồ hoạ V2 (`gear.js`)

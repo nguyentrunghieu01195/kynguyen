@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && node tools/postbuild.mjs dist/index.html",
+    "build:characters": "BUILD=characters vite build",
     "build:design": "BUILD=design vite build && node tools/postbuild.mjs dist-design/design.html",
     "preview": "vite preview",
     "server": "node server/src/index.js",

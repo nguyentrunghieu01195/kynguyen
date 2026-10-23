@@ -2,7 +2,7 @@
 import { SETS, WINGS, JEWELS } from '../../../config/items.js';
 import { tones, pEll, pCirc, pPoly, pRR, fs, vgrad, rgrad, gloss, sparkle } from './kit.js';
 import { TRIM } from './hero.js';
-import { drawHero } from './hero3.js';
+import { drawHero } from './heroDraw.js';
 import { FASHION_BY_ID } from '../../../config/fashion.js';
 import { ARMOR_SETS, WEAPON_TYPES } from '../../../config/gear.js';
 import { WEAPONS, crest } from './gear.js';

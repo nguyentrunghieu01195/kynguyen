@@ -2,7 +2,7 @@
 import { G } from '../core/state.js';
 import { log, announce, emit, EV } from '../core/events.js';
 import { SAVE_VERSION } from '../config/constants.js';
-import { CLASSES } from '../config/classes.js';
+import { CLASSES, FEMALE_CLASSES } from '../config/classes.js';
 import { ARMOR_SLOTS } from '../config/items.js';
 import { MAPS } from '../config/maps.js';
 import { PROGRESSION as PG, PLAYER } from '../config/balance.js';
@@ -14,9 +14,9 @@ import { defaultTowerState } from './tower.js';
 import { defaultFashion } from './fashion.js';
 import { defaultSkills } from '../config/skills.js';
 
-export function createCharacter(cls, name) {
+export function createCharacter(cls, name, gender = 'm') {
   const S = {
-    v: SAVE_VERSION, cls, name, lv: 1, exp: 0, resets: 0, pts: 0,
+    v: SAVE_VERSION, cls, name, gender: gender === 'f' && FEMALE_CLASSES.includes(cls) ? 'f' : 'm', lv: 1, exp: 0, resets: 0, pts: 0,
     stats: { ...CLASSES[cls].stats },
     zen: PLAYER.startZen,
     jewels: { ...PLAYER.startJewels },

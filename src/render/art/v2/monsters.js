@@ -359,6 +359,14 @@ export function drawMob(c, m, t, iso) {
   if (m.boss) {
     const a = 0.35 + Math.sin(t * 4) * 0.12;
     c.save(); c.globalAlpha = a; c.fillStyle = rgrad(c, 0, 0, 2, 30 * m.size, m.c2, 'rgba(0,0,0,0)'); c.scale(1, 0.45); pCirc(c, 0, 0, 30 * m.size); c.fill(); c.restore();
+    // vòng phù văn xoay dưới chân Boss + tàn lửa bay lên
+    c.save(); c.globalCompositeOperation = 'lighter'; c.scale(1, 0.45); c.rotate(t * 0.5); c.strokeStyle = m.c2; c.globalAlpha = 0.5; c.lineWidth = 2.5; c.setLineDash([10, 8]);
+    c.beginPath(); c.arc(0, 0, 36 * m.size, 0, 6.283); c.stroke(); c.setLineDash([]); c.globalAlpha = 0.75; c.fillStyle = '#ffffff';
+    for (let i = 0; i < 6; i++) { c.save(); c.rotate((i / 6) * 6.283); c.translate(36 * m.size, 0); c.rotate(0.785); c.fillRect(-2.2, -2.2, 4.4, 4.4); c.restore(); }
+    c.restore();
+    c.save(); c.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 5; i++) { const q = (t * 0.45 + i / 5) % 1; c.globalAlpha = (1 - q) * 0.8; c.fillStyle = m.c2; pCirc(c, Math.sin(i * 2.3 + t * 1.3) * 16 * m.size, -q * 78 * m.size, 2 * (1 - q) + 0.6); c.fill(); }
+    c.restore();
   }
   if (m.elite) {
     c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.55 + Math.sin(t * 5) * 0.15; c.strokeStyle = '#ffd54a'; c.lineWidth = 2;
@@ -368,7 +376,9 @@ export function drawMob(c, m, t, iso) {
   }
   groundShadow(c, 14 * m.size, 6 * m.size);
   const lg = m.lunge > 0 ? Math.sin((m.lunge / 0.2) * Math.PI) * 5 : 0;
-  c.scale(m.size * m.face, m.size); c.translate(lg, 0);
+  // thở nhẹ khi đứng yên, nảy khi chạy, bẹp ngang khi bị đánh (co giãn quanh chân)
+  const hit = m.flash > 0 ? Math.min(1, m.flash / 0.12) : 0, breathe = m.moving ? Math.abs(Math.sin(t * 12 + m.x)) * 0.05 : Math.sin(t * 2.4 + m.x * 1.7 + m.y) * 0.018;
+  c.scale(m.size * m.face * (1 - breathe * 0.6 + hit * 0.1), m.size * (1 + breathe - hit * 0.08)); c.translate(lg, 0);
   const fl = m.flash > 0;
   const C = tones(fl ? '#ffffff' : m.c1), D = tones(fl ? '#ffffff' : m.c2);
   (SHAPES[m.shape] || blob)(c, m, t, C, D);

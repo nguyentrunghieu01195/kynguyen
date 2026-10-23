@@ -255,7 +255,7 @@ export function createHost({ accounts, store, market, guilds, gboss, siege, send
     }
     if (create) {
       const cls = ['knight', 'wizard', 'archer'].includes(create.cls) ? create.cls : 'knight';
-      S = createCharacter(cls, String(create.name || 'Hiệp Sĩ').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 12) || 'Hiệp Sĩ');
+      S = createCharacter(cls, String(create.name || 'Hiệp Sĩ').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 12) || 'Hiệp Sĩ', create.gender === 'f' ? 'f' : 'm');
       S.tut = 0;
     } else if (!S) {
       const sv = accounts.getSave(acc);

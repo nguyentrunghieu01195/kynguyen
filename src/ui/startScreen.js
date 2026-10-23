@@ -1,6 +1,6 @@
 // Màn hình bắt đầu: tài khoản (đăng nhập / đăng ký / chơi khách), tiếp tục nhân vật, tạo nhân vật mới.
 import { esc, rint } from '../core/utils.js';
-import { CLASSES } from '../config/classes.js';
+import { CLASSES, FEMALE_CLASSES } from '../config/classes.js';
 import { loadRaw, isValidSave, guestSlot, currentSlot } from '../core/save.js';
 import { art } from '../render/art/index.js';
 import { $ } from './dom.js';
@@ -13,11 +13,19 @@ const NAME_B = ['Vương', 'Thần', 'Hiệp', 'Ảnh', 'Tử', 'Nhân', 'Ma', '
 export const randomName = () => NAME_A[rint(0, NAME_A.length - 1)] + NAME_B[rint(0, NAME_B.length - 1)] + rint(1, 99);
 
 const PREVIEW_TIER = { knight: 1, wizard: 5, archer: 3 };
-let selected = 'knight';
+let selected = 'knight', gender = 'm';
 let cont = null;           // bản lưu sẽ dùng khi bấm "Tiếp tục"
 let guestSave = null;      // nhân vật khách trên máy (để đưa vào tài khoản)
 let authMode = null;       // null | 'login' | 'register'
 let busy = false;
+
+/** Chọn giới tính (chỉ hiện với class đã có bản nữ) */
+function renderGender() {
+  const el = $('genderRow');
+  if (!el) return;
+  el.style.display = FEMALE_CLASSES.includes(selected) ? '' : 'none';
+  el.innerHTML = [['m', '♂ Nam'], ['f', '♀ Nữ']].map(([g, n]) => '<button class="btn sm ' + (gender === g ? 'green' : '') + '" data-act="pickGender" data-g="' + g + '">' + n + '</button>').join('');
+}
 
 function drawPreviews() {
   document.querySelectorAll('.cc canvas').forEach((cv) => {
@@ -28,7 +36,7 @@ function drawPreviews() {
     const eq = {};
     for (const sl of ['helm', 'armor', 'pants', 'gloves', 'boots']) eq[sl] = { slot: sl, tier: PREVIEW_TIER[k], plus: 7 };
     eq.weapon = { slot: 'weapon', tier: PREVIEW_TIER[k], plus: 7, cls: k };
-    art().drawHero(g, k, eq, 0.3, { face: 1, moving: false, atk: 0 });
+    art().drawHero(g, k, eq, 0.3, { face: 1, moving: false, atk: 0, gd: FEMALE_CLASSES.includes(k) && selected === k ? gender : 'm' });
   });
 }
 
@@ -143,6 +151,8 @@ export function initStartScreen({ onCreate, onContinue, onPlay }) {
   const L = $('clsList');
   L.innerHTML = Object.entries(CLASSES).map(([k, c]) =>
     '<div class="cc' + (k === selected ? ' sel' : '') + '" data-act="pickClass" data-c="' + k + '"><canvas width="180" height="200" data-c="' + k + '"></canvas><b>' + c.name + '</b><p>' + c.desc + '</p></div>').join('');
+  L.insertAdjacentHTML('afterend', '<div id="genderRow" class="row" style="justify-content:center;gap:8px;margin:8px 0"></div>');
+  renderGender();
   drawPreviews();
   $('cname').value = randomName();
   renderAcc();
@@ -151,12 +161,14 @@ export function initStartScreen({ onCreate, onContinue, onPlay }) {
   addEventListener('pwa-install-change', renderInstall);
 
   registerActions({
-    pickClass: (d) => { selected = d.c; document.querySelectorAll('.cc').forEach((e) => e.classList.toggle('sel', e.dataset.c === selected)); },
+    pickClass: (d) => { selected = d.c; document.querySelectorAll('.cc').forEach((e) => e.classList.toggle('sel', e.dataset.c === selected)); renderGender(); drawPreviews(); },
+    pickGender: (d) => { gender = d.g; renderGender(); drawPreviews(); },
     create: () => {
       if (loggedIn() && cont && !confirm('Tài khoản đã có nhân vật ' + cont.name + ' (cấp ' + cont.lv + '). Tạo nhân vật mới sẽ THAY THẾ nhân vật đó. Tiếp tục?')) return;
       const name = ($('cname').value.trim() || randomName()).slice(0, 12);
       playErr = '';
-      if (loggedIn()) onPlay({ cls: selected, name }); else onCreate(selected, name);
+      const gd = FEMALE_CLASSES.includes(selected) ? gender : 'm';
+      if (loggedIn()) onPlay({ cls: selected, name, gender: gd }); else onCreate(selected, name, gd);
     },
     continue: () => { if (!cont) return; playErr = ''; if (loggedIn()) onPlay(null); else onContinue(cont); },
     retryCont: () => refreshCont(),

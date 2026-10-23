@@ -302,3 +302,37 @@ b.zen, .zen { color: var(--zen); }
 .nwcard p { margin: 0; font-size: 13px; color: var(--text-2); }
 .spin { width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--line-x); border-top-color: var(--gold); animation: spin 0.9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* =====================================================================
+   NÂNG CẤP HIỆU ỨNG GIAO DIỆN: chuyển động mềm, thanh có độ bóng, phản hồi khi chạm
+   ===================================================================== */
+/* Bảng mở ra: nền mờ dần + hộp nảy nhẹ */
+#panel:not(.hidden) { animation: kn-fade .16s ease-out; }
+#panel:not(.hidden) #panel-inner { animation: kn-pop .22s cubic-bezier(.2, .9, .3, 1.15); }
+@keyframes kn-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes kn-pop { from { transform: translateY(12px) scale(.94); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* Thanh HP / MP: dải sáng phía trên + vệt sáng chạy chậm; HP thấp nhấp nháy đỏ */
+.bar.hp > div, .bar.mp > div { position: relative; overflow: hidden; border-radius: 7px; transition: width .18s ease-out; }
+.bar.hp > div::after, .bar.mp > div::after { content: ''; position: absolute; inset: 0 0 52% 0; background: linear-gradient(rgba(255, 255, 255, .3), rgba(255, 255, 255, 0)); }
+.bar.hp > div::before, .bar.mp > div::before { content: ''; position: absolute; top: 0; bottom: 0; width: 38%; left: -40%; background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, .3), rgba(255, 255, 255, 0)); animation: kn-sheen 3.6s ease-in-out infinite; }
+@keyframes kn-sheen { 0%, 55% { left: -40%; } 100% { left: 140%; } }
+.bar.hp.low { animation: kn-lowhp .7s ease-in-out infinite; }
+@keyframes kn-lowhp { 0%, 100% { box-shadow: 0 0 0 1px var(--line-d), inset 0 2px 3px rgba(0, 0, 0, .6); } 50% { box-shadow: 0 0 0 1px #ff4a3a, 0 0 10px 2px rgba(255, 60, 40, .75), inset 0 2px 3px rgba(0, 0, 0, .6); } }
+#expf { transition: width .25s ease-out; background-size: 200% 100%; animation: kn-expflow 3s linear infinite; }
+@keyframes kn-expflow { from { background-position: 0 0; } to { background-position: -200% 0; } }
+
+/* Nút & ô: phản hồi mềm khi rê / bấm */
+.btn, .tab, .chip, .rb { transition: filter .12s ease, transform .08s ease, box-shadow .15s ease; }
+.btn:active, .tab:active, .chip:active { transform: translateY(1px) scale(.97); }
+@media (hover: hover) {
+  .btn:hover:not(:disabled), .tab:hover, .chip:hover { filter: brightness(1.12); }
+  .rb:hover { transform: scale(1.05); }
+  .cell { transition: transform .1s ease, box-shadow .15s ease; }
+  .cell:hover { transform: translateY(-2px); }
+  .mkrow:hover { background: rgba(255, 213, 74, .06); }
+}
+/* Thanh cuộn nhỏ gọn đúng tông */
+#panel-body { scrollbar-width: thin; scrollbar-color: var(--line-d) transparent; }
+#panel-body::-webkit-scrollbar { width: 6px; }
+#panel-body::-webkit-scrollbar-thumb { background: var(--line-d); border-radius: 3px; }

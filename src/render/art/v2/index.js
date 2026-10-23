@@ -1,7 +1,7 @@
-// Bộ đồ hoạ V2 — "Chibi Dark Fantasy"
+// Bộ đồ hoạ V2 — "Chibi Dark Fantasy" (nhân vật: chibi.js qua heroDraw.js)
 import { iso } from '../../iso.js';
 import { itemRarity, itemFull } from '../../../systems/items.js';
-import { drawHero, HERO_HEIGHT } from './hero3.js';
+import { drawHero, HERO_HEIGHT } from './heroDraw.js';
 import { drawMob, mobHeight } from './monsters.js';
 import { makePaintMap, makeDrawDeco } from './environment.js';
 import { itemIconHTML, makeDrawDrop } from './items.js';

@@ -9,6 +9,13 @@ const diamond = (g, iso, i, j, inset = 0) => {
   return [p0, p1, p2, p3];
 };
 
+/** Nhiễu giá trị mượt (0..1) để tạo mảng màu lớn trên mặt đất, tránh cảm giác lát gạch ô vuông */
+const vnoise = (x, y) => {
+  const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+  const a = hash(xi * 57 + yi * 131), b = hash((xi + 1) * 57 + yi * 131), c = hash(xi * 57 + (yi + 1) * 131), d = hash((xi + 1) * 57 + (yi + 1) * 131);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+};
+
 /** Hoạ tiết mặt đất theo id bản đồ */
 const TEXTURE = {
   swamp(g, ct, T, col) {
@@ -98,7 +105,9 @@ export function makePaintMap(iso) {
       for (let i = Math.max(R.i0, s - R.j1 + 1); i <= Math.min(R.i1 - 1, s - R.j0); i++) {
         const j = s - i, T = tileAt(map, i, j), kind = T.kind;
         const col = kind === 'path' ? pathCol : kind === 'lair' ? lairCol : th[kind] || th.g, ct = iso(i + 0.5, j + 0.5);
-        const base = shade(col, Math.round((T.r - 0.5) * 14));
+        // màu ô = ngẫu nhiên nhẹ từng ô + mảng màu lớn mượt (2 tầng nhiễu) → mặt đất có vùng sáng / tối tự nhiên
+        const patch = (vnoise(i * 0.14, j * 0.14) - 0.5) * 20 + (vnoise(i * 0.45 + 40, j * 0.45) - 0.5) * 8;
+        const base = shade(col, Math.round((T.r - 0.5) * 9 + (kind === 'town' ? patch * 0.4 : patch)));
         const pts = diamond(g, iso, i, j); g.fillStyle = base; g.fill();
         if (kind === 'edge') { edge && edge(g, ct, T, col, pts); continue; }
         if (kind === 'town') {
@@ -273,11 +282,14 @@ const DECO = {
   },
 };
 
+/** Vật trang trí đung đưa nhẹ theo gió (nghiêng ngang, gốc đứng yên) */
+const SWAY = new Set(['tree', 'pine', 'bush', 'cactus', 'mushroom', 'coral']);
 export function makeDrawDeco(iso) {
   return function drawDeco(c, d, t) {
     const s = iso(d.x, d.y);
     c.save(); c.translate(s.x, s.y); c.scale(d.s, d.s);
     groundShadow(c, 18, 7, 0.3);
+    if (SWAY.has(d.kind)) c.transform(1, 0, Math.sin(t * 1.35 + d.seed * 11) * 0.03 + Math.sin(t * 0.55 + d.seed * 5) * 0.015, 1, 0, 0);
     (DECO[d.kind] || DECO.rock)(c, d, t);
     c.restore();
   };

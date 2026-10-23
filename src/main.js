@@ -20,6 +20,7 @@ import { resize } from './render/iso.js';
 import { initRenderer, render } from './render/renderer.js';
 import { initHud, showHud, updateHud } from './ui/hud.js';
 import { initJuice } from './render/juice.js';
+import { initParticles } from './render/particles.js';
 import { initAudio } from './audio/audio.js';
 import { initMinimap, drawMinimap, drawBigMap } from './ui/minimap.js';
 import { initInput } from './ui/input.js';
@@ -52,6 +53,7 @@ addEventListener('resize', () => resize(canvas));
 initRenderer(canvas);
 initHud();
 initJuice();
+initParticles();
 initMinimap();
 initAudio();
 initInput(canvas);
@@ -139,8 +141,8 @@ function playRemote(create) {
 
 { const nj = document.getElementById('nojs'); if (nj) nj.remove(); } // JS chạy được → ẩn hướng dẫn dự phòng
 initStartScreen({
-  onCreate(cls, name) {
-    const S = createCharacter(cls, name);
+  onCreate(cls, name, gender) {
+    const S = createCharacter(cls, name, gender);
     S.tut = 0; // nhân vật mới → bật hướng dẫn tân thủ
     startGame(S);
     log('Chào mừng <b>' + esc(name) + '</b>! Chạm mặt đất để đi, chạm quái để đánh.', '#f3d58a');

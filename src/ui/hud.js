@@ -50,6 +50,7 @@ export function updateHud() {
   $('pname').textContent = S.name + ' · ' + tierName();
   $('plv').textContent = 'Cấp ' + S.lv + (S.resets ? ' · Reset ' + S.resets : '') + (isMaxLevel() ? ' · TỐI ĐA' : ' · ' + ((100 * S.exp) / expNeed(S.lv)).toFixed(1) + '%') + (S.pts ? ' · ⬆' + S.pts : '');
   $('hpf').style.width = (100 * Math.max(0, p.hp)) / P.maxHp + '%';
+  $('hpf').parentElement.classList.toggle('low', p.hp > 0 && p.hp < P.maxHp * 0.3); // máu thấp: thanh nhấp nháy đỏ
   $('hpt').textContent = fmt(Math.max(0, p.hp)) + ' / ' + fmt(P.maxHp);
   $('mpf').style.width = (100 * p.mp) / P.maxMp + '%';
   $('mpt').textContent = fmt(p.mp) + ' / ' + fmt(P.maxMp);

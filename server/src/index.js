@@ -528,7 +528,7 @@ const HANDLERS = {
     out(s.ws, { t: 'welcome', id: p.id, token: p.token, name: p.name, online: sessions.size, chat: chatLog.slice(-20), play });
     toAll({ t: 'online', n: sessions.size });
     if (play) {
-      try { host.join(s, acc, m.create ? { cls: m.create.cls, name: p.name } : null); }
+      try { host.join(s, acc, m.create ? { cls: m.create.cls, name: p.name, gender: m.create.gender } : null); }
       catch (e) { out(s.ws, { t: 'playerr', code: e.code || 'error', message: e.message || 'Không vào được game.' }); if (!e.code) console.error('[host] join', e); }
     }
   },
