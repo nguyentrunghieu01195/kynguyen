@@ -294,7 +294,7 @@ const DECO = {
     }
     const f = Math.sin(t * 15 + d.x) * 1.5;
     c.save(); c.globalCompositeOperation = 'lighter';
-    c.fillStyle = rgrad(c, 0, -44, 1, 26, 'rgba(255,170,60,.55)', 'rgba(255,100,0,0)'); pCirc(c, 0, -44, 26); c.fill();
+    if (gfx3d()) { c.globalAlpha = 0.55; orb3(c, 0, -44, 30, '#ffaa3c'); c.globalAlpha = 1; } else { c.fillStyle = rgrad(c, 0, -44, 1, 26, 'rgba(255,170,60,.55)', 'rgba(255,100,0,0)'); pCirc(c, 0, -44, 26); c.fill(); }
     if (!(gfx3d() && flame3(c, 0, -36, 17 + f * 1.4, '#ff7a10', '#ffe890'))) {
     c.beginPath(); c.moveTo(-5, -36); c.quadraticCurveTo(-6, -46, 0, -52 - f); c.quadraticCurveTo(6, -46, 5, -36); c.closePath(); c.fillStyle = '#ff7a10'; c.fill();
     c.beginPath(); c.moveTo(-2.5, -36); c.quadraticCurveTo(-3, -42, 0, -46 - f); c.quadraticCurveTo(3, -42, 2.5, -36); c.closePath(); c.fillStyle = '#ffe890'; c.fill();

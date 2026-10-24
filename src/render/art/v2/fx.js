@@ -1,5 +1,7 @@
 // Hiệu ứng kỹ năng & đạn V2. Dùng chế độ hoà trộn 'lighter' cho ánh sáng.
 import { isoRadius } from '../../iso.js';
+import { gfx3d } from '../v3d/flag.js';
+import { FX3, drawProjectile3 } from '../v3d/skillfx3d.js';
 import { pEll, pCirc, pPoly, pRR, rgrad, vgrad, sparkle, hash } from './kit.js';
 
 const glowRing = (c, x, y, rx, ry, col, lw, a) => { c.globalAlpha = a; c.strokeStyle = col; c.lineWidth = lw; c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); c.stroke(); };
@@ -186,7 +188,7 @@ const FX = {
 
 export function makeDrawFx(iso) {
   return function drawFx(c, f, t) {
-    const fn = FX[f.k];
+    const fn = (gfx3d() && FX3[f.k]) || FX[f.k];
     if (!fn) return;
     c.save(); fn(c, f, iso(f.x, f.y), Math.min(1, f.t / f.d), t, iso); c.restore();
   };
@@ -196,6 +198,7 @@ export function makeDrawProjectile(iso) {
   return function drawProjectile(c, pr, t) {
     const s = iso(pr.x, pr.y), ts = iso(pr.tgt.x, pr.tgt.y), ang = Math.atan2(ts.y - s.y, ts.x - s.x);
     c.save(); c.translate(s.x, s.y - 28);
+    if (gfx3d()) { c.save(); const done = drawProjectile3(c, pr, t, ang); c.restore(); if (done) { c.restore(); return; } }
     if (pr.k === 'spit' || pr.k === 'mbolt') {
       const col = pr.k === 'spit' ? ['#c8ff60', '#3a8a10'] : ['#f0c0ff', '#8a3aff'];
       c.globalCompositeOperation = 'lighter';

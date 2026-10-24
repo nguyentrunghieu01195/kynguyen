@@ -348,7 +348,7 @@ export function auraLayer(c, f, t, front) {
   switch (f.style) {
     case 'fire':
       if (!front) { c.globalAlpha = 0.6; if (gfx3d()) { ring3(c, 30, a, 0.04); ring3(c, 19, b, 0.04); } else { c.fillStyle = rgrad(c, 0, -2, 2, 30, a, 'rgba(0,0,0,0)'); c.save(); c.scale(1, 0.45); pCirc(c, 0, 0, 30); c.fill(); c.restore(); }
-        c.globalAlpha = 0.18 + Math.sin(t * 6) * 0.05; c.fillStyle = rgrad(c, 0, -30, 4, 34, a, 'rgba(0,0,0,0)'); pEll(c, 0, -30, 24, 38); c.fill(); }
+        c.globalAlpha = 0.18 + Math.sin(t * 6) * 0.05; if (gfx3d() && orb3(c, 0, -30, 40, a)) { /* quầng sáng 3D */ } else { c.fillStyle = rgrad(c, 0, -30, 4, 34, a, 'rgba(0,0,0,0)'); pEll(c, 0, -30, 24, 38); c.fill(); } }
       for (let i = 0; i < 16; i++) { const k = (t * 1.4 + hash(i)) % 1, x = (hash(i + 4) - 0.5) * 30 * (1 - k * 0.4), back = hash(i + 9) < 0.5; if (back === front) continue;
         const w = 5 * (1 - k) + 1, y = -k * 60;
         c.globalAlpha = (1 - k); if (gfx3d() && flame3(c, x, y + 6, (16 * (1 - k) + 10) * 1.6, k < 0.35 ? b : a, b)) continue; c.beginPath(); c.moveTo(x - w, y); c.quadraticCurveTo(x, y - 16 * (1 - k) - 5, x + w, y); c.quadraticCurveTo(x, y + w, x - w, y); c.fillStyle = k < 0.35 ? b : a; c.fill(); }

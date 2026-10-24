@@ -17,6 +17,26 @@ const B = {
   ring: (col, thick) => (TH) => { const t = new TH.Mesh(new TH.TorusGeometry(1.0, thick, 6, 48), em(TH, col, 1.0, { flatShading: false })); t.rotation.x = Math.PI / 2; t.position.y = thick; const g = new TH.Group(); g.add(t); return g; },
   beam: (col) => (TH) => { const g = new TH.Group(); g.add(new TH.Mesh(new TH.CylinderGeometry(0.42, 0.5, 3, 20, 1, true), new TH.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.4, side: TH.DoubleSide, depthWrite: false }))).position.y = 1.5; return g; },
 };
+const RIGHT = [Math.cos(Math.PI / 4), 0, -Math.sin(Math.PI / 4)];
+Object.assign(B, {
+  bar: (col) => (TH) => { const g = new TH.Group(); const m = new TH.Mesh(new TH.CylinderGeometry(0.5, 0.5, 6, 10), em(TH, col, 1.0, { flatShading: false })); m.quaternion.setFromUnitVectors(new TH.Vector3(0, 1, 0), new TH.Vector3(...RIGHT)); g.add(m); const e1 = new TH.Mesh(new TH.SphereGeometry(0.5, 10, 8), m.material), e2 = e1.clone(); e1.position.set(...RIGHT.map((v) => v * 3)); e2.position.set(...RIGHT.map((v) => v * -3)); g.add(e1, e2); g.position.y = 0; return g; },
+  crescent: (col) => (TH) => { const g = new TH.Group(), m = new TH.Mesh(new TH.TorusGeometry(1, 0.16, 8, 28, 2.0), em(TH, col, 1.0, { flatShading: false })); m.lookAt(new TH.Vector3(Math.sin(Math.PI / 4), Math.sin(Math.PI / 6), Math.cos(Math.PI / 4)).multiplyScalar(10)); m.rotateZ(-1.0); g.add(m); g.position.y = 1; return g; },
+  spike: (col) => (TH) => { const g = new TH.Group(); const c = new TH.Mesh(new TH.ConeGeometry(0.34, 1.6, 6), em(TH, col, 0.7)); c.position.y = 0.8; g.add(c); const c2 = new TH.Mesh(new TH.ConeGeometry(0.2, 1.0, 5), em(TH, col, 0.7)); c2.position.set(0.3, 0.5, 0.1); c2.rotation.z = -0.4; g.add(c2); return g; },
+  disc: (col) => (TH) => { const g = new TH.Group(); g.add(new TH.Mesh(new TH.CylinderGeometry(1, 1, 0.08, 36), new TH.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.8, depthWrite: false }))); return g; },
+  sword: () => (TH) => {
+    const g = new TH.Group(), steel = new TH.MeshStandardMaterial({ color: '#d8ecff', emissive: '#9ad8ff', emissiveIntensity: 0.5, roughness: 0.25, metalness: 0.8, flatShading: true }), gold = new TH.MeshStandardMaterial({ color: '#f0c040', roughness: 0.3, metalness: 0.8 });
+    const bl = new TH.Mesh(new TH.BoxGeometry(0.34, 3.2, 0.1), steel); bl.position.y = 1.9; g.add(bl);
+    const tip = new TH.Mesh(new TH.ConeGeometry(0.24, 0.6, 4), steel); tip.position.y = 0.0; tip.rotation.z = Math.PI; tip.rotation.y = Math.PI / 4; g.add(tip);
+    const gd = new TH.Mesh(new TH.BoxGeometry(1.5, 0.22, 0.3), gold); gd.position.y = 3.6; g.add(gd);
+    const hl = new TH.Mesh(new TH.CylinderGeometry(0.1, 0.1, 0.9, 8), new TH.MeshStandardMaterial({ color: '#6a3a1a' })); hl.position.y = 4.15; g.add(hl);
+    const pm = new TH.Mesh(new TH.SphereGeometry(0.2, 8, 6), new TH.MeshStandardMaterial({ color: '#ff5a5a', emissive: '#ff2020', emissiveIntensity: 0.6 })); pm.position.y = 4.65; g.add(pm);
+    g.rotation.y = Math.PI / 4; return g;
+  },
+  arrow: (tip) => (TH) => { const g = new TH.Group(), q = new TH.Quaternion().setFromUnitVectors(new TH.Vector3(0, 1, 0), new TH.Vector3(...RIGHT)); const sh = new TH.Mesh(new TH.CylinderGeometry(0.08, 0.08, 3.4, 6), new TH.MeshStandardMaterial({ color: '#7a5030', roughness: 0.8 })); sh.quaternion.copy(q); g.add(sh);
+    const hd = new TH.Mesh(new TH.ConeGeometry(0.22, 0.7, 6), new TH.MeshStandardMaterial({ color: '#dde4ee', roughness: 0.3, metalness: 0.8 })); hd.quaternion.copy(new TH.Quaternion().setFromUnitVectors(new TH.Vector3(0, 1, 0), new TH.Vector3(...RIGHT))); hd.position.set(...RIGHT.map((v) => v * 2.0)); g.add(hd);
+    for (const sd of [-1, 1]) { const f = new TH.Mesh(new TH.PlaneGeometry(0.9, 0.5), new TH.MeshStandardMaterial({ color: tip, side: TH.DoubleSide, roughness: 0.9 })); f.position.set(...RIGHT.map((v) => v * -1.4)); f.position.y += sd * 0.12; f.rotation.set(0.6 * sd, Math.PI / 4, 0); g.add(f); }
+    return g; },
+});
 const norm = (c) => {
   if (/^#[0-9a-f]{6}$/i.test(c)) return c;
   let m = /hsl\((\d+),\s*(\d+)%?,\s*(\d+)%/.exec(c || '');
@@ -34,3 +54,15 @@ export function petal(c, x, y, w, col, rot = 0) { if (!gfx3d()) return false; co
 /** Vòng sáng trên mặt đất, bán kính ngang rx (px game) — đã có phối cảnh iso */
 export function ring(c, rx, col, thick = 0.035) { if (!gfx3d()) return false; const sp = get('ring|' + norm(col) + '|' + thick, B.ring(norm(col), thick), 40); if (!sp) return false; const k = rx / 40; put(c, sp, 0, 0, k, k); return true; }
 export function beam(c, w, h, col) { if (!gfx3d()) return false; const sp = get('beam|' + norm(col), B.beam(norm(col)), 40); if (!sp) return false; put(c, sp, 0, 0, w / 34, h / 104); return true; }
+
+/** Thanh sáng (viên nang) nằm ngang trên màn hình, kéo giãn theo (x0,y0)→(x1,y1) với độ dày w */
+export function bar(c, x0, y0, x1, y1, w, col) {
+  if (!gfx3d()) return false; const sp = get('bar|' + norm(col), B.bar(norm(col)), 20); if (!sp) return false;
+  const dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy) + w; c.save(); c.translate((x0 + x1) / 2, (y0 + y1) / 2); c.rotate(Math.atan2(dy, dx));
+  c.drawImage(sp.cv, -len / 2, -w / 2, len, w); c.restore(); return true;
+}
+export function crescent(c, r, col) { if (!gfx3d()) return false; const sp = get('crescent|' + norm(col), B.crescent(norm(col)), 20); if (!sp) return false; const k = r / 20; put(c, sp, 0, 0, k, k); return true; }
+export function spike(c, x, y, h, col) { if (!gfx3d()) return false; const sp = get('spike|' + norm(col), B.spike(norm(col)), 30); if (!sp) return false; const k = h / 50; put(c, sp, x, y, k, k); return true; }
+export function disc(c, rx, col) { if (!gfx3d()) return false; const sp = get('disc|' + norm(col), B.disc(norm(col)), 40); if (!sp) return false; const k = rx / 40; put(c, sp, 0, 0, k, k); return true; }
+export function swordSprite(c, h) { if (!gfx3d()) return false; const sp = get('sword', B.sword(), 20); if (!sp) return false; const k = h / (sp.box.h || 1); put(c, sp, 0, 0, k, k); return true; }
+export function arrowSprite(c, len, tipCol) { if (!gfx3d()) return false; const sp = get('arrow|' + norm(tipCol), B.arrow(norm(tipCol)), 20); if (!sp) return false; const k = len / (sp.box.w || 1); put(c, sp, 0, 0, k, k); return true; }
