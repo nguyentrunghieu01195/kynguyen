@@ -206,7 +206,7 @@ export function drawWings(c, w, t) {
       for (const [x, y, r] of [[-56, -40, 0.6], [-62, -14, 0.3], [-52, 8, 0]]) { c.save(); c.translate(x, y); c.rotate(r - 1.57); pPoly(c, [-3, 0, 0, -14, 3, 0]); fs(c, '#e8fbff', T.o, 1); c.restore(); }
       for (let i = 0; i < 3; i++) sparkle(c, -30 - i * 10, -10 + Math.sin(t * 3 + i * 2) * 10, 2, '#e8fbff', 0.5 + 0.5 * Math.sin(t * 4 + i));
     } else if (w.tier === 6) { // Thần Quang: ba cặp cánh trắng vàng + tia sáng
-      c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.22 + 0.08 * Math.sin(t * 3);
+      c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.13 + 0.05 * Math.sin(t * 3);
       for (let i = 0; i < 5; i++) { c.save(); c.rotate(-1.2 + i * 0.35); c.fillStyle = '#fff2b0'; c.beginPath(); c.moveTo(0, 0); c.lineTo(-86, -5); c.lineTo(-86, 5); c.fill(); c.restore(); }
       c.restore();
       for (const [rot, sc] of [[-0.55, 1.0], [-0.05, 0.85], [0.55, 0.62]]) {

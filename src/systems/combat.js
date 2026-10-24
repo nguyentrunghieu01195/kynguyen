@@ -4,7 +4,7 @@ import { log, announce, emit, EV } from '../core/events.js';
 import { rnd, dist, fmt } from '../core/utils.js';
 import { CLASSES } from '../config/classes.js';
 import { PLAYER, POTION, MONSTER, mitigate } from '../config/balance.js';
-import { gainExp, expNeed, expRate } from './character.js';
+import { gainExp, expNeed, expRate, autoLevel } from './character.js';
 import { petExpMul } from './pets.js';
 import { rollDrops } from './loot.js';
 import { SIEGE } from '../config/siege.js';
@@ -20,8 +20,8 @@ export function nearestMob(o, maxD, forAuto) {
   let best = null, bd = maxD;
   for (const m of G.R.mobs) {
     if (m.hp <= 0 || m.ret || m.invuln) continue;
-    if (forAuto && m.boss && !m.angry && G.S.lv < m.lv - 5) continue; // auto không tự lao vào boss quá mạnh
-    if (forAuto && !m.angry && !G.R.event && m.lv > G.S.lv + 10) continue;
+    if (forAuto && m.boss && !m.angry && autoLevel() < m.lv - 5) continue; // auto không tự lao vào boss quá mạnh
+    if (forAuto && !m.angry && !G.R.event && m.lv > autoLevel() + 10) continue;
     if (forAuto && m.ignoreT > (G.R.time || 0)) continue; // AUTO tạm bỏ qua quái không với tới // bỏ qua quái quá mạnh
     const d = dist(m, o);
     if (d < bd) { bd = d; best = m; }

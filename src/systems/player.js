@@ -7,6 +7,7 @@ import { CLASSES } from '../config/classes.js';
 import { PLAYER, POTION } from '../config/balance.js';
 import { basicAttack, usePotion, nearestMob } from './combat.js';
 import { autoCast, updateSkillTimers } from './skills.js';
+import { autoLevel } from './character.js';
 import { canPick } from './loot.js';
 import { isAlive, clampToBounds } from './world.js';
 import { navStep, nearestFree } from './nav.js';
@@ -54,7 +55,7 @@ function autoThink() {
 
 /** AUTO: chọn bãi quái hợp cấp (không cao hơn cấp mình quá 3), ưu tiên bãi mạnh nhất vừa sức rồi gần nhất */
 function pickCamp(R, p) {
-  const M = R.M, cs = R.map.centers, [lo, hi] = M.lv, lv = G.S.lv;
+  const M = R.M, cs = R.map.centers, [lo, hi] = M.lv, lv = autoLevel();
   const lvOf = (c) => (c.f != null ? lo + (hi - lo) * c.f : lo);
   const ok = cs.filter((c, i) => i !== R.map.bossCi && lvOf(c) <= lv + 3);
   const pool = ok.length ? ok : cs.slice().sort((a, b) => lvOf(a) - lvOf(b)).slice(0, 3);

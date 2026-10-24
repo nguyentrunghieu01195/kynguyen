@@ -6,7 +6,7 @@ import { mix } from '../../paint.js';
 export function themeOf(m) {
   const hex = m.c2 || m.c1, n = parseInt(hex.slice(1, 7), 16), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
   const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
-  if (d < 40) return 'bone';
+  if (d < 60) return 'bone';
   let h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h = (h * 60 + 360) % 360;
   if (h < 42 || h >= 340) return 'fire';
   if (h < 68) return 'gold';
@@ -80,9 +80,9 @@ function allow() {
  * Vẽ quái đã được hoàn thiện. c đang ở hệ toạ độ quái (gốc = chân, đã scale theo kích thước). draw(ctx) vẽ thân quái.
  * outline: màu viền ngoài; flash: 0..1 nháy trắng khi trúng đòn.
  */
-export function drawPolished(c, draw, outline, flash) {
+export function drawPolished(c, draw, outline, flash, force = false) {
   const mt = c.getTransform(), k = Math.min(3, Math.max(1, Math.hypot(mt.a, mt.b)));
-  if (!scratch() || !allow()) { draw(c); return; }
+  if (!scratch() || (!force && !allow())) { draw(c); return; }
   const w = Math.ceil(BOX.w * k), h = Math.ceil(BOX.h * k), setT = (g) => g.setTransform(k, 0, 0, k, -BOX.x * k, -BOX.y * k), clr = (g) => { g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; g.clearRect(0, 0, w + 2, h + 2); };
   const a = SA.getContext('2d'), b = SB.getContext('2d'), r = SR.getContext('2d');
   clr(a); setT(a); draw(a);
@@ -98,4 +98,13 @@ export function drawPolished(c, draw, outline, flash) {
   for (const [ox, oy] of [[-u, 0], [u, 0], [0, -u], [0, u], [-u, -u], [u, -u], [-u, u], [u, u]]) c.drawImage(SB, 0, 0, w, h, dx + ox, dy + oy, dw, dh);
   c.drawImage(SA, 0, 0, w, h, dx, dy, dw, dh);
   c.globalAlpha = 0.55; c.drawImage(SR, 0, 0, w, h, dx, dy, dw, dh); c.globalAlpha = 1;
+}
+
+/** Dựng sẵn một sprite tĩnh đã hoàn thiện (viền + khối sáng-tối) vào canvas riêng: dùng cho vật trang trí. Trả về { cv, box } */
+export function bakePolished(draw, outline, k = 2) {
+  if (typeof document === 'undefined') return null;
+  const cv = document.createElement('canvas'); cv.width = Math.ceil(BOX.w * k); cv.height = Math.ceil(BOX.h * k);
+  const g = cv.getContext('2d'); g.setTransform(k, 0, 0, k, -BOX.x * k, -BOX.y * k);
+  drawPolished(g, draw, outline, 0, true);
+  return { cv, box: BOX };
 }

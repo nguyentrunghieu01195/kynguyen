@@ -40,6 +40,8 @@ export const eventTestOn = () => !!G.S.eventTest && !G.online;
 export const isMaxLevel = () => G.S.lv >= PG.resetLevel;
 export const mapReq = (i) => Math.max(1, MAPS[i].req - G.S.resets * PG.mapReqReducePerReset);
 export const canEnterMap = (i) => G.S.lv >= mapReq(i);
+/** Cấp "tương đương" để AUTO chọn quái: mỗi lần Reset hạ yêu cầu bản đồ nên người đã Reset được đánh quái cao hơn cấp thật (đúng ý nghĩa Reset) */
+export const autoLevel = () => G.S.lv + G.S.resets * PG.mapReqReducePerReset;
 
 export function addPoints(stat, n) {
   const S = G.S;

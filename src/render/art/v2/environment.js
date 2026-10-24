@@ -1,6 +1,7 @@
 // Môi trường V2: nền bản đồ (vẽ 1 lần) và vật trang trí.
 import { CFG } from '../../../config/constants.js';
 import { shade, mix } from '../../paint.js';
+import { bakePolished } from './monsterFx.js';
 import { tones, pEll, pCirc, pPoly, pRR, fs, vgrad, rgrad, gloss, groundShadow, sparkle, hash } from './kit.js';
 
 const diamond = (g, iso, i, j, inset = 0) => {
@@ -104,7 +105,7 @@ export function makePaintMap(iso) {
     for (let s = R.i0 + R.j0; s <= R.i1 + R.j1 - 2; s++)
       for (let i = Math.max(R.i0, s - R.j1 + 1); i <= Math.min(R.i1 - 1, s - R.j0); i++) {
         const j = s - i, T = tileAt(map, i, j), kind = T.kind;
-        const col = kind === 'path' ? pathCol : kind === 'lair' ? lairCol : th[kind] || th.g, ct = iso(i + 0.5, j + 0.5);
+        const col = kind === 'path' ? pathCol : kind === 'lair' ? lairCol : kind === 'g2' && th.g2 ? mix(th.g2, th.g, 0.55) : th[kind] || th.g, ct = iso(i + 0.5, j + 0.5);
         // màu ô = ngẫu nhiên nhẹ từng ô + mảng màu lớn mượt (2 tầng nhiễu) → mặt đất có vùng sáng / tối tự nhiên
         const patch = (vnoise(i * 0.14, j * 0.14) - 0.5) * 20 + (vnoise(i * 0.45 + 40, j * 0.45) - 0.5) * 8;
         const base = shade(col, Math.round((T.r - 0.5) * 9 + (kind === 'town' ? patch * 0.4 : patch)));
@@ -284,13 +285,27 @@ const DECO = {
 
 /** Vật trang trí đung đưa nhẹ theo gió (nghiêng ngang, gốc đứng yên) */
 const SWAY = new Set(['tree', 'pine', 'bush', 'cactus', 'mushroom', 'coral']);
+// Vật trang trí tĩnh: dựng sẵn 1 lần (kèm viền + khối sáng-tối) rồi chỉ drawImage — vừa đẹp hơn vừa nhẹ hơn.
+const STATIC_DECO = new Set(['tree', 'pine', 'mushroom', 'rock', 'cactus', 'tomb', 'pillar', 'ice', 'bush', 'deadtree', 'bones', 'boulder', 'snowrock', 'shell', 'skull', 'coral']);
+const BAKED = new Map();
+function baked(d) {
+  const key = d.kind + '|' + d.col + '|' + Math.floor(d.seed * 8);
+  let b = BAKED.get(key);
+  if (b === undefined) {
+    const dd = { ...d, seed: (Math.floor(d.seed * 8) + 0.5) / 8 }, fn = DECO[d.kind] || DECO.rock;
+    b = bakePolished((g) => fn(g, dd, 0), tones(d.col || '#6a5a4a').o);
+    BAKED.set(key, b);
+  }
+  return b;
+}
 export function makeDrawDeco(iso) {
   return function drawDeco(c, d, t) {
     const s = iso(d.x, d.y);
     c.save(); c.translate(s.x, s.y); c.scale(d.s, d.s);
     groundShadow(c, 18, 7, 0.3);
     if (SWAY.has(d.kind)) c.transform(1, 0, Math.sin(t * 1.35 + d.seed * 11) * 0.03 + Math.sin(t * 0.55 + d.seed * 5) * 0.015, 1, 0, 0);
-    (DECO[d.kind] || DECO.rock)(c, d, t);
+    const b = STATIC_DECO.has(d.kind) ? baked(d) : null;
+    if (b) c.drawImage(b.cv, b.box.x, b.box.y, b.box.w, b.box.h); else (DECO[d.kind] || DECO.rock)(c, d, t);
     c.restore();
   };
 }
