@@ -97,7 +97,7 @@ function prep(m, r) {
 export function frame(r) {
   if (!TH) { boot(); return null; }
   const name = MODEL[r.cls]; if (!name) return null;
-  const q = Math.round((r.f % 1.0001) * 11), key = [r.cls, r.pose, q, r.weapon, r.tint, r.capeTint, r.helm ? 1 : 0, r.shield || '', r.wing ? r.wing.tier + '.' + r.wing.ph + (r.wing.glow ? 'g' : '') : ''].join('|');
+  const q = Math.round((r.f % 1.0001) * 11), key = [r.cls, r.pose, q, r.weapon, r.tint, r.capeTint, r.helm ? 1 : 0, r.shield || '', r.wing ? r.wing.tier + '.' + r.wing.ph + (r.wing.glow ? 'g' : '') : '', r.gear ? r.gear.tier + r.gear.col : ''].join('|');
   const hit = frames.get(key); if (hit) return hit;
   const mm = models.get(name);
   if (!mm) { loadModel(name); return null; }
@@ -112,7 +112,20 @@ export function frame(r) {
   if (r.wing) { // cánh dựng riêng, đặt theo vị trí ngực nhân vật (không phụ thuộc trục xương)
     wg = wingsOf(r.wing.tier); if (wg) { poseWings(wg, r.wing.ph / 6); const ch = mm.root.getObjectByName('chest') || mm.root.getObjectByName('spine'); const pv = new TH.Group(); const v = new TH.Vector3(); mm.root.updateMatrixWorld(true); if (ch) ch.getWorldPosition(v); pv.position.copy(v); pv.rotation.y = Math.PI / 2; wg.position.set(0, 0.0, -0.2); pv.add(wg); wg.userData.pv = pv; scene.add(pv); }
   }
+  let gr = null;
+  if (r.gear && r.gear.tier >= 2) { // phụ kiện giáp: đặt theo vị trí xương trong toạ độ thế giới
+    gr = gearOf(r.gear.tier, r.gear.col); mm.root.updateMatrixWorld(true);
+    const fb = (re) => { let f = null; mm.root.traverse((o) => { if (!f && re.test(o.name)) f = o; }); return f; };
+    const bl = mm.bl || (mm.bl = { l: fb(/^upperarm\.?l$/), r: fb(/^upperarm\.?r$/), h: fb(/^head$/) }), v = new TH.Vector3();
+    if (bl.l && bl.r) { const a = new TH.Vector3(), b2 = new TH.Vector3(); bl.l.getWorldPosition(a); bl.r.getWorldPosition(b2); const ctr = a.clone().add(b2).multiplyScalar(0.5);
+      gr.pads.forEach((p, i) => { const q = i ? b2 : a, out = q.clone().sub(ctr); out.y = 0; if (out.lengthSq() > 1e-6) out.normalize().multiplyScalar(0.12); p.position.copy(q).add(out); p.position.y += 0.08; scene.add(p); }); }
+    if (gr.head.children.length && r.cls !== 'wizard') { // đặt theo khối bao đầu (pháp sư đã có mũ rộng vành) / mũ đang hiển thị
+      const hb = new TH.Box3(); mm.root.traverse((o) => { if (o.isMesh && o.visible && /(Head|Helmet|Hat)$/.test(o.name) && !/_outline$/.test(o.name)) { hb.expandByObject(o); } });
+      if (!hb.isEmpty()) { const c3 = hb.getCenter(new TH.Vector3()), sz = hb.getSize(new TH.Vector3()); gr.head.position.set(c3.x, hb.max.y - 0.2, c3.z); gr.head.rotation.y = Math.PI / 2; gr.head.scale.setScalar(Math.max(0.7, Math.min(1.5, sz.z / 0.75))); scene.add(gr.head); }
+    }
+  }
   rdr.render(scene, cam); scene.remove(mm.root); if (wg) scene.remove(wg.userData.pv);
+  if (gr) { for (const p of gr.pads) scene.remove(p); scene.remove(gr.head); }
   const cv = document.createElement('canvas'); cv.width = FW; cv.height = FH; cv.getContext('2d').drawImage(rdr.domElement, 0, 0);
   if (frames.size > 240) frames.clear(); frames.set(key, cv); return cv;
 }
@@ -120,6 +133,25 @@ export function frame(r) {
 // ---------- Quái (Quaternius Ultimate Monsters, CC0) ----------
 const mobs = new Map(), mobFrames = new Map(), mobLast = new Map();
 const wingCache = new Map(); const wingsOf = (t) => { let g = wingCache.get(t); if (!g) { g = makeWings(TH, t); wingCache.set(t, g || null); } return g; };
+// Phụ kiện giáp theo bậc: vai, sừng, mào, vương miện — dựng bằng khối hình học, đặt theo xương vai / đầu
+const gearCache = new Map();
+function gearOf(tier, col) {
+  const key = tier + '|' + col; let g = gearCache.get(key); if (g) return g;
+  const trim = new TH.Color(col || '#c8c8d0'), gold = new TH.Color('#ffd24a'), M = (c, r = 0.45, m = 0.5) => new TH.MeshStandardMaterial({ color: c, roughness: r, metalness: m, flatShading: true });
+  const mk = (geo, mat, x, y, z) => { const o = new TH.Mesh(geo, mat); o.position.set(x, y, z); return o; };
+  g = { pads: [], head: new TH.Group() };
+  const big = (tier >= 5 ? 1.35 : tier >= 4 ? 1.15 : 1) * 1.7;
+  for (const sd of [-1, 1]) {
+    const pad = new TH.Group(); pad.add(mk(new TH.SphereGeometry(0.17 * big, 10, 7, 0, Math.PI * 2, 0, Math.PI * 0.62), M(trim), 0, 0, 0));
+    pad.add(mk(new TH.TorusGeometry(0.16 * big, 0.022, 6, 14), M(gold, 0.3, 0.7), 0, -0.02, 0)).rotation.x = Math.PI / 2;
+    if (tier >= 4) for (let k = 0; k < (tier >= 5 ? 3 : 1); k++) { const sp = mk(new TH.ConeGeometry(0.045 * big, 0.2 * big, 6), M(gold, 0.3, 0.7), sd * (0.05 + k * 0.05), 0.15 * big, (k - 1) * 0.07); sp.rotation.z = -sd * 0.5; pad.add(sp); }
+    pad.userData.sd = sd; g.pads.push(pad);
+  }
+  if (tier >= 3 && tier < 6) for (const sd of [-1, 1]) { const h = mk(new TH.ConeGeometry(0.08, tier >= 4 ? 0.5 : 0.36, 6), M('#e8e0c8', 0.6, 0.1), sd * 0.34, tier >= 4 ? -0.05 : -0.1, 0); h.rotation.z = -sd * 0.55; g.head.add(h); }
+  if (tier === 5) { const f = mk(new TH.BoxGeometry(0.05, 0.36, 0.44), M(trim), 0, 0.12, -0.04); g.head.add(f); }
+  if (tier === 6) { const cr = new TH.Group(); cr.add(mk(new TH.CylinderGeometry(0.3, 0.32, 0.12, 12, 1, true), new TH.MeshStandardMaterial({ color: gold, roughness: 0.25, metalness: 0.8, side: TH.DoubleSide }), 0, 0.1, 0)); for (let k = 0; k < 6; k++) { const a = (k / 6) * Math.PI * 2, sp = mk(new TH.ConeGeometry(0.05, 0.2, 5), M(gold, 0.25, 0.8), Math.cos(a) * 0.31, 0.26, Math.sin(a) * 0.31); cr.add(sp); } g.head.add(cr); }
+  gearCache.set(key, g); return g;
+}
 let mbud = 0, mbudPending = false;
 const MPOSE = { idle: /(^|[|_])(Flying_Idle|Idle)(\||$)/, walk: /(Fast_Flying|Walk|Run)(\||$)/, attack: /(Bite_Front|Punch|Headbutt|Attack)\d?(\||$)/, hit: /HitRe/, death: /Death(\||$)/ };
 async function loadMob(name) {

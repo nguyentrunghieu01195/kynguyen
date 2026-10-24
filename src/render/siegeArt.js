@@ -1,6 +1,10 @@
 // Đồ hoạ riêng cho Công Thành Chiến & Boss Bang: Ngai Vàng, tàn tích cổng, dấu phe, vòng boss, thanh máu cổng.
 import { SIEGE } from '../config/siege.js';
 import { iso, isoRadius } from './iso.js';
+import { gfx3d } from './art/v3d/flag.js';
+import { geoSprite } from './art/v3d/props3d.js';
+import { throneBase, throneChair, flagPole, gateRuins } from './art/v3d/structures.js';
+const blit = (c, sp) => { if (sp) c.drawImage(sp.cv, sp.box.x, sp.box.y, sp.box.w, sp.box.h); return !!sp; };
 
 const darken = (hex, k) => { const n = parseInt(hex.slice(1), 16); const f = (v) => Math.max(0, Math.min(255, Math.round(v * k))); return '#' + [f(n >> 16), f((n >> 8) & 255), f(n & 255)].map((v) => v.toString(16).padStart(2, '0')).join(''); };
 
@@ -8,13 +12,19 @@ const darken = (hex, k) => { const n = parseInt(hex.slice(1), 16); const f = (v)
 export function drawThrone(c, t, col, frac) {
   const th = SIEGE.throne, s = iso(th.x, th.y);
   c.save(); c.translate(s.x, s.y);
+  const base3 = gfx3d() && blit(c, geoSprite('throne-base', throneBase, 40));
   // bệ đá 3 bậc
-  for (const [rx, ry, h, tone] of [[56, 25, 0, '#4a4650'], [44, 20, 6, '#625d6a'], [32, 14, 12, '#7a7484']]) {
+  if (!base3) for (const [rx, ry, h, tone] of [[56, 25, 0, '#4a4650'], [44, 20, 6, '#625d6a'], [32, 14, 12, '#7a7484']]) {
     c.fillStyle = darken(tone, 0.6); c.beginPath(); c.ellipse(0, -h + 5, rx, ry, 0, 0, 6.283); c.fill();
     c.fillStyle = tone; c.beginPath(); c.ellipse(0, -h, rx, ry, 0, 0, 6.283); c.fill();
     c.strokeStyle = '#1a1620'; c.lineWidth = 1.4; c.stroke();
   }
   c.strokeStyle = col; c.globalAlpha = 0.9; c.lineWidth = 2; c.beginPath(); c.ellipse(0, -12, 26, 11, 0, 0, 6.283); c.stroke(); c.globalAlpha = 1; // vòng màu bang giữ ngai
+  const chair3 = gfx3d() && geoSprite('throne-chair', throneChair, 40), flag3 = gfx3d() && geoSprite('throne-flag|' + col, (TH) => flagPole(TH, col), 40);
+  if (chair3 && flag3) { // cờ + ghế 3D (cờ đung đưa nhẹ)
+    for (const sx of [-1, 1]) { c.save(); c.translate(sx * 40, -2); c.scale(sx, 1); c.transform(1, 0, Math.sin(t * 2 + sx) * 0.04, 1, 0, 0); blit(c, flag3); c.restore(); }
+    blit(c, chair3);
+  } else {
   // cờ hai bên
   for (const sx of [-1, 1]) {
     const x = sx * 40, w = Math.sin(t * 2 + sx) * 3;
@@ -31,6 +41,7 @@ export function drawThrone(c, t, col, frac) {
   c.fillStyle = '#7a1424'; c.beginPath(); c.moveTo(-10, -20); c.lineTo(-10, -58); c.quadraticCurveTo(0, -64, 10, -58); c.lineTo(10, -20); c.closePath(); c.fill(); // nệm
   c.fillStyle = gold; c.fillRect(-22, -30, 8, 6); c.fillRect(14, -30, 8, 6); c.strokeRect(-22, -30, 8, 6); c.strokeRect(14, -30, 8, 6);
   c.fillStyle = '#c8262a'; c.beginPath(); c.moveTo(0, -58); c.lineTo(5, -50); c.lineTo(0, -42); c.lineTo(-5, -50); c.closePath(); c.fill(); c.strokeStyle = goldL; c.lineWidth = 1; c.stroke();
+  }
   // cột sáng khi đang chiếm
   if (frac > 0) {
     c.save(); c.globalCompositeOperation = 'lighter';
@@ -45,6 +56,7 @@ export function drawThrone(c, t, col, frac) {
 export function drawGateRuins(c) {
   const gt = SIEGE.gate, s = iso(gt.x, gt.y);
   c.save(); c.translate(s.x, s.y);
+  if (gfx3d() && blit(c, geoSprite('gate-ruins', gateRuins, 40))) { c.strokeStyle = 'rgba(0,0,0,.3)'; c.lineWidth = 4; c.beginPath(); c.moveTo(-40, 6); c.lineTo(40, 6); c.stroke(); c.restore(); return; }
   const stone = (x, y, w, h, k) => { c.fillStyle = darken('#7a6a5a', k); c.strokeStyle = '#1a140e'; c.lineWidth = 1.2; c.beginPath(); c.moveTo(x, y); c.lineTo(x + w, y - 3); c.lineTo(x + w - 2, y - h); c.lineTo(x + 1, y - h + 4); c.closePath(); c.fill(); c.stroke(); };
   stone(-58, 4, 16, 34, 1); stone(-60, 4, 6, 50, 0.8); stone(42, 4, 16, 26, 1); stone(52, 4, 6, 44, 0.8);
   for (const [x, y, w, h, k] of [[-30, 6, 10, 6, 0.9], [-12, 10, 12, 7, 1], [8, 5, 9, 5, 0.85], [24, 9, 11, 6, 1], [-42, 12, 8, 5, 0.8], [36, 12, 9, 5, 0.9], [0, 14, 8, 4, 0.8]]) stone(x, y, w, h, k);

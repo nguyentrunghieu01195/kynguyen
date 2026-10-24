@@ -73,7 +73,7 @@ export function drawHero(c, cls, eq, t, o) {
   if (L.aura) { c.save(); c.scale(1.15, 1.15); auraLayer(c, L.aura, t, false); c.restore(); }
   if (gfx3d()) {
     const tierTint = ['#c8c8d0', '#b9a98a', '#8fb4d8', '#d8c070', '#c070e0', '#ff9a50', '#70e0ff'][tier] || '#ffffff';
-    const f3 = frame3d({ cls, pose, f: pose === 'walk' || pose === 'idle' ? (tq / (pose === 'walk' ? 0.6618 : 2.618)) % 1 : (k == null ? 0 : k), weapon: L.weapon.type, tint: tint3d(L.outfit ? L.outfit.colors[0] : set ? set.e : tierTint, 0.65), capeTint: tint3d(L.outfit ? L.outfit.colors[1] : set ? set.d : tierTint, 0.8), helm: !!eq.helm || !!L.head, wing: L.wings ? { tier: L.wings.tier, ph: Math.floor(t * 3 / 6.2832 * 6) % 6, glow: L.wings.plus >= 7 } : null, shield: cls === 'knight' && (tier >= 2) ? 'Knight_Shield' : '' });
+    const f3 = frame3d({ cls, pose, f: pose === 'walk' || pose === 'idle' ? (tq / (pose === 'walk' ? 0.6618 : 2.618)) % 1 : (k == null ? 0 : k), weapon: L.weapon.type, tint: tint3d(L.outfit ? L.outfit.colors[0] : set ? set.e : tierTint, 0.65), capeTint: tint3d(L.outfit ? L.outfit.colors[1] : set ? set.d : tierTint, 0.8), helm: !!eq.helm || !!L.head, gear: tier >= 2 && !L.head ? { tier, col: set ? set.d : '#c8c8d0' } : null, wing: L.wings ? { tier: L.wings.tier, ph: Math.floor(t * 3 / 6.2832 * 6) % 6, glow: L.wings.plus >= 7 } : null, shield: cls === 'knight' && (tier >= 2) ? 'Knight_Shield' : '' });
     if (f3) {
       c.save(); c.scale(o.face || 1, 1); const hh = 78, ww = hh * F3.w / F3.h; c.drawImage(f3, -ww / 2, -hh * 0.86, ww, hh); c.restore();
       sparks(c, L, t);

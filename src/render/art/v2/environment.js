@@ -3,7 +3,8 @@ import { CFG } from '../../../config/constants.js';
 import { shade, mix } from '../../paint.js';
 import { bakePolished } from './monsterFx.js';
 import { gfx3d } from '../v3d/flag.js';
-import { propSprite, tileSprite, propPreload } from '../v3d/props3d.js';
+import { propSprite, tileSprite, propPreload, geoSprite } from '../v3d/props3d.js';
+import { torchPole } from '../v3d/structures.js';
 import { tones, pEll, pCirc, pPoly, pRR, fs, vgrad, rgrad, gloss, groundShadow, sparkle, hash } from './kit.js';
 
 const diamond = (g, iso, i, j, inset = 0) => {
@@ -89,6 +90,12 @@ const EDGE = {
   void(g, ct, T) { if (T.r2 < 0.5) sparkle(g, ct.x + (T.r - 0.5) * 30, ct.y, 1.5 + T.r2 * 2, '#d8c8ff', 0.7); },
 };
 
+// Ô biên 3D: h = cao khối (đơn vị ô; bỏ trống = ngẫu nhiên 0.3–0.6), skip = bỏ phần vẽ 2D chi tiết (đã có khối 3D thay thế)
+const EDGE3 = {
+  water: { h: 0.1, rough: 0.18, metal: 0.15 }, sea: { h: 0.1, rough: 0.18, metal: 0.15 }, swamp: { h: 0.1, rough: 0.5 }, void: { h: 0.1 },
+  lava: { h: 0.12, em: '#ff3a08', rough: 0.6 }, cliff: { skip: true }, wall: { h: 0.62, skip: true }, bush: { h: 0.2, bush: true, skip: true },
+};
+
 /** Lấy ô (ngoài bản đồ = ô biên giả, ngẫu nhiên ổn định) */
 function tileAt(map, i, j) {
   const w = map.w || CFG.MAP_W, h = map.h || CFG.MAP_H;
@@ -115,9 +122,10 @@ export function makePaintMap(iso) {
         const patch = (vnoise(i * 0.14, j * 0.14) - 0.5) * 20 + (vnoise(i * 0.45 + 40, j * 0.45) - 0.5) * 8;
         const base = shade(col, Math.round((T.r - 0.5) * 9 + (kind === 'town' ? patch * 0.4 : patch)));
         const pts = diamond(g, iso, i, j);
-        const tsp = kind !== 'edge' && gfx3d() ? tileSprite(quant(base)) : null;
-        if (tsp) g.drawImage(tsp, pts[3].x, pts[0].y, 64, 48); else { g.fillStyle = base; g.fill(); }
-        if (kind === 'edge') { edge && edge(g, ct, T, col, pts); continue; }
+        const E3 = kind === 'edge' ? EDGE3[th.edgeKind] : null;
+        const tsp = gfx3d() ? (kind !== 'edge' ? tileSprite(quant(base)) : E3 ? tileSprite(quant(base), E3.h ? E3.h : 0.3 + T.r * 0.3, { em: E3.em, rough: E3.rough, metal: E3.metal, bush: E3.bush ? 1 + Math.floor(T.r * 5) : 0 }) : null) : null;
+        if (tsp) g.drawImage(tsp.cv, ct.x + tsp.x, ct.y + tsp.y, tsp.w, tsp.h); else { g.fillStyle = base; g.fill(); }
+        if (kind === 'edge') { if (!(tsp && E3.skip)) edge && edge(g, ct, T, col, pts); continue; }
         if (kind === 'town') {
           for (const [di, dj] of [[0, 0], [0.5, 0], [0, 0.5], [0.5, 0.5]]) {
             const q0 = iso(i + di + 0.04, j + dj + 0.04), q1 = iso(i + di + 0.46, j + dj + 0.04), q2 = iso(i + di + 0.46, j + dj + 0.46), q3 = iso(i + di + 0.04, j + dj + 0.46);
@@ -277,8 +285,12 @@ const DECO = {
     c.save(); c.shadowColor = '#ff4a10'; c.shadowBlur = 8 + Math.sin(t * 3 + d.seed * 5) * 4; c.strokeStyle = '#ff6a1a'; c.lineWidth = 1.3; c.beginPath(); c.moveTo(-1, -30); c.lineTo(1, -18); c.lineTo(-2, -6); c.stroke(); c.restore();
   },
   torch(c, d, t) {
-    pRR(c, -2, -30, 4, 30, 1); fs(c, '#4a3020', '#1a0a04', 1);
-    c.beginPath(); c.moveTo(-7, -30); c.lineTo(7, -30); c.lineTo(4, -36); c.lineTo(-4, -36); c.closePath(); fs(c, '#6a6a72', '#1a1a20', 1);
+    const p3 = gfx3d() && geoSprite('torch-pole', torchPole, 40);
+    if (p3) c.drawImage(p3.cv, p3.box.x, p3.box.y, p3.box.w, p3.box.h);
+    else {
+      pRR(c, -2, -30, 4, 30, 1); fs(c, '#4a3020', '#1a0a04', 1);
+      c.beginPath(); c.moveTo(-7, -30); c.lineTo(7, -30); c.lineTo(4, -36); c.lineTo(-4, -36); c.closePath(); fs(c, '#6a6a72', '#1a1a20', 1);
+    }
     const f = Math.sin(t * 15 + d.x) * 1.5;
     c.save(); c.globalCompositeOperation = 'lighter';
     c.fillStyle = rgrad(c, 0, -44, 1, 26, 'rgba(255,170,60,.55)', 'rgba(255,100,0,0)'); pCirc(c, 0, -44, 26); c.fill();

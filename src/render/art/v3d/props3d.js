@@ -15,8 +15,8 @@ function init() {
   try {
     rdr = new TH.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); rdr.setSize(SZ, SZ); rdr.setClearColor(0x000000, 0); rdr.outputColorSpace = TH.SRGBColorSpace;
     scene = new TH.Scene(); scene.add(new TH.HemisphereLight(0xffffff, 0x8a8aa8, 2.9)); { const d = new TH.DirectionalLight(0xfff0dd, 1.5); d.position.set(-3, 6, 4); scene.add(d); } cam = new TH.OrthographicCamera(-1, 1, 1, -1, 0.1, 200);
-    trdr = new TH.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); trdr.setSize(128, 96); trdr.setClearColor(0x000000, 0); trdr.outputColorSpace = TH.SRGBColorSpace;
-    tscene = new TH.Scene(); lights(tscene, 0.95); tcam = new TH.OrthographicCamera(-0.7071, 0.7071, 0.5304, -0.5304, 0.1, 50);
+    trdr = new TH.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); trdr.setSize(128, 192); trdr.setClearColor(0x000000, 0); trdr.outputColorSpace = TH.SRGBColorSpace;
+    tscene = new TH.Scene(); lights(tscene, 0.95); tcam = new TH.OrthographicCamera(-0.7071, 0.7071, 1.06, -1.06, 0.1, 50);
     ok = true;
   } catch (e) { ok = false; console.warn('[3D] bản đồ: không khởi động được WebGL — dùng bản vẽ 2D', e); }
   return ok;
@@ -60,12 +60,17 @@ export function propSprite(spec) {
   const key = spec.file + '|' + spec.h + '|' + (spec.w || 0) + '|' + spec.tint + '|' + (spec.amt || 0) + (spec.full ? 'F' : '') + '|' + spec.rot;
   const hit = sprites.get(key); if (hit) return hit;
   const m = load(spec.file); if (!m || typeof m === 'string') return null;
-  const ppu = Math.min(spec.h / (0.866 * m.h), spec.w ? spec.w / (m.w * 1.25) : 1e9), S = SZ / 2 / (ppu * D);
-  cam.left = -S; cam.right = S; cam.top = S; cam.bottom = -S; cam.updateProjectionMatrix();
-  const ty = (OY - SZ / 2) / (0.866 * ppu * D), tgt = new TH.Vector3(0, ty, 0); cam.position.copy(tgt).addScaledVector(DIR, 60); cam.lookAt(tgt);
+  const ppu = Math.min(spec.h / (0.866 * m.h), spec.w ? spec.w / (m.w * 1.25) : 1e9);
   const col = new TH.Color(spec.tint || '#ffffff');
   for (const p of m.parts) { p.material.color.copy(p.material.userData.c0).multiply(col).multiplyScalar(1.2); const u = p.material.userData.u; u.uTint.value.copy(col); u.uAmt.value = spec.amt || 0; u.uAll.value = spec.full ? 1 : 0; }
-  m.wrap.rotation.y = spec.rot || 0; scene.add(m.wrap); rdr.render(scene, cam); scene.remove(m.wrap);
+  m.wrap.rotation.y = spec.rot || 0;
+  return capture(m.wrap, ppu, key);
+}
+function capture(wrap, ppu, key) {
+  const S = SZ / 2 / (ppu * D);
+  cam.left = -S; cam.right = S; cam.top = S; cam.bottom = -S; cam.updateProjectionMatrix();
+  const ty = (OY - SZ / 2) / (0.866 * ppu * D), tgt = new TH.Vector3(0, ty, 0); cam.position.copy(tgt).addScaledVector(DIR, 60); cam.lookAt(tgt);
+  scene.add(wrap); rdr.render(scene, cam); scene.remove(wrap);
   const full = document.createElement('canvas'); full.width = SZ; full.height = SZ; const fg = full.getContext('2d', { willReadFrequently: true }); fg.drawImage(rdr.domElement, 0, 0);
   const px = fg.getImageData(0, 0, SZ, SZ).data; let x0 = SZ, y0 = SZ, x1 = -1, y1 = -1;
   for (let y = 0; y < SZ; y++) for (let x = 0; x < SZ; x++) if (px[(y * SZ + x) * 4 + 3] > 10) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
@@ -74,19 +79,40 @@ export function propSprite(spec) {
   const pad = 4, c2 = rim(c1, pad), e = { cv: c2, box: { x: (x0 - pad - SZ / 2) / D, y: (y0 - pad - OY) / D, w: c2.width / D, h: c2.height / D } };
   if (sprites.size > 260) sprites.clear(); sprites.set(key, e); return e;
 }
+/** Ảnh dựng sẵn từ khối hình học tự dựng (đồng bộ, không cần tải mô hình). build(TH) → Group; ppu = px game trên 1 đơn vị. */
+export function geoSprite(key, build, ppu = 40) {
+  const hit = sprites.get(key); if (hit) return hit;
+  if (!init()) return null;
+  const g = build(TH); return capture(g, ppu, key);
+}
 export const propPreload = (files) => { if (init()) for (const f of files) load(f); };
 
 // ---------- ô nền ----------
-const tiles = new Map(); let tileGeo = null;
-/** Ô nền 3D (khối vuông bo góc, mặt trên là hình thoi 64×32 game px). Trả canvas 128×96 (vẽ ở 64×48) hoặc null. */
-export function tileSprite(hex) {
-  const hit = tiles.get(hex); if (hit) return hit;
+const tiles = new Map(); const tgeos = new Map();
+/**
+ * Ô nền 3D: khối vuông bo góc, mặt trên là hình thoi 64×32 game px; h = chiều cao khối (đơn vị ô).
+ * Trả { cv, x, y, w, h } — vị trí vẽ (px game) tính từ TÂM hình thoi mặt đất; hoặc null nếu không có WebGL.
+ */
+export function tileSprite(hex, h = 0.2, o = {}) {
+  const key = hex + '|' + h + '|' + (o.em || '') + '|' + (o.rough ?? '') + '|' + (o.metal ?? '') + '|' + (o.bush ? 'b' + o.bush : '');
+  const hit = tiles.get(key); if (hit) return hit;
   if (!init()) return null;
-  if (!tileGeo) tileGeo = new RoundedBoxGeometry(1, 0.2, 1, 3, 0.045);
-  const mesh = new TH.Mesh(tileGeo, new TH.MeshStandardMaterial({ color: hex, roughness: 0.95, metalness: 0 })); mesh.position.y = -0.1;
-  const ppuPx = 64 * D / Math.SQRT2; // gốc hình thoi nằm ở y = 32px (khung 96px, tâm 48px)
-  const tgt = new TH.Vector3(0, -((48 - 32) / (0.866 * ppuPx)), 0); tcam.position.copy(tgt).addScaledVector(DIR, 20); tcam.lookAt(tgt);
-  tscene.add(mesh); trdr.render(tscene, tcam); tscene.remove(mesh);
-  const cv = document.createElement('canvas'); cv.width = 128; cv.height = 96; cv.getContext('2d').drawImage(trdr.domElement, 0, 0);
-  if (tiles.size > 700) tiles.clear(); tiles.set(hex, cv); return cv;
+  let geo = tgeos.get(h); if (!geo) { geo = new RoundedBoxGeometry(1, h, 1, 3, Math.min(0.05, h * 0.4)); tgeos.set(h, geo); }
+  const mat = new TH.MeshStandardMaterial({ color: hex, roughness: o.rough ?? 0.95, metalness: o.metal ?? 0, emissive: o.em || 0x000000, emissiveIntensity: o.em ? 0.9 : 0 });
+  const mesh = new TH.Mesh(geo, mat); mesh.position.y = -h / 2;
+  let extra = null;
+  if (o.bush) { // bụi rậm: vài khối cầu thấp đa giác phủ lên ô
+    extra = new TH.Group(); const ic = new TH.IcosahedronGeometry(1, 1);
+    for (let k = 0; k < 4; k++) { const m = new TH.Mesh(ic, new TH.MeshStandardMaterial({ color: new TH.Color(hex).offsetHSL(0, 0.05, 0.03 * k - 0.04), roughness: 0.9, flatShading: true })); const r = 0.26 + 0.08 * ((k + o.bush) % 3) * 0.5; m.scale.set(r, r * 0.85, r); m.position.set(((k % 2) - 0.5) * 0.5 + ((o.bush * 7 + k) % 3 - 1) * 0.06, 0.1 + 0.12 * (k % 2), (Math.floor(k / 2) - 0.5) * 0.5); extra.add(m); }
+  }
+  const ppuPx = 64 * D / Math.SQRT2, tgt = new TH.Vector3(0, (192 / 2 - 128) / (0.866 * ppuPx) * -1, 0); // tâm hình thoi mặt đất ở y = 128px của khung 192px
+  tcam.top = 96 / ppuPx; tcam.bottom = -96 / ppuPx; tcam.updateProjectionMatrix();
+  tcam.position.copy(tgt).addScaledVector(DIR, 20); tcam.lookAt(tgt);
+  tscene.add(mesh); if (extra) tscene.add(extra); trdr.render(tscene, tcam); tscene.remove(mesh); if (extra) tscene.remove(extra); mat.dispose();
+  const full = document.createElement('canvas'); full.width = 128; full.height = 192; const fg = full.getContext('2d', { willReadFrequently: true }); fg.drawImage(trdr.domElement, 0, 0);
+  const px = fg.getImageData(0, 0, 128, 192).data; let x0 = 128, y0 = 192, x1 = -1, y1 = -1;
+  for (let y = 0; y < 192; y++) for (let x = 0; x < 128; x++) if (px[(y * 128 + x) * 4 + 3] > 6) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  const cw = x1 - x0 + 1, ch = y1 - y0 + 1, cv = document.createElement('canvas'); cv.width = cw; cv.height = ch; cv.getContext('2d').drawImage(full, x0, y0, cw, ch, 0, 0, cw, ch);
+  const e = { cv, x: (x0 - 64) / D, y: (y0 - 128) / D, w: cw / D, h: ch / D };
+  if (tiles.size > 900) tiles.clear(); tiles.set(key, e); return e;
 }
