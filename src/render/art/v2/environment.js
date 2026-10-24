@@ -2,6 +2,8 @@
 import { CFG } from '../../../config/constants.js';
 import { shade, mix } from '../../paint.js';
 import { bakePolished } from './monsterFx.js';
+import { gfx3d } from '../v3d/flag.js';
+import { propSprite, tileSprite, propPreload } from '../v3d/props3d.js';
 import { tones, pEll, pCirc, pPoly, pRR, fs, vgrad, rgrad, gloss, groundShadow, sparkle, hash } from './kit.js';
 
 const diamond = (g, iso, i, j, inset = 0) => {
@@ -9,6 +11,9 @@ const diamond = (g, iso, i, j, inset = 0) => {
   pPoly(g, [p0.x, p0.y, p1.x, p1.y, p2.x, p2.y, p3.x, p3.y]);
   return [p0, p1, p2, p3];
 };
+
+/** Làm tròn màu #rrggbb về bước 8 để dùng chung ảnh ô nền 3D (giảm số ảnh phải dựng) */
+const quant = (c) => { const m = /(\d+),\s*(\d+),\s*(\d+)/.exec(c); if (!m) return c; const q = (v) => Math.min(255, Math.round(+v / 8) * 8).toString(16).padStart(2, '0'); return '#' + q(m[1]) + q(m[2]) + q(m[3]); };
 
 /** Nhiễu giá trị mượt (0..1) để tạo mảng màu lớn trên mặt đất, tránh cảm giác lát gạch ô vuông */
 const vnoise = (x, y) => {
@@ -109,7 +114,9 @@ export function makePaintMap(iso) {
         // màu ô = ngẫu nhiên nhẹ từng ô + mảng màu lớn mượt (2 tầng nhiễu) → mặt đất có vùng sáng / tối tự nhiên
         const patch = (vnoise(i * 0.14, j * 0.14) - 0.5) * 20 + (vnoise(i * 0.45 + 40, j * 0.45) - 0.5) * 8;
         const base = shade(col, Math.round((T.r - 0.5) * 9 + (kind === 'town' ? patch * 0.4 : patch)));
-        const pts = diamond(g, iso, i, j); g.fillStyle = base; g.fill();
+        const pts = diamond(g, iso, i, j);
+        const tsp = kind !== 'edge' && gfx3d() ? tileSprite(quant(base)) : null;
+        if (tsp) g.drawImage(tsp, pts[3].x, pts[0].y, 64, 48); else { g.fillStyle = base; g.fill(); }
         if (kind === 'edge') { edge && edge(g, ct, T, col, pts); continue; }
         if (kind === 'town') {
           for (const [di, dj] of [[0, 0], [0.5, 0], [0, 0.5], [0.5, 0.5]]) {
@@ -298,13 +305,50 @@ function baked(d) {
   }
   return b;
 }
+// Vật trang trí → mô hình 3D: files chọn theo seed, h = chiều cao (px game), mix = độ pha màu chủ đề, amt = độ đổi màu vùng có màu
+const N = 'nat/', G = 'gy/', H = 'hw/';
+const PROP3D = {
+  tree: { files: [N + 'tree_default.glb', N + 'tree_oak.glb', N + 'tree_fat.glb', N + 'tree_detailed.glb'], h: 78, w: 64, mix: 0.1 },
+  pine: { files: [N + 'tree_pineTallA.glb', N + 'tree_pineTallB.glb', N + 'tree_pineRoundA.glb', N + 'tree_pineDefaultA.glb'], h: 84, w: 48, mix: 0.3 },
+  bush: { files: [N + 'plant_bushLarge.glb', N + 'plant_bushDetailed.glb', N + 'plant_bush.glb'], h: 30, w: 36, mix: 0.4 },
+  rock: { files: [N + 'stone_largeA.glb', N + 'stone_largeB.glb', N + 'stone_largeD.glb'], h: 28, w: 34, mix: 0 },
+  boulder: { files: [N + 'stone_largeD.glb', N + 'rock_largeE.glb'], h: 40, w: 46, mix: 0 },
+  cactus: { files: [N + 'cactus_tall.glb', N + 'cactus_short.glb'], h: 54, w: 34, mix: 0.2 },
+  mushroom: { files: [N + 'mushroom_redGroup.glb', N + 'mushroom_tanGroup.glb', N + 'mushroom_redTall.glb'], h: 36, w: 36, mix: 0, amt: 0.85 },
+  tomb: { files: [G + 'gravestone-round.glb', G + 'gravestone-cross.glb', G + 'gravestone-roof.glb', G + 'gravestone-wide.glb'], h: 40, w: 26, mix: 0 },
+  pillar: { files: [G + 'pillar-square.glb', G + 'pillar-large.glb', G + 'pillar-small.glb'], h: 60, w: 28, mix: 0 },
+  ice: { files: [N + 'rock_tallC.glb', N + 'rock_tallB.glb'], h: 52, w: 40, tint: '#bfeaff', amt: 0.95, full: true },
+  crystal: { files: [N + 'rock_tallB.glb', N + 'rock_tallC.glb'], h: 50, w: 40, amt: 0.95, full: true },
+  reed: { files: [N + 'grass_large.glb', N + 'grass_leafsLarge.glb', N + 'plant_flatTall.glb'], h: 34, w: 36, mix: 0.3 },
+  deadtree: { files: [H + 'tree_dead_medium.gltf', H + 'tree_dead_large.gltf', H + 'tree_dead_small.gltf'], h: 66, w: 56, mix: 0 },
+  bones: { files: [H + 'bone_A.gltf', H + 'ribcage.gltf', H + 'bone_B.gltf', H + 'bone_C.gltf'], h: 18, w: 30, mix: 0 },
+  snowrock: { files: [N + 'rock_largeB.glb', N + 'rock_largeA.glb'], h: 28, w: 34, tint: '#eaf6ff', amt: 0.7, full: true },
+  palm: { files: [N + 'tree_palmTall.glb', N + 'tree_palmShort.glb', N + 'tree_palmBend.glb'], h: 80, w: 70, mix: 0.2 },
+  coral: { files: [N + 'plant_bushTriangle.glb', N + 'plant_bush.glb'], h: 34, w: 36, amt: 0.95, full: true },
+  shell: { files: [N + 'stone_smallFlatA.glb'], h: 12, w: 16, tint: '#ffd9e6', amt: 0.9, full: true },
+  skull: { files: [H + 'skull.gltf'], h: 16, w: 16, mix: 0 },
+  basalt: { files: [N + 'rock_tallA.glb', N + 'rock_tallB.glb'], h: 48, w: 34, tint: '#3a3340', amt: 0.9, full: true },
+};
+const P3 = new Map();
+function prop3d(d) {
+  const sp = PROP3D[d.kind]; if (!sp) return null;
+  const q = Math.floor(d.seed * 8), ck = d.kind + '|' + d.col + '|' + q, got = P3.get(ck); if (got) return got;
+  const tint = sp.tint || (sp.mix ? mix('#ffffff', d.col || '#ffffff', sp.mix) : '#ffffff'), amtCol = sp.amt ? (sp.tint ? sp.tint : d.col) : tint;
+  const b = propSprite({ file: sp.files[q % sp.files.length], h: sp.h, w: sp.w, full: sp.full, tint: sp.amt ? amtCol : tint, amt: sp.amt || 0, rot: (q / 8) * 6.2832 });
+  if (b) P3.set(ck, b); return b;
+}
+export const preloadProps3d = () => { if (gfx3d()) propPreload(Object.values(PROP3D).flatMap((s) => s.files)); };
+
 export function makeDrawDeco(iso) {
+  let pre = false;
   return function drawDeco(c, d, t) {
+    if (!pre && gfx3d()) { pre = true; preloadProps3d(); }
     const s = iso(d.x, d.y);
     c.save(); c.translate(s.x, s.y); c.scale(d.s, d.s);
     groundShadow(c, 18, 7, 0.3);
     if (SWAY.has(d.kind)) c.transform(1, 0, Math.sin(t * 1.35 + d.seed * 11) * 0.03 + Math.sin(t * 0.55 + d.seed * 5) * 0.015, 1, 0, 0);
-    const b = STATIC_DECO.has(d.kind) ? baked(d) : null;
+    const b3 = gfx3d() && d.kind !== 'torch' ? prop3d(d) : null;
+    const b = b3 || (STATIC_DECO.has(d.kind) ? baked(d) : null);
     if (b) c.drawImage(b.cv, b.box.x, b.box.y, b.box.w, b.box.h); else (DECO[d.kind] || DECO.rock)(c, d, t);
     c.restore();
   };

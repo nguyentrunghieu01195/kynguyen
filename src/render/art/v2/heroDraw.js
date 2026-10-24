@@ -5,6 +5,8 @@ import { resolveLook } from './hero.js';
 import { drawWings, outfitBody, outfitSkirt, headwear, HEADWEAR_HIDES_HAIR, auraLayer } from './gear.js';
 import { ARMOR_SETS } from '../../../config/gear.js';
 import { glowColor } from '../../paint.js';
+import { gfx3d } from '../v3d/flag.js';
+import { frame as frame3d, FRAME as F3, tint3d } from '../v3d/hero3d.js';
 
 export const HERO_HEIGHT = 100;
 const SC = 0.3, RES = 2, W = 150, H = 150, OX = 60, OY = 130; // 1 đơn vị phác = 0.3px game; canvas nháp RES× cho nét
@@ -69,6 +71,16 @@ export function drawHero(c, cls, eq, t, o) {
 
   groundGlows(c, L, t);
   if (L.aura) { c.save(); c.scale(1.15, 1.15); auraLayer(c, L.aura, t, false); c.restore(); }
+  if (gfx3d()) {
+    const tierTint = ['#c8c8d0', '#b9a98a', '#8fb4d8', '#d8c070', '#c070e0', '#ff9a50', '#70e0ff'][tier] || '#ffffff';
+    const f3 = frame3d({ cls, pose, f: pose === 'walk' || pose === 'idle' ? (tq / (pose === 'walk' ? 0.6618 : 2.618)) % 1 : (k == null ? 0 : k), weapon: L.weapon.type, tint: tint3d(L.outfit ? L.outfit.colors[0] : set ? set.e : tierTint, 0.65), capeTint: tint3d(L.outfit ? L.outfit.colors[1] : set ? set.d : tierTint, 0.8), helm: !!eq.helm || !!L.head, wing: L.wings ? { tier: L.wings.tier, ph: Math.floor(t * 3 / 6.2832 * 6) % 6, glow: L.wings.plus >= 7 } : null, shield: cls === 'knight' && (tier >= 2) ? 'Knight_Shield' : '' });
+    if (f3) {
+      c.save(); c.scale(o.face || 1, 1); const hh = 78, ww = hh * F3.w / F3.h; c.drawImage(f3, -ww / 2, -hh * 0.86, ww, hh); c.restore();
+      sparks(c, L, t);
+      if (L.aura) { c.save(); c.scale(1.15, 1.15); auraLayer(c, L.aura, t, true); c.restore(); }
+      return;
+    }
+  }
   let cv = cache.get(key);
   const base = key.replace(/-?\d+\.\d+/g, '');
   if (!cv) {

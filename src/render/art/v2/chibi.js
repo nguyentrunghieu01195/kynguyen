@@ -15,6 +15,7 @@ import { mix } from '../../paint.js';
 export const MATS = {
   skin: { o: '#8a5434', d: '#d49a70', b: '#f2c9a0', l: '#ffe2c4', kind: 'matte', name: 'Da người' },
   hair: { o: '#2a140c', d: '#4a2814', b: '#6a3e20', l: '#a8703c', kind: 'matte', name: 'Tóc nâu' },
+  hairK: { o: '#0a0810', d: '#17122a', b: '#2a2240', l: '#6e62a0', kind: 'matte', name: 'Tóc đen' },
   hairF: { o: '#3a0a08', d: '#7a1a18', b: '#b82a26', l: '#f0705c', kind: 'matte', name: 'Tóc đỏ (nữ)' },
   leather: { o: '#3a2012', d: '#5c3c24', b: '#80583a', l: '#a8814f', kind: 'matte', name: 'Da thuộc' },
   leatherD: { o: '#26140a', d: '#3e2616', b: '#5a3a24', l: '#7c5a38', kind: 'matte', name: 'Da thuộc tối' },
@@ -198,6 +199,15 @@ export function solvePose(pose, t, k) {
 const POSES = ['idle', 'walk', 'attack', 'skill', 'hit', 'death'];
 export const KNIGHT_POSES = POSES;
 
+/** Tỉ lệ cơ thể theo mức: HS = tỉ lệ đầu, BK = thân, LK = chân tay, ek = cỡ mắt */
+/** Thể hình (o.body): 0 giữ nguyên · 1 mảnh · 2 cân đối · 3 vạm vỡ. sh = bề ngang vai, wa = eo (so với vai), hip = hông, tk = độ dày tay chân. Nữ: vai hẹp hơn, eo thon, hông rộng. */
+const BODY = {
+  m: [null, { sh: 0.78, wa: 0.58, hip: 0.74, tk: 0.78 }, { sh: 1.0, wa: 0.7, hip: 0.82, tk: 1.0 }, { sh: 1.25, wa: 0.8, hip: 0.9, tk: 1.3 }],
+  f: [null, { sh: 0.78, wa: 0.56, hip: 0.96, tk: 0.74 }, { sh: 0.92, wa: 0.62, hip: 1.04, tk: 0.9 }, { sh: 1.08, wa: 0.74, hip: 1.04, tk: 1.1 }],
+};
+const sm = (a, b, x) => { const k = Math.max(0, Math.min(1, (x - a) / (b - a))); return k * k * (3 - 2 * k); };
+const PROPS = [{ HS: 1, BK: 1, LK: 1, ek: 1 }, { HS: 0.64, BK: 1.12, LK: 1.2, ek: 0.8 }, { HS: 0.46, BK: 1.2, LK: 1.32, ek: 0.64 }, { HS: 0.6, BK: 1.18, LK: 1.3, ek: 0.7 }];
+
 /** Vật liệu giáp theo class: e = giáp chính, d = viền / khớp */
 const CLS_MATS = {
   knight: { 0: { e: 'leather', d: 'leatherD' }, 2: { e: 'bone', d: 'darkmetal' }, 5: { e: 'angel', d: 'gold' } },
@@ -250,7 +260,16 @@ export function buildHero(o) {
 
   // ---- bộ xương ----
   const sk = fem ? { sx: 33, sy: -76, hip: 16, up: 42, fo: 38 } : { sx: 52, sy: -78, hip: 21, up: 44, fo: 42 };
-  const TH = 50, SHN = 48, ANK = 12;
+  // tỉ lệ cơ thể: 0 chibi (đầu to) · 1 bán thực tế · 2 thực tế rõ — đầu nhỏ lại, thân / tay / chân dài ra
+  const SH = o.style === 'shonen'; // phong cách anime chiến binh: đầu nhỏ, thân vạm vỡ, mặt góc cạnh, tóc dựng, tay trần cơ bắp
+  const PR = PROPS[SH ? 3 : Math.max(0, Math.min(2, o.real | 0))], HS = PR.HS, BK = PR.BK, LK = PR.LK;
+  sk.up *= LK; sk.fo *= LK;
+  const BD = BODY[fem ? 'f' : 'm'][Math.max(0, Math.min(3, SH && !o.body ? 3 : o.body | 0))], TK = BD ? BD.tk : 1;
+  if (BD) { sk.sx *= BD.sh; sk.hip *= BD.hip > 1 ? 1.1 : BD.hip; }
+  const limbK = (a, b, r1, r2) => limb(a, b, r1 * TK, r2 * TK);
+  // dáng chữ V: vai rộng → eo thon → hông (chỉ khi chọn thể hình); áp cho mọi mảng thuộc thân
+  const taper = (y) => (BD ? BD.sh * (y < -80 ? 1 : y < -18 ? 1 + (BD.wa - 1) * sm(-80, -18, y) : BD.wa + (BD.hip - BD.wa) * sm(-18, 6, y)) : 1);
+  const TH = 50 * LK, SHN = 48 * LK, ANK = 12 * (1 + (LK - 1) * 0.5);
   const legFK = (hx, th, shn) => { const hip = [hx, 0], knee = [hx + TH * Math.sin(th), TH * Math.cos(th)], ank = [knee[0] + SHN * Math.sin(shn), knee[1] + SHN * Math.cos(shn)]; return { hip, knee, ank, drop: ank[1] + ANK }; };
   const lF0 = legFK(sk.hip, P.thF, P.shF), lB0 = legFK(-sk.hip, P.thB, P.shB);
   const py = -Math.max(lF0.drop, lB0.drop) - (P.bob || 0) + 0;
@@ -263,8 +282,8 @@ export function buildHero(o) {
     const dx = x - pivot[0], dy = y - pivot[1], c = Math.cos(rootA), s = Math.sin(rootA);
     return [pivot[0] + dx * c - dy * s, pivot[1] + dx * s + dy * c + lift];
   };
-  const TR = (x, y) => { const [a, b] = rot(x, y, P.lean); return W(pel[0] + a, pel[1] + b); };               // khung thân (gốc = hông)
-  const HD = (x, y) => { const [nx, ny] = [4, -74], [a, b] = rot(x, y + 208, P.lean + P.tilt); const [c0, c1] = rot(nx, ny, P.lean); return W(pel[0] + c0 + a, pel[1] + c1 + b); }; // khung đầu (toạ độ nghỉ tuyệt đối)
+  const TR = (x, y) => { const [a, b] = rot(x * BK, y * BK, P.lean); return W(pel[0] + a, pel[1] + b); };               // khung thân (gốc = hông)
+  const HD = (x, y) => { const [nx, ny] = [4 * BK, -74 * BK], [a, b] = rot(x * HS, (y + 208) * HS, P.lean + P.tilt); const [c0, c1] = rot(nx, ny, P.lean); return W(pel[0] + c0 + a, pel[1] + c1 + b); }; // khung đầu (toạ độ nghỉ tuyệt đối)
   const wp = (p) => W(pel[0] + p[0], pel[1] + p[1]);
   const legPts = (L) => ({ hip: wp(L.hip), knee: wp(L.knee), ank: wp(L.ank) });
   const lF = legPts(lF0), lB = legPts(lB0);
@@ -305,7 +324,7 @@ export function buildHero(o) {
     }
   }
 
-  const tier = o.tier, fw = fem ? 0.8 : 1, T2 = (x, y) => TR(x * fw, y);
+  const tier = o.tier, fw = fem && !BD ? 0.8 : 1, T2 = (x, y) => TR(x * fw * taper(y), y);
   const baseTF = (origin, a, sc = 1) => (x, y) => { const [u, v] = rot(x * sc, y * sc, a); return [origin[0] + u, origin[1] + v]; };
   const circ = (cx, cy, r) => ell((x, y) => [x, y], cx, cy, r, r);
   const eMat = CLS_MATS[cls][tier].e, dMat = CLS_MATS[cls][tier].d;           // vật liệu giáp chính / viền-khớp theo class
@@ -316,14 +335,14 @@ export function buildHero(o) {
     const support = lF0.drop >= lB0.drop ? 'F' : 'B';
     const lk = tier === 5 ? 1.2 : tier === 2 ? 1.08 : 1; // bậc cao: chân dày, vững hơn (không kéo dài)
     const leg = (L, sideF) => {
-      part('legs', limb(L.hip, L.knee, 18 * lk, 14 * lk), T.pants, 0.8);
-      part('legs', limb(L.knee, L.ank, 14 * lk, 10.5 * lk), T.pants, 0.8);
-      if (tier > 0 && cls === 'knight') part('legs', limb(lerp2(L.hip, L.knee, 0.1), lerp2(L.hip, L.knee, 0.8), 20.5 * lk, 16 * lk), eMat, 0.7); // giáp đùi
-      part('legs', limb(lerp2(L.knee, L.ank, 0.2), lerp2(L.knee, L.ank, 0.92), 15 * lk, 11.5 * lk), tier === 0 ? 'leather' : tier === 2 ? 'darkmetal' : 'angel', 0.7); // giáp ống chân
+      part('legs', limbK(L.hip, L.knee, 18 * lk, 14 * lk), T.pants, 0.8);
+      part('legs', limbK(L.knee, L.ank, 14 * lk, 10.5 * lk), T.pants, 0.8);
+      if (tier > 0 && cls === 'knight') part('legs', limbK(lerp2(L.hip, L.knee, 0.1), lerp2(L.hip, L.knee, 0.8), 20.5 * lk, 16 * lk), eMat, 0.7); // giáp đùi
+      part('legs', limbK(lerp2(L.knee, L.ank, 0.2), lerp2(L.knee, L.ank, 0.92), 15 * lk, 11.5 * lk), tier === 0 ? 'leather' : tier === 2 ? 'darkmetal' : 'angel', 0.7); // giáp ống chân
       part('legs', xf('M -15 -3 Q -13 -17 2 -18 Q 19 -17 18 -2 Q 16 12 1 13 Q -14 11 -15 -3 Z', baseTF(L.knee, 0)), tier === 0 ? 'leatherD' : tier === 2 ? 'bone' : 'gold', 0.6); // mũ gối
       const grounded = (support === 'F') === sideF;
       const fa = (grounded ? (sideF ? -0.04 : Math.max(0, Math.min(0.5, -P.shB * 0.55))) : 0.26) + (fall ? rootA : 0);
-      const tf = baseTF(L.ank, fa, 0.92 * (tier === 5 ? 1.12 : tier === 2 ? 1.05 : 1));
+      const tf = baseTF(L.ank, fa, 0.92 * BK * (tier === 5 ? 1.12 : tier === 2 ? 1.05 : 1));
       const bm = T.boots;
       part('legs', xf('M -16 -46 L 18 -46 L 20 -12 Q 42 -12 52 5 Q 56 13 46 15 L -14 15 Q -23 15 -23 6 L -18 -10 Z', tf), bm, 0.8); // thân ủng + mũi
       part('legs', xf('M -24 7 L 52 7 L 53 15 Q 51 18 43 18 L -14 18 Q -24 18 -24 8 Z', tf), 'leatherD', 0.6);                          // đế
@@ -336,20 +355,28 @@ export function buildHero(o) {
 
   // ============ [ARMS] tay: tay áo → giáp bắp → khuỷu → găng phân đoạn → nắm tay ============
   const armLayer = (A, layer) => {
+    if (SH && tier === 0 && cls !== 'wizard') { // tay trần cơ bắp: bắp tay + cẳng tay có đường cơ, băng cổ tay, nắm đấm
+      part(layer, limbK(A.sh, A.el, 16.5, 13), 'skin', 0.8); part(layer, limbK(A.el, A.wr, 13, 10.5), 'skin', 0.8);
+      const bc = lerp2(A.sh, A.el, 0.5); part(layer, ell((x, y) => [x, y], bc[0] + 1, bc[1], 12 * TK, 9 * TK, Math.atan2(A.el[1] - A.sh[1], A.el[0] - A.sh[0])), 'skin', 0.5);
+      const fc = lerp2(A.el, A.wr, 0.35); stroke(layer, 'M' + f1(bc[0] - 5) + ' ' + f1(bc[1] - 2) + 'Q' + f1(bc[0]) + ' ' + f1(bc[1] + 5) + ' ' + f1(bc[0] + 6) + ' ' + f1(bc[1] - 1), M('skin').o, 2, { a: 0.55 });
+      stroke(layer, 'M' + f1(fc[0] - 4) + ' ' + f1(fc[1]) + 'L' + f1(fc[0] + 4) + ' ' + f1(fc[1] + 6), M('skin').o, 1.8, { a: 0.5 });
+      part(layer, limbK(lerp2(A.el, A.wr, 0.62), A.wr, 12.4, 12), dMat, 0.55);
+      return;
+    }
     if (cls === 'wizard') { // tay áo rộng, bo cổ tay
-      part(layer, limb(A.sh, A.el, 17, 15), eMat, 0.8); part(layer, limb(A.el, A.wr, 16, 12.5), eMat, 0.8);
-      part(layer, limb(lerp2(A.el, A.wr, 0.72), A.wr, 13.5, 13), dMat, 0.55); return;
+      part(layer, limbK(A.sh, A.el, 17, 15), eMat, 0.8); part(layer, limbK(A.el, A.wr, 16, 12.5), eMat, 0.8);
+      part(layer, limbK(lerp2(A.el, A.wr, 0.72), A.wr, 13.5, 13), dMat, 0.55); return;
     }
     if (cls === 'archer') { // da nhẹ + găng hở ngón
-      part(layer, limb(A.sh, A.el, 14, 12), eMat, 0.8); part(layer, limb(A.el, A.wr, 12, 10.5), eMat, 0.8);
-      part(layer, limb(lerp2(A.el, A.wr, 0.3), A.wr, 13.4, 12), dMat, 0.55); part(layer, xf('M -12 2 Q -13 -12 2 -14 Q 16 -13 15 2 Q 14 12 2 13 Q -11 11 -12 2 Z', baseTF(A.el, 0)), dMat, 0.6); return;
+      part(layer, limbK(A.sh, A.el, 14, 12), eMat, 0.8); part(layer, limbK(A.el, A.wr, 12, 10.5), eMat, 0.8);
+      part(layer, limbK(lerp2(A.el, A.wr, 0.3), A.wr, 13.4, 12), dMat, 0.55); part(layer, xf('M -12 2 Q -13 -12 2 -14 Q 16 -13 15 2 Q 14 12 2 13 Q -11 11 -12 2 Z', baseTF(A.el, 0)), dMat, 0.6); return;
     }
     const sleeve = tier === 5 ? 'clothW' : tier === 2 ? 'cloth' : 'leatherD';
-    part(layer, limb(A.sh, A.el, 15, 12.5), sleeve, 0.8);
-    if (tier > 0) part(layer, limb(lerp2(A.sh, A.el, 0.3), lerp2(A.sh, A.el, 0.86), 16.5, 14.5), eMat, 0.6);
-    part(layer, limb(A.el, A.wr, 12.5, 10.5), sleeve, 0.8);
+    part(layer, limbK(A.sh, A.el, 15, 12.5), sleeve, 0.8);
+    if (tier > 0) part(layer, limbK(lerp2(A.sh, A.el, 0.3), lerp2(A.sh, A.el, 0.86), 16.5, 14.5), eMat, 0.6);
+    part(layer, limbK(A.el, A.wr, 12.5, 10.5), sleeve, 0.8);
     part(layer, xf('M -13 2 Q -14 -14 2 -16 Q 18 -15 17 2 Q 16 14 2 15 Q -12 13 -13 2 Z', baseTF(A.el, 0)), dMat, 0.6); // khuỷu
-    for (const [a, b, r, m] of [[0.22, 0.5, 14, eMat], [0.5, 0.76, 13.4, dMat], [0.76, 1.0, 12.6, eMat]]) part(layer, limb(lerp2(A.el, A.wr, a), lerp2(A.el, A.wr, b), r, r - 0.6), m, 0.55);
+    for (const [a, b, r, m] of [[0.22, 0.5, 14, eMat], [0.5, 0.76, 13.4, dMat], [0.76, 1.0, 12.6, eMat]]) part(layer, limbK(lerp2(A.el, A.wr, a), lerp2(A.el, A.wr, b), r, r - 0.6), m, 0.55);
   };
   // giáp vai: 3 thiết kế khác hẳn nhau theo bậc (khung gốc tại khớp vai, +x là hướng ra trước)
   const pauldron0 = (layer, sh, ang, sc) => {
@@ -408,7 +435,7 @@ export function buildHero(o) {
   pauldron('arm_back', shB, P.lean + ra(P.a1B) * 0.3, 0.9);
 
   // ============ [BODY] cổ + áo lót hình thang thu về eo ============
-  part('body', limb(T2(4, -70), HD(6, -226), 12, 12.5), 'skin', 0.7);
+  part('body', limbK(T2(4, -70), HD(6, -226), 12, 12.5), 'skin', 0.7);
   part('body', xf('M -30 8 Q -36 -18 -42 -40 Q -52 -60 -50 -76 Q -22 -88 6 -86 Q 38 -86 54 -74 Q 56 -58 46 -40 Q 38 -20 36 8 Z', T2), T.cloth, 0.8);
 
   // ============ [CHEST ARMOR] ngực → bụng → hông thành các khối ============
@@ -491,7 +518,7 @@ export function buildHero(o) {
 
   // ============ head: đầu + khuôn mặt ============
   {
-    part('head', xf('M -48 -280 Q -54 -240 -34 -226 Q -10 -212 16 -216 Q 42 -220 54 -234 Q 64 -250 58 -278 Q 56 -318 6 -322 Q -44 -320 -48 -280 Z', HD), 'skin', 1);
+    part('head', xf(SH && !fem ? 'M -50 -280 Q -56 -246 -40 -230 L -16 -214 L 20 -218 Q 46 -224 56 -240 Q 64 -254 58 -278 Q 56 -318 6 -322 Q -44 -320 -50 -280 Z' : 'M -48 -280 Q -54 -240 -34 -226 Q -10 -212 16 -216 Q 42 -220 54 -234 Q 64 -250 58 -278 Q 56 -318 6 -322 Q -44 -320 -48 -280 Z', HD), 'skin', 1);
     fill('head', ell(HD, 54, -244, 8, 4), '#ff8a7a', { a: 0.42 }); fill('head', ell(HD, 6, -244, 6, 3.5), '#ff8a7a', { a: 0.42 });
     stroke('head', xf('M 31 -250 Q 34 -246 31 -243', HD), '#c98a68', 2.6, {});
     const iris = fem ? '#3a64b8' : '#a0602a', mood = P.mood || 0, hc = fem ? '#7a2a22' : '#4a2c1c';
@@ -511,10 +538,23 @@ export function buildHero(o) {
     else if (mood === 3) { stroke('head', xf('M 6 -272 L 22 -262 L 6 -252', HD), '#2a1610', 5.5, {}); stroke('head', xf('M 54 -274 L 34 -262 L 54 -250', HD), '#2a1610', 5.5, {}); }
     else if (mood === 5) { stroke('head', xf('M 3 -256 Q 14 -276 25 -256', HD), '#1a0a08', 6, {}); stroke('head', xf('M 31 -256 Q 43 -278 56 -256', HD), '#1a0a08', 6, {}); }
     else if (mood === 4) { for (const [x, r] of [[14, 8], [43, 9]]) stroke('head', xf('M ' + (x - r) + ' ' + (-262 - r) + ' L ' + (x + r) + ' ' + (-262 + r) + ' M ' + (x + r) + ' ' + (-262 - r) + ' L ' + (x - r) + ' ' + (-262 + r), HD), '#2a1610', 5.5, {}); }
-    else { eye(14, -262, 9, 13.5); eye(43, -262, 11, 15.5); }
+    else if (SH) { // mắt sắc, xếch, mí trên đậm — cho kiểu chiến binh anime
+      const sharp = (cx, cy, w, h, dir) => {
+        const lid = '#120a14', iris = fem ? '#2a5ab8' : '#1a1a2a';
+        const d = 'M ' + (cx - w) + ' ' + (cy + h * 0.5 * dir) + ' Q ' + (cx - w * 0.1) + ' ' + (cy - h * 1.1) + ' ' + (cx + w) + ' ' + (cy - h * 0.25 * dir) + ' L ' + (cx + w * 0.9) + ' ' + (cy + h * 0.55) + ' Q ' + cx + ' ' + (cy + h * 0.95) + ' ' + (cx - w) + ' ' + (cy + h * 0.5 * dir) + ' Z';
+        fill('head', xf(d, HD), '#fffdf4'); const clip = xf(d, HD);
+        fill('head', ell(HD, cx + w * 0.25, cy + h * 0.1, h * 0.62, h * 0.7), iris, { clip });
+        fill('head', ell(HD, cx + w * 0.3, cy + h * 0.1, h * 0.3, h * 0.36), '#05030a', { clip });
+        fill('head', ell(HD, cx + w * 0.05, cy - h * 0.25, h * 0.2, h * 0.2), '#ffffff', { clip });
+        stroke('head', xf('M ' + (cx - w * 1.1) + ' ' + (cy + h * 0.55 * dir) + ' Q ' + (cx - w * 0.1) + ' ' + (cy - h * 1.25) + ' ' + (cx + w * 1.05) + ' ' + (cy - h * 0.3 * dir), HD), lid, 3.6, {});
+      };
+      sharp(16, -262, 11, 9.5, 1); sharp(44, -263, 12, 10.5, 1);
+    }
+    else { { const ek = PR.ek; eye(14 + (1 - ek) * 8, -262 + (1 - ek) * 6, 9 * ek, 13.5 * ek); eye(43 - (1 - ek) * 4, -262 + (1 - ek) * 6, 11 * ek, 15.5 * ek); } }
     // lông mày quyết đoán: dốc xuống về phía mũi; khi ra đòn nhíu mạnh hơn
     if (mood === 2) { stroke('head', xf('M 3 -284 L 23 -276', HD), '#3a2418', 5.5, {}); stroke('head', xf('M 56 -286 L 32 -277', HD), '#3a2418', 5.5, {}); }
     else if (mood === 3) { stroke('head', xf('M 4 -278 L 24 -282', HD), hc, 4.4, {}); stroke('head', xf('M 34 -289 L 55 -280', HD), hc, 4.4, {}); }
+    else if (SH) { stroke('head', xf('M 2 -290 L 26 -276', HD), '#0a0810', fem ? 4.4 : 7, {}); stroke('head', xf('M 60 -293 L 32 -278', HD), '#0a0810', fem ? 4.4 : 7, {}); }
     else { stroke('head', xf('M 4 -281 Q 14 -286 24 -277', HD), hc, fem ? 3.2 : 4.6, {}); stroke('head', xf('M 31 -286 Q 44 -293 56 -280', HD), hc, fem ? 3.2 : 4.6, {}); }
     // miệng
     const lip = fem ? '#b0504e' : '#8a5434';
@@ -531,7 +571,11 @@ export function buildHero(o) {
   {
     const hm = fem ? 'hairF' : 'hair', H = (d, k, m) => part('hair', xf(d, HD), m || hm, k);
     const CROWN = 'M -54 -284 Q -66 -340 -16 -352 Q 36 -358 64 -328 Q 70 -304 62 -290 Q 44 -312 12 -308 Q -24 -306 -54 -284 Z';
-    if ((tier === 0 && cls === 'knight') || o.crown) { // không mũ: khối đỉnh phồng + hai mảng lướt cong ra sau
+    if (SH && !fem) { // tóc dựng thành các gai lớn hướng lên-ra sau, màu đen ánh tím
+      for (const [x0, y0, tx0, ty0, w] of [[-48, -300, -84, -372, 20], [-30, -322, -50, -406, 20], [-8, -330, -6, -422, 22], [14, -328, 40, -410, 21], [36, -314, 76, -386, 20], [52, -296, 98, -344, 18], [-52, -284, -96, -330, 15]]) { const tx = x0 + (tx0 - x0) * 1.15, ty = y0 + (ty0 - y0) * 1.3; part('hair', xf('M ' + x0 + ' ' + y0 + ' Q ' + ((x0 + tx) / 2 - w * 0.4) + ' ' + ((y0 + ty) / 2) + ' ' + tx + ' ' + ty + ' Q ' + ((x0 + tx) / 2 + w * 0.7) + ' ' + ((y0 + ty) / 2 + 8) + ' ' + (x0 + w) + ' ' + (y0 + 8) + ' Z', HD), 'hairK', 0.8); }
+      part('hair', xf('M -54 -284 Q -62 -330 -16 -344 Q 36 -350 62 -326 Q 68 -304 60 -290 Q 42 -310 12 -306 Q -24 -304 -54 -284 Z', HD), 'hairK', 1);
+    }
+    if (!SH && ((tier === 0 && cls === 'knight') || o.crown)) { // không mũ: khối đỉnh phồng + hai mảng lướt cong ra sau
       H('M -38 -334 Q -88 -346 -108 -306 Q -72 -314 -34 -308 Z', 0.7);
       H('M -46 -306 Q -94 -292 -102 -254 Q -68 -270 -44 -276 Z', 0.6);
       H(CROWN, 1);
@@ -644,7 +688,7 @@ export function buildHero(o) {
 
   // ============ [WEAPON] thanh kiếm lớn, hai mặt lưỡi, chắn tay riêng từng bậc ============
   const hand = aF.hand, wpnA = ra(P.wpn);
-  let wTF = baseTF(hand, Math.PI - wpnA);
+  let wTF = baseTF(hand, Math.PI - wpnA, 1 + (BK - 1) * 0.8);
   const dropK = P.drop || 0;
   if (dropK > 0) { const gx = pel[0] + 96, gy = -10, tx = hand[0] + (gx - hand[0]) * dropK, ty = hand[1] + (gy - hand[1]) * dropK - Math.sin(dropK * Math.PI) * 30; wTF = baseTF([tx, ty], (Math.PI - wpnA) * (1 - dropK) + (Math.PI / 2) * dropK); }
   if (cls === 'knight' && (wt === 'sword' || o.special)) {
@@ -788,6 +832,18 @@ function drawChibi0(c, o) {
   const B = buildHero(o);
   // bóng đổ dưới chân
   c.save(); c.fillStyle = 'rgba(0,0,0,0.38)'; c.beginPath(); c.ellipse(B.fall ? B.pel[0] + 10 : B.pel[0] + 4, 2, B.fall ? 96 : 62, 13, 0, 0, 6.283); c.fill(); c.restore();
+  if (o.aura) { // hào quang khí: các ngọn lửa nhọn bốc lên quanh thân (chỉ canvas, vẽ phía sau nhân vật)
+    const t = o.t || 0, cx = B.pel[0] + 6, cy = B.pel[1] - 100;
+    c.save(); c.globalCompositeOperation = 'lighter';
+    for (let layer = 0; layer < 2; layer++) for (let i = 0; i < 9; i++) {
+      const a = (i / 9) * 6.283 + layer * 0.3, w = Math.sin(t * 9 + i * 1.7 + layer) * 0.12, len = (layer ? 150 : 190) + Math.sin(t * 7 + i * 2.3) * 24, bx = cx + Math.cos(a) * 52, by = cy + Math.sin(a) * 92 + 24;
+      const tx = cx + Math.cos(a + w) * len * 0.55, ty = cy + Math.sin(a + w) * len * 0.95;
+      c.globalAlpha = layer ? 0.34 : 0.2; c.fillStyle = layer ? '#fff7c0' : o.aura;
+      c.beginPath(); c.moveTo(bx - 14, by); c.quadraticCurveTo((bx + tx) / 2 - 14, (by + ty) / 2, tx, ty); c.quadraticCurveTo((bx + tx) / 2 + 14, (by + ty) / 2 + 8, bx + 14, by); c.closePath(); c.fill();
+    }
+    c.globalAlpha = 0.22; c.fillStyle = o.aura; c.beginPath(); c.ellipse(cx, cy + 40, 74, 150, 0, 0, 6.283); c.fill();
+    c.restore();
+  }
   if (o.inject && o.inject.pre) o.inject.pre(c, B);
   TINT = o.pose === 'hit' || (o.pose === 'death' && B.P.hit) ? 1 : 0;
   for (const name of LAYER_ORDER) {

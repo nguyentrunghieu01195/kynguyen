@@ -2,9 +2,13 @@
 // Gốc toạ độ = chân, hướng mặt sang phải.
 import { themeParticles, bossOrbiters, haloColor, isRage, variant, drawPolished } from './monsterFx.js';
 import { blob, beast, humanoid, bug, golem, winged, dragon, serpent, crab, ghost } from './creatures.js';
+import { gfx3d } from '../v3d/flag.js';
+import { frame as frame3d, mobFrame, FRAME as F3, MOB3D } from '../v3d/hero3d.js';
+import { MOB_MODEL } from '../v3d/mobmap.js';
 import { tones, pEll, pCirc, pPoly, pRR, fs, vgrad, rgrad, groundShadow, hash } from './kit.js';
 
 const HEIGHT = { blob: 28, beast: 30, humanoid: 56, bug: 24, golem: 62, winged: 62, dragon: 64, serpent: 38, crab: 30, ghost: 54 };
+const tintOk = (hex) => (/^#[0-9a-f]{6}$/i.test(hex) ? hex : '#ffffff');
 export const VIS = 1.3; // phóng to hình quái 30% so với kích thước logic (nhìn rõ chi tiết hơn; va chạm / đòn đánh không đổi)
 export const mobHeight = (m) => (HEIGHT[m.shape] || 40) * m.size * VIS;
 
@@ -61,6 +65,23 @@ export function drawMob(c, m, t, iso) {
   const V = variant(m), sc = V.k * (1 + roar);
   c.scale(m.size * m.face * sc * (1 - breathe * 0.6 + hit * 0.1), m.size * sc * (1 + breathe - hit * 0.08)); c.translate(lg, 0);
   const fl = m.flash > 0, shp = SHAPES[m.shape] || blob, hc = haloColor(m, rage);
+  if (gfx3d()) { // mô hình 3D dựng sẵn (xương: KayKit; các họ khác: Quaternius); chưa tải xong thì dùng bản vẽ 2D
+    const pose = m.hp <= 0 ? 'death' : m.lunge > 0 ? 'attack' : m.moving ? 'walk' : 'idle';
+    const f = pose === 'attack' ? 1 - m.lunge / 0.2 : pose === 'death' ? 1 : (t * (pose === 'walk' ? 1.6 : 0.5) + hash(m.x) * 3) % 1;
+    const id = m.tpl && m.tpl.id, mdl = m.shape === 'gate' ? 'K_gate' : MOB_MODEL[id];
+    let f3 = null, hh = 78;
+    if (m.bones && m.shape === 'humanoid') {
+      const kind = MOB3D[m.staff ? 'mage' : m.bow ? 'rogue' : m.boss || m.size >= 1.1 ? 'warrior' : 'minion'];
+      f3 = frame3d({ cls: kind[0], pose, f, weapon: kind[1], tint: '#ffffff', capeTint: '#ffffff', helm: !!m.crown || m.size >= 1.1 });
+    } else if (mdl) { f3 = mobFrame({ model: mdl, pose, f, tint: m.shape === 'gate' ? '#ffffff' : tintOk(V.c1), amt: m.shape === 'gate' ? 0 : m.shape === 'dragon' ? 0.9 : 0.6 }); hh = m.shape === 'gate' ? 84 : (HEIGHT[m.shape] || 40) * 1.7; }
+    if (f3) {
+      const ww = hh * F3.w / F3.h, oy = /^Flying_/.test(mdl || '') ? -hh * 0.55 : -hh * 0.86;
+      if (hc && !fl && m.shape !== 'gate') { c.save(); c.shadowColor = hc; c.shadowBlur = rage ? 20 : 12; c.drawImage(f3, -ww / 2, oy, ww, hh); c.restore(); } else c.drawImage(f3, -ww / 2, oy, ww, hh);
+      if (fl) { c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = Math.min(1, m.flash / 0.12) * 0.7; c.drawImage(f3, -ww / 2, oy, ww, hh); c.restore(); }
+      c.restore(); if (m.boss) { c.save(); c.translate(s.x, s.y); c.scale(VIS, VIS); bossOrbiters(c, m, t, rage); c.restore(); }
+      return;
+    }
+  }
   if (hc && !fl && m.shape !== 'gate') { // quầng viền theo đúng hình dáng: vẽ lại hình dáng to hơn 7% bằng màu quầng, phía sau
     c.save(); c.globalAlpha = rage ? 0.5 : m.boss ? 0.28 : 0.4; c.globalCompositeOperation = 'lighter'; c.scale(1.07, 1.07);
     shp(c, m, t, tones(hc), tones(hc)); c.restore();

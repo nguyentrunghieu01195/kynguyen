@@ -3,7 +3,7 @@ import './design.css';
 import { drawChibi } from '../render/art/v2/chibi.js';
 import { plusAll } from '../render/art/v2/heroDraw.js';
 
-const S = { plus: 0, cls: 'knight', wt: 'sword', gender: 'm', tier: 0, pose: 'idle', mood: 'auto', size: 320, armor: true, cape: true, weapon: true, halo: true, fx: true, sil: false, noGlow: false, three: false, bg: 'dark' };
+const S = { style: '', aura: false, body: 0, real: 0, plus: 0, cls: 'knight', wt: 'sword', gender: 'm', tier: 0, pose: 'idle', mood: 'auto', size: 320, armor: true, cape: true, weapon: true, halo: true, fx: true, sil: false, noGlow: false, three: false, bg: 'dark' };
 if (location.hash === '#80') Object.assign(S, { size: 80, three: true, noGlow: true }); // mở sẵn: 80px, ba bậc, tắt phát sáng
 const TN = { 0: 'Bậc 1 · Bộ Da', 2: 'Bậc 3 · Bộ Xương', 5: 'Bậc 6 · Bộ Thiên Thần' };
 const MOODS = { idle: 0, attack: 2, hit: 3, victory: 5 };
@@ -26,10 +26,13 @@ group('Giới tính', 'gender', [['m', 'Nam'], ['f', 'Nữ']]);
 group('Bậc', 'tier', [[0, 'Bậc 1'], [2, 'Bậc 3'], [5, 'Bậc 6']]);
 group('Tư thế', 'pose', ['idle', 'walk', 'attack', 'skill', 'hit', 'death'].map((p) => [p, p[0].toUpperCase() + p.slice(1)]));
 group('Biểu cảm', 'mood', [['auto', 'Theo tư thế'], ['idle', 'Idle'], ['attack', 'Attack'], ['hit', 'Hit'], ['victory', 'Victory']]);
+group('Phong cách', 'style', [['', 'Mặc định'], ['shonen', 'Anime chiến binh']]);
+group('Tỉ lệ', 'real', [[0, 'Chibi (hiện tại)'], [1, 'Bán thực tế'], [2, 'Thực tế rõ']]);
+group('Thể hình', 'body', [[0, 'Cũ'], [1, 'Mảnh'], [2, 'Cân đối'], [3, 'Vạm vỡ']]);
 group('Cộng', 'plus', [[0, '+0'], [3, '+3'], [5, '+5'], [7, '+7'], [9, '+9'], [11, '+11'], [13, '+13'], [15, '+15']]);
 group('Kích thước', 'size', [[80, '80px'], [160, '160px'], [320, '320px']]);
 group('Nền', 'bg', [['dark', 'Tối'], ['iso', 'Bản đồ isometric']]);
-for (const [l, k] of [['Giáp', 'armor'], ['Áo choàng', 'cape'], ['Vũ khí', 'weapon'], ['Halo', 'halo'], ['Hiệu ứng', 'fx'], ['Silhouette', 'sil'], ['Không phát sáng', 'noGlow'], ['3 bậc cạnh nhau', 'three']]) toggle(l, k);
+for (const [l, k] of [['Giáp', 'armor'], ['Áo choàng', 'cape'], ['Vũ khí', 'weapon'], ['Halo', 'halo'], ['Hiệu ứng', 'fx'], ['Silhouette', 'sil'], ['Không phát sáng', 'noGlow'], ['Hào quang khí', 'aura'], ['3 bậc cạnh nhau', 'three']]) toggle(l, k);
 
 function refresh() {
   if (!WTS[S.cls].some(([v]) => v === S.wt)) S.wt = WTS[S.cls][0][0];
@@ -57,7 +60,7 @@ function bgDraw(c, w, h, ox, oy, sz) {
   for (let i = -8; i <= 8; i++) for (let j = -8; j <= 8; j++) { const x = ox + (i - j) * tw, y = oy - th * 4 + (i + j) * th; c.beginPath(); c.moveTo(x, y - th); c.lineTo(x + tw, y); c.lineTo(x, y + th); c.lineTo(x - tw, y); c.closePath(); c.fillStyle = (i + j) & 1 ? '#34482a' : '#3b5230'; c.fill(); c.strokeStyle = 'rgba(0,0,0,.18)'; c.stroke(); }
 }
 function opts(cls, wt, tier, gender, pose, t) {
-  const o = { cls, wtype: wt === 'special' ? WTS[cls][0][0] : wt, special: wt === 'special', tier, gender, pose, t, pl: plusAll(S.plus, t), hide: { armor: !S.armor, cape: !S.cape, weapon: !S.weapon, halo: !S.halo }, noFx: !S.fx, noGlow: S.noGlow };
+  const o = { cls, wtype: wt === 'special' ? WTS[cls][0][0] : wt, special: wt === 'special', tier, gender, pose, t, real: S.real, body: S.body, style: S.style, aura: S.aura ? '#ffd84a' : null, pl: plusAll(S.plus, t), hide: { armor: !S.armor, cape: !S.cape, weapon: !S.weapon, halo: !S.halo }, noFx: !S.fx, noGlow: S.noGlow };
   if (S.mood !== 'auto') o.mood = MOODS[S.mood];
   if (pose === 'attack') o.k = (t * 0.8) % 1; else if (pose === 'skill') o.k = (t * 0.55) % 1; else if (pose === 'death') o.k = Math.min(1, ((t * 0.4) % 1.5) / 1.1);
   return o;

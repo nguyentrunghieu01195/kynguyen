@@ -1,4 +1,6 @@
 // Hình vẽ thú cưng (Canvas 2D, đơn vị px game, gốc = dưới chân, quay mặt +x). Mỗi họ hình dáng + bảng màu riêng.
+import { gfx3d } from '../v3d/flag.js';
+import { mobFrame, FRAME as F3 } from '../v3d/hero3d.js';
 import { tones, pEll, pCirc, pPoly, fs, vgrad, sparkle, groundShadow, gloss } from './kit.js';
 import { PET_BY_ID, RARITY } from '../../../config/pets.js';
 import { mix } from '../../paint.js';
@@ -45,6 +47,9 @@ function idleExtras(c, d, t, o) {
   if (k < 0.12) { const q = k / 0.12; c.save(); c.globalAlpha = 1 - q; c.fillStyle = '#ff6a8a'; const x = 5, y = -34 - q * 12; c.beginPath(); c.moveTo(x, y + 2); c.bezierCurveTo(x - 5, y - 3, x - 2, y - 6, x, y - 3); c.bezierCurveTo(x + 2, y - 6, x + 5, y - 3, x, y + 2); c.fill(); c.restore(); }
 }
 
+// Pet → mô hình 3D (Quaternius, CC0); nhuộm nhẹ theo màu pet
+const PET_MODEL = { slime: 'Blob_GreenBlob', wolf: 'Blob_Dog', cat: 'Blob_Cat', fox: 'Blob_Dog', owl: 'Blob_Birb', bird: 'Blob_Pigeon', dragon: 'Flying_Dragon', golem: 'Flying_Goleling_Evolved', ghost: 'Flying_Ghost', phoenix: 'Flying_Pigeon', unicorn: 'Big_Bunny', lion: 'Big_Monkroose' };
+
 /** Vẽ pet. o: { moving, atk (0..1), face, v (biến thể), band (bậc tiến hoá 1..4), idle (giây chủ đứng yên), seed } — gốc: dưới chân pet */
 export function drawPet(c, kind, t, o = {}) {
   const d = PET_BY_ID[kind]; if (!d) return;
@@ -54,7 +59,9 @@ export function drawPet(c, kind, t, o = {}) {
   evolution(c, d, t, o, true);
   const bob = o.moving && !['bird', 'ghost', 'phoenix'].includes(d.shape) ? Math.abs(Math.sin(t * 10)) * 2 : 0, sleep = !o.moving && (o.idle || 0) > 9;
   c.translate(0, -bob); c.scale(1.3, sleep ? 1.3 * 0.86 : 1.3);
-  (DRAW[d.shape] || DRAW.blob)(c, T, t, o);
+  const mdl = PET_MODEL[kind], f3 = mdl && gfx3d() ? mobFrame({ model: mdl, pose: o.atk > 0 ? 'attack' : o.moving ? 'walk' : 'idle', f: o.atk > 0 ? 1 - Math.min(1, o.atk) : (t * (o.moving ? 1.8 : 0.6) + (o.seed || 0) * 3) % 1, tint: /^#[0-9a-f]{6}$/i.test(pal[0]) ? pal[0] : '#ffffff', amt: 0.65 }) : null;
+  if (f3) { const hh = 40 * (1 + 0.08 * ((o.band || 1) - 1)), ww = hh * F3.w / F3.h, fly = /^Flying_/.test(mdl); c.translate(0, fly ? -8 : 0); c.drawImage(f3, -ww / 2, fly ? -hh * 0.55 : -hh * 0.86, ww, hh); }
+  else (DRAW[d.shape] || DRAW.blob)(c, T, t, o);
   if ((o.v || 0) === 3) sparkle(c, -6, -22, 1.8, '#fff0a0', 0.5 + 0.5 * Math.sin(t * 5 + 1));
   c.restore();
   c.save(); c.scale(o.face || 1, 1); c.scale(1.3, 1.3); evolution(c, d, t, o, false); idleExtras(c, d, t, o); c.restore();
