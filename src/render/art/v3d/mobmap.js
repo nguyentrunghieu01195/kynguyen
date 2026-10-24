@@ -31,7 +31,7 @@ export const MOB_MODEL = {
   "demonlord": "Flying_Demon",
   "azoth": "Flying_Dragon_Evolved",
   "swampsnake": "Q_Snake",
-  "hydra": "Q_Tentacle",
+  "hydra": "G_Hydra",
   "seasnake": "Q_Snake",
   "sandworm": "G_Worm",
   "wisp": "Flying_Ghost",

@@ -164,6 +164,30 @@ function setupMat(mat) { // đổi màu theo sắc độ: chỉ vùng có màu (
 }
 // Quái dựng hoàn toàn bằng hình học (không có mô hình sẵn): sâu cát
 const PROC = {
+  G_Hydra: () => { // thân tròn + 3 cổ rắn có đầu, uốn lượn
+    const wrap = new THREE.Group(), parts = [], necks = [];
+    const mk = (geo, col, rough = 0.8) => { const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: col, roughness: rough, flatShading: true })); setupMat(m.material); m.frustumCulled = false; parts.push(m); return m; };
+    const body = mk(new THREE.IcosahedronGeometry(0.8, 1), new THREE.Color('#4f9a52')); body.scale.set(1.15, 0.75, 1); body.position.y = 0.6; wrap.add(body);
+    const belly = mk(new THREE.IcosahedronGeometry(0.62, 1), new THREE.Color('#d9d28a')); belly.scale.set(1.0, 0.5, 0.9); belly.position.set(0.1, 0.42, 0); wrap.add(belly);
+    for (const sd of [-1, 1]) for (const sx of [-0.5, 0.5]) { const leg = mk(new THREE.CylinderGeometry(0.14, 0.18, 0.4, 7), new THREE.Color('#3d7a40')); leg.position.set(sx, 0.2, sd * 0.55); wrap.add(leg); }
+    for (let n = 0; n < 3; n++) {
+      const segs = [], N = 6, g = new THREE.Group();
+      for (let i = 0; i < N; i++) { const sg = mk(new THREE.IcosahedronGeometry(0.2 - i * 0.012, 1), new THREE.Color(i % 2 ? '#5aac5e' : '#4a8f4e')); g.add(sg); segs.push(sg); }
+      const head = new THREE.Group(); head.add(mk(new THREE.IcosahedronGeometry(0.27, 1), new THREE.Color('#5aac5e')));
+      const snout = mk(new THREE.ConeGeometry(0.15, 0.3, 6), new THREE.Color('#4a8f4e')); snout.rotation.z = -Math.PI / 2; snout.position.x = 0.28; head.add(snout);
+      for (const e of [-1, 1]) { const ey = mk(new THREE.SphereGeometry(0.06, 8, 6), new THREE.Color('#ffe060'), 0.3); ey.position.set(0.12, 0.12, e * 0.13); head.add(ey); }
+      const tg = mk(new THREE.BoxGeometry(0.2, 0.02, 0.05), new THREE.Color('#d83a3a')); tg.position.set(0.45, -0.02, 0); head.add(tg);
+      g.add(head); wrap.add(g); necks.push({ g, segs, head, ang: (n - 1) * 0.75 });
+    }
+    const anim = (ph) => {
+      necks.forEach((nk, n) => {
+        const base = new THREE.Vector3(Math.sin(nk.ang) * 0.3, 0.9, Math.cos(nk.ang) * 0.3 * 0 + (n - 1) * 0.35);
+        nk.segs.forEach((sg, i) => { const k = (i + 1) / nk.segs.length, sw = Math.sin(ph * 6.283 + n * 2 + k * 2.5) * 0.18 * k; sg.position.set(base.x + k * 0.55 + sw * 0.4, base.y + Math.sin(k * 2.2) * 0.9, base.z + (n - 1) * k * 0.55 + sw); });
+        const k = 1.05, sw = Math.sin(ph * 6.283 + n * 2 + k * 2.5) * 0.18; nk.head.position.set(base.x + k * 0.58 + sw * 0.4, base.y + Math.sin(k * 2.2) * 0.9 + 0.05, base.z + (n - 1) * k * 0.55 + sw); nk.head.rotation.z = -0.5 + Math.sin(ph * 6.283 + n) * 0.15;
+      });
+    };
+    anim(0); wrap.scale.setScalar(0.8); return { wrap, parts, anim };
+  },
   G_Worm: () => {
     const wrap = new THREE.Group(), parts = [], segs = [], N = 9;
     const mk = (geo, col, rough = 0.85) => { const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: col, roughness: rough, flatShading: true })); setupMat(m.material); m.frustumCulled = false; parts.push(m); return m; };
@@ -183,7 +207,7 @@ const PROC = {
 
 async function loadMob(name) {
   if (mobs.has(name)) return;
-  if (PROC[name]) { const pr = PROC[name](); mobs.set(name, { wrap: pr.wrap, root: pr.wrap, mixer: null, clips: [], parts: pr.parts, anim: pr.anim, k: 1 }); return; }
+  if (PROC[name]) { const pr = PROC[name](), outer = new THREE.Group(); pr.wrap.rotation.y = -Math.PI / 2; outer.add(pr.wrap); mobs.set(name, { wrap: outer, root: outer, mixer: null, clips: [], parts: pr.parts, anim: pr.anim, k: 1 }); return; }
   const p = (async () => {
     const gltf = await loader.loadAsync(urlOf('m/' + name + '.glb')), root = gltf.scene, parts = [], hulls = [];
     root.traverse((o) => {
