@@ -24,7 +24,8 @@ function petFollow(key, o, dt) {
   const fx = o.face || 1, tx = o.x - 0.75 * fx, ty = o.y + 0.75 * fx;
   if (!st || Math.hypot(st.x - tx, st.y - ty) > 8) st = { x: tx, y: ty, face: fx, atk: 0, mv: 0 };
   const dx = tx - st.x, dy = ty - st.y, d = Math.hypot(dx, dy);
-  if (d > 0.04) { const k = Math.min(1, dt * 5); st.x += dx * k; st.y += dy * k; st.mv = Math.min(1, d); const sx = dx - dy; if (Math.abs(sx) > 0.02) st.face = sx > 0 ? 1 : -1; } else st.mv = 0;
+  if (d > 0.04) { st.idle = 0; const k = Math.min(1, dt * 5); st.x += dx * k; st.y += dy * k; st.mv = Math.min(1, d); const sx = dx - dy; if (Math.abs(sx) > 0.02) st.face = sx > 0 ? 1 : -1; } else { st.mv = 0; st.idle = (st.idle || 0) + dt; }
+  if (!st.seed) st.seed = (key.charCodeAt(0) % 17) / 17;
   petPos.set(key, st); return st;
 }
 
@@ -193,14 +194,14 @@ export function render() {
   if (R.event && R.event.id === 'siege') list.push({ z: SIEGE.throne.x + SIEGE.throne.y, k: 4 });
   { // thú cưng: của mình + của người chơi khác (look.pt)
     const S0 = G.S, ap = S0 && S0.pets && S0.pets.list.find((q) => q.id === S0.pets.active);
-    if (ap && p.dead <= 0) { const st = petFollow('me', p, dt); st.atk = myPetAtk; myPetAtk = Math.max(0, myPetAtk - dt * 3); list.push({ z: st.x + st.y, k: 5, kind: ap.kind, st }); } else petPos.delete('me');
-    if (!R.event || R.event.room) for (const o of NET.players.values()) if (o.look && o.look.pt && inView(o)) { const st = petFollow(o.id, o, dt); list.push({ z: st.x + st.y, k: 5, kind: o.look.pt, st }); }
+    if (ap && p.dead <= 0) { const st = petFollow('me', p, dt); st.atk = myPetAtk; myPetAtk = Math.max(0, myPetAtk - dt * 3); list.push({ z: st.x + st.y, k: 5, kind: ap.kind, v: ap.v || 0, band: ap.lv >= 10 ? 4 : ap.lv >= 7 ? 3 : ap.lv >= 4 ? 2 : 1, st }); } else petPos.delete('me');
+    if (!R.event || R.event.room) for (const o of NET.players.values()) if (o.look && o.look.pt && inView(o)) { const st = petFollow(o.id, o, dt), pt = o.look.pt.split('.'); list.push({ z: st.x + st.y, k: 5, kind: pt[0], v: +pt[1] || 0, band: +pt[2] || 1, st }); }
   }
   list.push({ z: p.x + p.y, k: 2, o: p }); // người chơi gục thì vẽ tư thế nằm
   if (!R.event || R.event.room) for (const o of NET.players.values()) if (inView(o)) list.push({ z: o.x + o.y, k: 3, o });
   list.sort((a, b) => a.z - b.z);
   for (const e of list) {
-    if (e.k === 5) { const q = iso(e.st.x, e.st.y); ctx.save(); ctx.translate(q.x, q.y); drawPet(ctx, e.kind, t, { moving: e.st.mv > 0, face: e.st.face, atk: e.st.atk }); ctx.restore(); }
+    if (e.k === 5) { const q = iso(e.st.x, e.st.y); ctx.save(); ctx.translate(q.x, q.y); drawPet(ctx, e.kind, t, { moving: e.st.mv > 0, face: e.st.face, atk: e.st.atk, v: e.v, band: e.band, idle: e.st.idle, seed: e.st.seed }); ctx.restore(); }
     else if (e.k === 4) { const B = R.event.board, hd = B && B.teams.find((x) => x.holder); drawThrone(ctx, t, hd ? SIEGE.teamColors[hd.slot] : '#ffd54a', B && B.cap ? Math.min(1, B.cap.frac) : 0); }
     else if (e.k === 0) A.drawDeco(ctx, e.o, t);
     else if (e.k === 1) {

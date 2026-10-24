@@ -37,7 +37,7 @@ export function cleanLook(look) {
   const gn = cleanText(look?.g, 12); if (gn) out.g = gn; // tên bang hội
   if (look?.gd === 'f') out.gd = 'f'; // nhân vật nữ
   if (look?.ct) out.ct = 1; // bang đang giữ thành
-  if (typeof look?.pt === 'string' && PET_BY_ID[look.pt]) out.pt = look.pt; // pet đang theo
+  if (typeof look?.pt === 'string' && /^[a-z]{2,12}\.[0-3]\.[1-4]$/.test(look.pt) && PET_BY_ID[look.pt.split('.')[0]]) out.pt = look.pt; // pet đang theo: loại.biến thể.bậc
   return out;
 }
 

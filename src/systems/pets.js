@@ -26,7 +26,7 @@ export const petExpMul = () => { const a = activePet(); return a ? 1 + (petFx(a.
 export function addPet(kind) {
   const P = pets();
   if (!PET_BY_ID[kind] || P.list.length >= PET.maxPets) return null;
-  const p = { id: uid(), kind, lv: 1, exp: 0 };
+  const p = { id: uid(), kind, lv: 1, exp: 0, v: Math.floor(Math.random() * 4) }; // v = biến thể màu 0..3
   P.list.push(p);
   if (!P.active) P.active = p.id;
   calcStats();

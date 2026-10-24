@@ -1,6 +1,7 @@
 // Hình vẽ thú cưng (Canvas 2D, đơn vị px game, gốc = dưới chân, quay mặt +x). Mỗi họ hình dáng + bảng màu riêng.
 import { tones, pEll, pCirc, pPoly, fs, vgrad, sparkle, groundShadow, gloss } from './kit.js';
-import { PET_BY_ID } from '../../../config/pets.js';
+import { PET_BY_ID, RARITY } from '../../../config/pets.js';
+import { mix } from '../../paint.js';
 
 const body = (c, x, y, rx, ry, col, T) => { pEll(c, x, y, rx, ry); fs(c, vgrad(c, y - ry, y + ry, T.h, T.s), T.o, 1.3); };
 const dot = (c, x, y, r) => { pCirc(c, x, y, r); c.fillStyle = '#1a1020'; c.fill(); pCirc(c, x - r * 0.3, y - r * 0.3, r * 0.35); c.fillStyle = '#fff'; c.fill(); };
@@ -20,14 +21,41 @@ const DRAW = {
 };
 function pRR2(c, x, y, w, h, T) { c.beginPath(); c.roundRect ? c.roundRect(x, y, w, h, 3) : c.rect(x, y, w, h); fs(c, vgrad(c, y, y + h, T.h, T.s), T.o, 1.2); }
 
-/** Vẽ pet. o: { moving, atk (0..1 loé khi tham chiến), face } — gốc: dưới chân pet */
+/** Bảng màu theo biến thể: 0 gốc · 1 sáng · 2 đổi màu chính ↔ phụ · 3 "ánh kim" vàng */
+function palette(d, v) {
+  const [a, b] = d.c;
+  return v === 1 ? [mix(a, '#ffffff', 0.3), mix(b, '#ffffff', 0.15)] : v === 2 ? [mix(b, a, 0.25), a] : v === 3 ? [mix(a, '#ffd34a', 0.5), mix(b, '#ffb020', 0.4)] : [a, b];
+}
+const rcol = (d) => RARITY[d.rarity].color;
+/** Tiến hoá theo cấp: bậc 2 (lv4) bùa lơ lửng · bậc 3 (lv7) vòng sáng dưới chân · bậc 4 (lv10) hào quang + hạt theo độ hiếm */
+function evolution(c, d, t, o, back) {
+  const band = o.band || 1, col = rcol(d);
+  if (back) {
+    if (band >= 3) { c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.35 + 0.15 * Math.sin(t * 3); c.strokeStyle = col; c.lineWidth = 2; c.scale(1, 0.4); pCirc(c, 0, 0, 15 + (band >= 4 ? 3 : 0)); c.stroke(); if (band >= 4) { c.globalAlpha = 0.18; c.fillStyle = col; c.fill(); } c.restore(); }
+    return;
+  }
+  if (band >= 2) { const y = -35 + Math.sin(t * 2.5) * 2; c.save(); c.translate(0, y); c.rotate(t); c.globalCompositeOperation = 'lighter'; pPoly(c, [0, -4, 1.4, -1.4, 4, 0, 1.4, 1.4, 0, 4, -1.4, 1.4, -4, 0, -1.4, -1.4]); c.fillStyle = col; c.globalAlpha = 0.9; c.fill(); c.restore(); }
+  if (band >= 4) for (let i = 0; i < 4; i++) { const q = (t * 0.7 + i / 4) % 1; sparkle(c, Math.sin(i * 2 + t) * 11, -4 - q * 30, 1.8, col, 1 - q); }
+}
+/** Hành vi chờ: nhịp thở theo độ hiếm; ngủ khi chủ đứng yên lâu (Zzz); thỉnh thoảng thả tim */
+function idleExtras(c, d, t, o) {
+  if (o.moving) return;
+  if ((o.idle || 0) > 9) { for (let i = 0; i < 3; i++) { const q = (t * 0.4 + i / 3) % 1; c.save(); c.globalAlpha = 1 - q; c.fillStyle = '#e8f0ff'; c.font = 'bold ' + (6 + q * 4) + 'px sans-serif'; c.fillText('z', 8 + q * 8, -30 - q * 16); c.restore(); } return; }
+  const k = (t * 0.17 + (o.seed || 0)) % 1;
+  if (k < 0.12) { const q = k / 0.12; c.save(); c.globalAlpha = 1 - q; c.fillStyle = '#ff6a8a'; const x = 5, y = -34 - q * 12; c.beginPath(); c.moveTo(x, y + 2); c.bezierCurveTo(x - 5, y - 3, x - 2, y - 6, x, y - 3); c.bezierCurveTo(x + 2, y - 6, x + 5, y - 3, x, y + 2); c.fill(); c.restore(); }
+}
+
+/** Vẽ pet. o: { moving, atk (0..1), face, v (biến thể), band (bậc tiến hoá 1..4), idle (giây chủ đứng yên), seed } — gốc: dưới chân pet */
 export function drawPet(c, kind, t, o = {}) {
   const d = PET_BY_ID[kind]; if (!d) return;
-  const T = tones(d.c[0]); T.d2 = tones(d.c[1]);
+  const pal = palette(d, o.v || 0), T = tones(pal[0]); T.d2 = tones(pal[1]);
   c.save(); c.scale(o.face || 1, 1);
   groundShadow(c, d.shape === 'bird' || d.shape === 'ghost' || d.shape === 'phoenix' ? 7 : 11, 3.4, 0.3);
-  const bob = o.moving && !['bird', 'ghost', 'phoenix'].includes(d.shape) ? Math.abs(Math.sin(t * 10)) * 2 : 0;
-  c.translate(0, -bob); c.scale(1.3, 1.3);
+  evolution(c, d, t, o, true);
+  const bob = o.moving && !['bird', 'ghost', 'phoenix'].includes(d.shape) ? Math.abs(Math.sin(t * 10)) * 2 : 0, sleep = !o.moving && (o.idle || 0) > 9;
+  c.translate(0, -bob); c.scale(1.3, sleep ? 1.3 * 0.86 : 1.3);
   (DRAW[d.shape] || DRAW.blob)(c, T, t, o);
+  if ((o.v || 0) === 3) sparkle(c, -6, -22, 1.8, '#fff0a0', 0.5 + 0.5 * Math.sin(t * 5 + 1));
   c.restore();
+  c.save(); c.scale(o.face || 1, 1); c.scale(1.3, 1.3); evolution(c, d, t, o, false); idleExtras(c, d, t, o); c.restore();
 }

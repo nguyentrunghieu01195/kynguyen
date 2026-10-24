@@ -2,7 +2,7 @@
 import { SLOTS } from '../config/items.js';
 
 /** Loại pet đang theo (để người khác nhìn thấy) */
-const petKind = (S) => { const a = S.pets && S.pets.list.find((p) => p.id === S.pets.active); return a ? a.kind : undefined; };
+const petKind = (S) => { const a = S.pets && S.pets.list.find((p) => p.id === S.pets.active); return a ? a.kind + '.' + (a.v || 0) + '.' + (a.lv >= 10 ? 4 : a.lv >= 7 ? 3 : a.lv >= 4 ? 2 : 1) : undefined; };
 export function lookOf(S) {
   const eq = {};
   for (const sl of SLOTS) { const it = S.equip[sl]; if (it) eq[sl] = [it.tier, it.plus, sl === 'weapon' ? it.wt || 0 : it.line || 0]; }

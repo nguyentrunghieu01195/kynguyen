@@ -8,11 +8,12 @@ import { act } from '../../net/actions.js';
 
 const icons = {};
 /** Ảnh nhỏ của pet (vẽ 1 lần, lưu cache) */
-function petIcon(kind) {
-  if (icons[kind]) return icons[kind];
+function petIcon(kind, v = 0, band = 1) {
+  const key = kind + v + band;
+  if (icons[key]) return icons[key];
   const cv = document.createElement('canvas'); cv.width = 96; cv.height = 96; const c = cv.getContext('2d');
-  c.translate(48, 78); c.scale(2.4, 2.4); drawPet(c, kind, 0.6, {});
-  return (icons[kind] = cv.toDataURL());
+  c.translate(48, 78); c.scale(2.4, 2.4); drawPet(c, kind, 0.6, { v, band });
+  return (icons[key] = cv.toDataURL());
 }
 const LBL = { dmg: 'Sát thương', crit: 'Chí mạng', def: 'Phòng thủ', hp: 'HP', zen: 'Zen rơi', exp: 'EXP', heal: 'Hồi máu/hạ quái' };
 function effectText(kind, lv) {
@@ -25,7 +26,7 @@ const col = (r) => '<span style="color:' + RARITY[r].color + '">' + RARITY[r].na
 function ownedCard(p) {
   const d = PET_BY_ID[p.kind], act_ = G.S.pets.active === p.id;
   const need = p.lv >= PET.maxLv ? 0 : PET.expNeed(p.lv), pct = need ? Math.min(100, (100 * p.exp) / need) : 100;
-  return '<div class="fa' + (act_ ? ' worn' : ' have') + '"><img src="' + petIcon(p.kind) + '"><b>' + d.name + ' <small>Cấp ' + p.lv + '</small></b>' +
+  return '<div class="fa' + (act_ ? ' worn' : ' have') + '"><img src="' + petIcon(p.kind, p.v || 0, p.lv >= 10 ? 4 : p.lv >= 7 ? 3 : p.lv >= 4 ? 2 : 1) + '"><b>' + d.name + ' <small>Cấp ' + p.lv + '</small></b>' +
     '<small>' + col(d.rarity) + ' · ' + d.role + '</small><small>' + effectText(p.kind, p.lv) + '</small>' +
     '<div class="qbar" style="margin-top:4px"><i style="width:' + pct + '%;background:#6ab8ff"></i><span>' + (need ? p.exp + '/' + need : 'Tối đa') + '</span></div>' +
     (act_ ? btn('Cho nghỉ', 'petUse', { id: '' }, { cls: 'sm' }) : btn('Đi theo', 'petUse', { id: p.id }, { cls: 'sm green' })) +
