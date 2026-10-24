@@ -10,6 +10,7 @@ import { hitMob } from './combat.js';
 import { updateSkillFx, onProjectileHit } from './skills.js';
 import { isAlive } from './world.js';
 import { updateEvent } from './events.js';
+import { updatePets } from './pets.js';
 
 function updateProjectiles(dt) {
   const R = G.R;
@@ -47,6 +48,7 @@ export function update(dt) {
   const R = G.R;
   R.t += dt;
   updatePlayer(dt);
+  updatePets(dt);
   updateMonsters(dt);
   updateDrops(dt);
   updateProjectiles(dt);

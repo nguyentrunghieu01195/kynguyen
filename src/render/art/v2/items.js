@@ -125,11 +125,15 @@ const ICON = {
     c.translate(32, 36);
     for (const sd of [-1, 1]) {
       c.save(); c.scale(sd, 1);
-      if (tier === 2) { c.beginPath(); c.moveTo(0, 0); c.lineTo(6, -18); c.lineTo(28, -22); c.quadraticCurveTo(24, -12, 28, -4); c.quadraticCurveTo(20, -4, 20, 6); c.quadraticCurveTo(10, 0, 0, 6); c.closePath(); fs(c, vgrad(c, -22, 6, W.h, W.d), W.o, 1.4); }
+      if (tier === 4) { for (let i = 6; i >= 0; i--) { c.save(); c.rotate(-0.95 + i * 0.28); pEll(c, 12 + i * 0.4, 0, 13 - i * 0.8, 3.4); fs(c, vgrad(c, -4, 4, i % 2 ? '#ffd060' : '#ff9a30', '#c8300a'), W.o, 1); c.restore(); } }
+      else if (tier === 5) { c.beginPath(); c.moveTo(0, 0); c.lineTo(8, -20); c.lineTo(28, -24); c.lineTo(22, -12); c.lineTo(30, -6); c.lineTo(20, 0); c.lineTo(24, 8); c.lineTo(12, 6); c.lineTo(0, 8); c.closePath(); fs(c, vgrad(c, -24, 8, '#d8f6ff', '#3a86c8'), W.o, 1.2); }
+      else if (tier === 6) { for (const [r, s] of [[-0.5, 1], [0.1, 0.75]]) for (let i = 4; i >= 0; i--) { c.save(); c.rotate(r - 0.6 + i * 0.28); c.scale(s, s); pEll(c, 12, 0, 13 - i, 3.6); fs(c, vgrad(c, -4, 4, i % 2 ? '#ffffff' : '#fff6d0', '#e8c860'), '#b8902a', 1); c.restore(); } }
+      else if (tier === 2) { c.beginPath(); c.moveTo(0, 0); c.lineTo(6, -18); c.lineTo(28, -22); c.quadraticCurveTo(24, -12, 28, -4); c.quadraticCurveTo(20, -4, 20, 6); c.quadraticCurveTo(10, 0, 0, 6); c.closePath(); fs(c, vgrad(c, -22, 6, W.h, W.d), W.o, 1.4); }
       else for (let i = 4; i >= 0; i--) { c.save(); c.rotate(-0.9 + i * 0.32); pEll(c, 12 + i * 0.5, 0, 13 - i, 3.8); fs(c, vgrad(c, -4, 4, i % 2 ? W.hh : W.h, W.b), W.o, 1); c.restore(); }
       c.restore();
     }
-    if (tier === 3) { sparkle(c, 0, -14, 5, '#fff8c0'); }
+    if (tier === 3 || tier === 6) { sparkle(c, 0, -14, 5, '#fff8c0'); }
+    if (tier === 4) sparkle(c, 0, -14, 4, '#ffb040');
   },
   jewel(c, key) {
     const J = tones(JEWELS[key].color);

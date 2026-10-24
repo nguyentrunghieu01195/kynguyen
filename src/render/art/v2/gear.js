@@ -192,7 +192,30 @@ export function drawWings(c, w, t) {
   if (glow) { c.shadowColor = W.color; c.shadowBlur = 16; }
   for (const sd of [-1, 1]) {
     c.save(); c.scale(sd, 1); c.rotate(-0.15 - sd * fl);
-    if (w.tier === 2) {
+    if (w.tier === 4) { // Hỏa Phượng: quạt lông vũ rực lửa, đầu lông bốc cháy
+      for (let i = 8; i >= 0; i--) {
+        const a = -1.05 + i * 0.2, len = 54 * (1 - i * 0.045), ft = Math.sin(t * 6 + i) * 3;
+        c.save(); c.rotate(a); pEll(c, -len / 2, 0, len / 2, 5); c.fillStyle = vgrad(c, -6, 6, i % 2 ? '#ffd060' : '#ff9a30', '#c8300a'); c.fill(); c.strokeStyle = T.o; c.lineWidth = 1; c.stroke();
+        c.fillStyle = '#ffe9a0'; c.globalAlpha = 0.85; c.beginPath(); c.moveTo(-len + 2, -3); c.quadraticCurveTo(-len - 8 + ft, 0, -len + 2, 3); c.fill(); c.globalAlpha = 1; c.restore();
+      }
+      for (let i = 0; i < 4; i++) { const q = (t * 0.8 + i / 4) % 1; sparkle(c, -26 - q * 26 - i * 3, -14 - q * 24, 2.2, '#ffb040', 1 - q); }
+    } else if (w.tier === 5) { // Băng Long: màng cánh rồng + gai tinh thể
+      c.beginPath(); c.moveTo(0, 0); c.lineTo(-18, -34); c.lineTo(-56, -40); c.lineTo(-46, -22); c.lineTo(-62, -14); c.lineTo(-44, -6); c.lineTo(-52, 8); c.lineTo(-32, 4); c.lineTo(-30, 18); c.lineTo(-14, 8); c.lineTo(0, 10); c.closePath();
+      c.fillStyle = vgrad(c, -40, 18, '#d8f6ff', '#3a86c8'); c.fill(); c.strokeStyle = T.o; c.lineWidth = 1.5; c.stroke();
+      c.strokeStyle = '#ffffff'; c.globalAlpha = 0.8; c.lineWidth = 1.2; c.beginPath(); for (const [x, y] of [[-56, -40], [-62, -14], [-52, 8], [-30, 18]]) { c.moveTo(-18, -34); c.lineTo(x, y); } c.stroke(); c.globalAlpha = 1;
+      for (const [x, y, r] of [[-56, -40, 0.6], [-62, -14, 0.3], [-52, 8, 0]]) { c.save(); c.translate(x, y); c.rotate(r - 1.57); pPoly(c, [-3, 0, 0, -14, 3, 0]); fs(c, '#e8fbff', T.o, 1); c.restore(); }
+      for (let i = 0; i < 3; i++) sparkle(c, -30 - i * 10, -10 + Math.sin(t * 3 + i * 2) * 10, 2, '#e8fbff', 0.5 + 0.5 * Math.sin(t * 4 + i));
+    } else if (w.tier === 6) { // Thần Quang: ba cặp cánh trắng vàng + tia sáng
+      c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.22 + 0.08 * Math.sin(t * 3);
+      for (let i = 0; i < 5; i++) { c.save(); c.rotate(-1.2 + i * 0.35); c.fillStyle = '#fff2b0'; c.beginPath(); c.moveTo(0, 0); c.lineTo(-86, -5); c.lineTo(-86, 5); c.fill(); c.restore(); }
+      c.restore();
+      for (const [rot, sc] of [[-0.55, 1.0], [-0.05, 0.85], [0.55, 0.62]]) {
+        c.save(); c.rotate(rot); c.scale(sc, sc);
+        for (let i = 6; i >= 0; i--) { c.save(); c.rotate(-0.55 + i * 0.2); const len = 60 * (1 - i * 0.05); pEll(c, -len / 2, 0, len / 2, 5.5); c.fillStyle = vgrad(c, -6, 6, i % 2 ? '#ffffff' : '#fff6d0', '#e8c860'); c.fill(); c.strokeStyle = '#b8902a'; c.lineWidth = 1; c.stroke(); c.restore(); }
+        c.restore();
+      }
+      for (let i = 0; i < 5; i++) sparkle(c, -22 - i * 11, -22 + Math.sin(t * 3 + i) * 8, 2.6, '#fffbd8', 0.6 + 0.4 * Math.sin(t * 5 + i));
+    } else if (w.tier === 2) {
       c.beginPath(); c.moveTo(0, 0); c.lineTo(-14, -26); c.lineTo(-44, -30);
       c.quadraticCurveTo(-38, -16, -46, -6); c.quadraticCurveTo(-34, -6, -36, 6); c.quadraticCurveTo(-24, 0, -24, 14); c.quadraticCurveTo(-12, 4, 0, 6); c.closePath();
       c.fillStyle = vgrad(c, -30, 14, T.h, T.d); c.fill(); c.strokeStyle = T.o; c.lineWidth = 1.5; c.stroke();

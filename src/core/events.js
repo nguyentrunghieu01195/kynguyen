@@ -52,6 +52,8 @@ export const EV = {
   SIEGE_END: 'siegeEnd',  // (result) kết thúc trận công thành
   SIEGE_GATE: 'siegeGate', // Cổng Thành vừa bị phá
   SIEGE_THRONE: 'siegeThrone', // (mine) Ngai Vàng đổi chủ; mine = bang của mình giữ
+  PET: 'pet',             // chuồng pet / pet đang theo thay đổi
+  PET_ATK: 'petAtk',      // (x, y) pet tham chiến vừa ra đòn
   GBOSS_END: 'gbossEnd',  // (result) kết thúc 1 lượt đánh Boss bang
   NET: 'net',             // trạng thái kết nối / dữ liệu máy chủ thay đổi
   TRADE: 'trade',         // giao dịch trực tiếp thay đổi (mời / trạng thái / kết thúc)

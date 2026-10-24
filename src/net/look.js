@@ -1,11 +1,13 @@
 // Ngoại hình & lực chiến gửi cho người chơi khác / bảng xếp hạng (dùng chung máy chủ & máy người chơi)
 import { SLOTS } from '../config/items.js';
 
+/** Loại pet đang theo (để người khác nhìn thấy) */
+const petKind = (S) => { const a = S.pets && S.pets.list.find((p) => p.id === S.pets.active); return a ? a.kind : undefined; };
 export function lookOf(S) {
   const eq = {};
   for (const sl of SLOTS) { const it = S.equip[sl]; if (it) eq[sl] = [it.tier, it.plus, sl === 'weapon' ? it.wt || 0 : it.line || 0]; }
   const F = S.fashion && S.fashion.show ? S.fashion.eq : null;
-  return { cls: S.cls, eq, fa: F ? { o: F.outfit, h: F.head, a: F.aura } : null, tr: S.tier || 1, g: S.guild ? S.guild.name : null, ct: S.guild && S.guild.castle ? 1 : undefined, gd: S.gender === 'f' ? 'f' : undefined };
+  return { cls: S.cls, eq, fa: F ? { o: F.outfit, h: F.head, a: F.aura } : null, tr: S.tier || 1, g: S.guild ? S.guild.name : null, ct: S.guild && S.guild.castle ? 1 : undefined, pt: petKind(S), gd: S.gender === 'f' ? 'f' : undefined };
 }
 /** Lực chiến: chỉ số tổng hợp để xếp hạng */
 export function powerOf(P) { return Math.round(((P.dmgMin + P.dmgMax) / 2) * P.spd * 10 + P.def * 6 + P.maxHp + P.abs * 50); }

@@ -12,6 +12,7 @@ import { defaultQuestState } from './quests.js';
 import { START_TICKETS } from '../config/events.js';
 import { defaultTowerState } from './tower.js';
 import { defaultFashion } from './fashion.js';
+import { defaultPets } from './pets.js';
 import { defaultSkills } from '../config/skills.js';
 
 export function createCharacter(cls, name, gender = 'm') {
@@ -24,7 +25,7 @@ export function createCharacter(cls, name, gender = 'm') {
     charm: 0, equip: {}, inv: [], map: 0,
     expRate: PG.defaultExpRate, autoSell: false, kills: 0,
     quest: defaultQuestState(), lastSeen: Date.now(),
-    tickets: { ...START_TICKETS }, eventTest: false, art: null, tower: defaultTowerState(), fashion: defaultFashion(), evDone: 0, skills: defaultSkills(cls), tier: 1,
+    tickets: { ...START_TICKETS }, eventTest: false, art: null, tower: defaultTowerState(), fashion: defaultFashion(), pets: defaultPets(), evDone: 0, skills: defaultSkills(cls), tier: 1,
   };
   S.equip.weapon = makeItem('weapon', 0, 0, null, cls);
   for (const sl of ARMOR_SLOTS) S.equip[sl] = makeItem(sl, 0);

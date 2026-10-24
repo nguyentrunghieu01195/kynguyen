@@ -5,6 +5,7 @@ import { rnd, dist, fmt } from '../core/utils.js';
 import { CLASSES } from '../config/classes.js';
 import { PLAYER, POTION, MONSTER, mitigate } from '../config/balance.js';
 import { gainExp, expNeed, expRate } from './character.js';
+import { petExpMul } from './pets.js';
 import { rollDrops } from './loot.js';
 import { SIEGE } from '../config/siege.js';
 
@@ -87,7 +88,7 @@ export function killMob(m) {
   if (i >= 0) R.mobs.splice(i, 1);
   if (R.p.target === m) R.p.target = null;
   S.kills++;
-  gainExp(m.exp * expRate());
+  gainExp(m.exp * expRate() * petExpMul());
   if (P.heal) R.p.hp = Math.min(P.maxHp, R.p.hp + (P.maxHp * P.heal) / 100);
   rollDrops(m);
   R.fx.push({ k: 'die', x: m.x, y: m.y, t: 0, d: 0.45, col: m.c1, size: m.size });

@@ -264,7 +264,7 @@ function diorama(mi, w, h, zoom, focusFn, town) {
   const c2 = card(s, 'E2', 'Giáp 5 món × 6 bộ');
   SETS.forEach((st, i) => add(c2, '<div class="rowlab">Bộ ' + st.name + ' (bậc ' + (i + 1) + ')</div><div class="icons">' + ARMOR_SLOTS.map((sl) => ic(iconURL(sl, i), PIECE_PREFIX[sl])).join('') + '</div>'));
   add(card(s, 'E3', 'Cánh, ngọc, thuốc, bùa, zen'), '<div class="icons">' +
-    [1, 2, 3].map((t) => ic(iconURL('wings', t), WINGS[t].name, 'r-wings')).join('') +
+    [1, 2, 3, 4, 5, 6].map((t) => ic(iconURL('wings', t), WINGS[t].name, 'r-wings')).join('') +
     Object.entries(JEWELS).map(([k, j]) => ic(iconURL('jewel', k), j.name)).join('') +
     ic(iconURL('potion', 'hp'), 'Bình Máu') + ic(iconURL('potion', 'mp'), 'Bình Mana') + ic(iconURL('charm'), 'Bùa Bảo Hộ') + ic(iconURL('zen'), 'Zen') + '</div>');
   add(card(s, 'E4', 'Khung theo độ hiếm (ô túi đồ)'), '<div class="icons">' +

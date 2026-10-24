@@ -105,4 +105,7 @@ export const WING_RECIPE = [
   { need: { chaos: 3, bless: 1 }, zen: 100000, rate: 70 },
   { need: { chaos: 8, bless: 5, soul: 5 }, zen: 1000000, rate: 50 },
   { need: { chaos: 20, bless: 10, soul: 10 }, zen: 5000000, rate: 40 },
+  { need: { chaos: 40, bless: 20, soul: 20 }, zen: 15000000, rate: 35 },
+  { need: { chaos: 70, bless: 35, soul: 35 }, zen: 40000000, rate: 30 },
+  { need: { chaos: 120, bless: 60, soul: 60 }, zen: 100000000, rate: 25 },
 ];

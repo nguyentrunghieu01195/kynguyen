@@ -1,6 +1,7 @@
 // Rơi đồ & nhặt đồ
 import { G } from '../core/state.js';
 import { log, emit, EV } from '../core/events.js';
+import { petPickup } from './pets.js';
 import { rnd, rint, chance, clamp, esc, fmt } from '../core/utils.js';
 import { CFG } from '../config/constants.js';
 import { DROP } from '../config/balance.js';
@@ -97,6 +98,6 @@ export function updateDrops(dt) {
     const d = R.drops[i];
     d.t += dt;
     if (d.t > DROP.despawnSec) { R.drops.splice(i, 1); continue; }
-    if (p.dead <= 0 && Math.hypot(d.x - p.x, d.y - p.y) < DROP.pickupRadius) pickup(d, i);
+    if (p.dead <= 0 && Math.hypot(d.x - p.x, d.y - p.y) < DROP.pickupRadius + petPickup()) pickup(d, i);
   }
 }

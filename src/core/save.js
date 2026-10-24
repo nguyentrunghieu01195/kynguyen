@@ -6,6 +6,7 @@ import { createCharacter } from '../systems/character.js';
 import { defaultQuestState } from '../systems/quests.js';
 import { defaultTowerState } from '../systems/tower.js';
 import { defaultFashion } from '../systems/fashion.js';
+import { defaultPets } from '../systems/pets.js';
 import { migrateSkills } from '../config/skills.js';
 
 // Ô lưu: khách dùng SAVE_KEY; tài khoản dùng ô riêng theo tên đăng nhập (không ghi đè lẫn nhau)
@@ -54,6 +55,7 @@ export function migrate(o) {
   if (!s.lastSeen) s.lastSeen = Date.now();
   s.tickets = Object.assign({ bc: 1, ds: 1 }, o.tickets);
   s.tower = Object.assign(defaultTowerState(), o.tower);
+  s.pets = Object.assign(defaultPets(), o.pets);
   s.fashion = Object.assign(defaultFashion(), o.fashion);
   s.fashion.eq = Object.assign(defaultFashion().eq, o.fashion && o.fashion.eq);
   s.evDone = o.evDone || 0;

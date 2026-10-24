@@ -1,4 +1,5 @@
 // Kiểm tra & làm sạch dữ liệu client gửi lên. Không bao giờ tin dữ liệu từ client.
+import { PET_BY_ID } from '../../src/config/pets.js';
 export const LIMITS = {
   msgBytes: 4096,
   chatLen: 120,
@@ -27,7 +28,7 @@ export function cleanLook(look) {
   const out = { cls: CLASSES.includes(look?.cls) ? look.cls : 'knight', eq: {} };
   for (const s of SLOTS) {
     const v = look?.eq?.[s];
-    if (Array.isArray(v)) out.eq[s] = [int(v[0], s === 'wings' ? 1 : 0, s === 'wings' ? 3 : 5), int(v[1], 0, 15), int(v[2], 0, s === 'weapon' ? 9 : 3)]; // loại vũ khí tới 9 (gồm vũ khí đặc biệt)
+    if (Array.isArray(v)) out.eq[s] = [int(v[0], s === 'wings' ? 1 : 0, s === 'wings' ? 6 : 5), int(v[1], 0, 15), int(v[2], 0, s === 'weapon' ? 9 : 3)]; // loại vũ khí tới 9 (gồm vũ khí đặc biệt)
   }
   // Thời trang: chỉ nhận id dạng chữ thường ngắn
   const id = (x) => (typeof x === 'string' && /^[a-z]{2,16}$/.test(x) ? x : null);
@@ -36,6 +37,7 @@ export function cleanLook(look) {
   const gn = cleanText(look?.g, 12); if (gn) out.g = gn; // tên bang hội
   if (look?.gd === 'f') out.gd = 'f'; // nhân vật nữ
   if (look?.ct) out.ct = 1; // bang đang giữ thành
+  if (typeof look?.pt === 'string' && PET_BY_ID[look.pt]) out.pt = look.pt; // pet đang theo
   return out;
 }
 

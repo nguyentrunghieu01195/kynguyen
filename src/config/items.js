@@ -47,6 +47,9 @@ export const WINGS = [
   { name: 'Cánh Lông Vũ', dmg: 12, abs: 12, color: '#f0f0ff' },
   { name: 'Cánh Ma Long', dmg: 20, abs: 20, color: '#9a4cff' },
   { name: 'Cánh Thiên Sứ', dmg: 30, abs: 28, color: '#ffd700' },
+  { name: 'Cánh Hỏa Phượng', dmg: 42, abs: 34, color: '#ff7a2a' },
+  { name: 'Cánh Băng Long', dmg: 56, abs: 42, color: '#7ad4ff' },
+  { name: 'Cánh Thần Quang', dmg: 75, abs: 50, color: '#fff2b0' },
 ];
 
 export const RARITY_COLORS = { normal: '#ffffff', good: '#9fd0ff', high: '#ffd54a', excellent: '#5dff7a', wings: '#d6a8ff', royal: '#ffd34a' };

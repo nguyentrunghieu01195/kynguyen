@@ -9,6 +9,7 @@
 // ta "đổi ngữ cảnh": gán G = dữ liệu của người đó → chạy → cất lại (enter/exit).
 import { G } from '../../src/core/state.js';
 import { audit } from './guard.js';
+import { initPets } from '../../src/systems/pets.js';
 import { on, EV, log } from '../../src/core/events.js';
 import { update } from '../../src/systems/game.js';
 import { calcStats } from '../../src/systems/stats.js';
@@ -68,7 +69,7 @@ export function createHost({ accounts, store, market, guilds, gboss, siege, send
   on(EV.RESET, (n) => ann('reset', { n }));
   on(EV.EVENT, (id, ok) => { if (ok) ann('event', { id }); });
   on(EV.GBOSS_END, (res) => { if (CUR && res.delta > 0) gboss.addDamage(CUR.acc.id, res.key, res.delta); }); // phần sát thương cuối → tính cho bang
-  initQuests(); initSkills(); initFashion(); initEvents(); initGBoss();
+  initQuests(); initSkills(); initFashion(); initPets(); initEvents(); initGBoss();
 
   // ---- gửi dữ liệu ----
   function flushEvents(c) { const ev = c.out; c.out = []; return ev; }

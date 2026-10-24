@@ -19,6 +19,7 @@ import { upgradeItem, craftWing, reforge } from '../systems/upgrade.js';
 import { buy } from '../systems/shop.js';
 import { claimMain, claimDaily, claimChest, doCheckin, claimTierStep } from '../systems/quests.js';
 import { buyFashion, toggleFashion } from '../systems/fashion.js';
+import { petUse, petBuy, petRelease } from '../systems/pets.js';
 import { enterEvent, leaveEvent } from '../systems/events.js';
 import { enterTower } from '../systems/tower.js';
 import { enterGBoss } from '../systems/gboss.js';
@@ -88,6 +89,10 @@ export const ACTIONS = {
   faToggle: [(a) => [id(a[0])], (k) => !!toggleFashion(k)],
   faBuy: [(a) => [id(a[0])], (k) => { if (!buyFashion(k)) return false; toggleFashion(k); log('👗 Đã mua thời trang mới!', '#ffb8f0'); return true; }],
   faShow: [() => [], () => (G.S.fashion.show = !G.S.fashion.show)],
+  // --- thú cưng ---
+  petUse: [(a) => [optId(a[0])], (pid) => petUse(pid)],
+  petBuy: [(a) => [id(a[0])], (k) => petBuy(k)],
+  petRelease: [(a) => [id(a[0])], (pid) => petRelease(pid)],
   // --- bản đồ, sự kiện, tháp ---
   warp: [(a) => [int(a[0], 0, MAPS.length - 1)], (i) => { if (!canEnterMap(i) || (G.R && G.R.event)) return false; enterMap(i); announce(MAPS[i].name); return true; }],
   enterEvent: [(a) => [oneOf(a[0], ['bc', 'ds'])], (k) => !!enterEvent(k)],
