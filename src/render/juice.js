@@ -1,5 +1,6 @@
 // "Cảm giác chơi": rung màn hình, chữ sát thương, viền đỏ khi sắp chết, hào quang bậc nhân vật, thời tiết theo bản đồ.
 // Chỉ đọc trạng thái game + lắng nghe event bus, không thay đổi logic.
+import { text3 } from './art/v3d/text3d.js';
 import { G } from '../core/state.js';
 import { on, EV } from '../core/events.js';
 import { iso, VIEW, worldToScreen } from './iso.js';
@@ -87,6 +88,7 @@ export function drawTexts(c) {
     c.globalAlpha = k > 0.7 ? 1 - (k - 0.7) / 0.3 : 1;
     c.font = '800 ' + Math.round(S.size * pop) + 'px "Be Vietnam Pro", sans-serif';
     c.lineWidth = tx.st === 'crit' ? 4.5 : 3; c.strokeStyle = S.stroke; c.lineJoin = 'round';
+    if (text3(c, tx.txt, s.x + tx.ox, y, Math.round(S.size * pop) * 1.1, tx.st === 'crit' ? '#ffc040' : tx.col)) continue;
     c.strokeText(tx.txt, s.x + tx.ox, y);
     if (tx.st === 'crit') { const g = c.createLinearGradient(0, y - S.size, 0, y); g.addColorStop(0, '#fff8c0'); g.addColorStop(1, '#ff9a20'); c.fillStyle = g; }
     else c.fillStyle = tx.col;

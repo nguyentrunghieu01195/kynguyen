@@ -4,6 +4,7 @@ import { G } from '../core/state.js';
 import { CFG, SPAWN, SAFE_RADIUS } from '../config/constants.js';
 import { SIEGE } from '../config/siege.js';
 import { hpBar } from './art/v3d/fx3d.js';
+import { text3 } from './art/v3d/text3d.js';
 import { drawThrone, drawGateRuins, drawTeamMarker, drawBossRing, drawAllyRing, drawGateBar } from './siegeArt.js';
 import { iso, isoRadius, VIEW, camPos } from './iso.js';
 import { art } from './art/index.js';
@@ -107,7 +108,7 @@ function drawBars(c, m, A) {
     c.fillStyle = m.boss ? '#ff8a2a' : '#e33'; c.fillRect(s.x - bw / 2, s.y - h, bw * Math.max(0, m.hp / m.maxHp), 4); }
     c.font = (m.boss ? 'bold 12px ' : '11px ') + 'sans-serif'; c.lineWidth = 3; c.strokeStyle = '#000';
     const tx = m.name + ' Lv' + m.lv;
-    c.strokeText(tx, s.x, s.y - h - 5); c.fillStyle = m.boss ? '#ffb070' : m.elite ? '#ffd54a' : '#eee'; c.fillText(tx, s.x, s.y - h - 5);
+    if (!text3(c, tx, s.x, s.y - h - 5, m.boss ? 14 : 12.5, m.boss ? '#ffb070' : m.elite ? '#ffd54a' : '#eeeeee')) { c.strokeText(tx, s.x, s.y - h - 5); c.fillStyle = m.boss ? '#ffb070' : m.elite ? '#ffd54a' : '#eee'; c.fillText(tx, s.x, s.y - h - 5); }
   }
 }
 
@@ -227,7 +228,7 @@ export function render() {
   if (p.dead <= 0) {
     const s = iso(p.x, p.y), y = s.y - A.heroHeight;
     ctx.font = '700 11px "Be Vietnam Pro", sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = '#000';
-    ctx.strokeText(S.name, s.x, y); ctx.fillStyle = '#8fd0ff'; ctx.fillText(S.name, s.x, y);
+    if (!text3(ctx, S.name, s.x, y, 12.5, '#8fd0ff')) { ctx.strokeText(S.name, s.x, y); ctx.fillStyle = '#8fd0ff'; ctx.fillText(S.name, s.x, y); }
     if (S.guild) guildTag(ctx, S.guild.name, s.x, y - 13, S.guild.castle);
     if (R.event && R.event.id === 'siege' && R.event.team) drawTeamMarker(ctx, s.x, y - 26, SIEGE.teamColors[R.event.team.slot], t);
   }
@@ -235,7 +236,7 @@ export function render() {
   if (!R.event || R.event.room) for (const o of NET.players.values()) if (inView(o)) {
     const s = iso(o.x, o.y), y = s.y - A.heroHeight, label = o.name + ' · Lv' + o.lv + (o.resets ? ' R' + o.resets : '');
     ctx.font = '700 11px "Be Vietnam Pro", sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = '#000';
-    ctx.strokeText(label, s.x, y); ctx.fillStyle = '#ffc8f0'; ctx.fillText(label, s.x, y);
+    if (!text3(ctx, label, s.x, y, 12.5, '#ffc8f0')) { ctx.strokeText(label, s.x, y); ctx.fillStyle = '#ffc8f0'; ctx.fillText(label, s.x, y); }
     if (o.look && o.look.g) guildTag(ctx, o.look.g, s.x, y - 13, o.look.ct);
     if (R.event && R.event.id === 'siege' && o.look && o.look.g) drawTeamMarker(ctx, s.x, y - 26, teamColor(R, o.look.g), t);
   }
@@ -253,6 +254,7 @@ export function render() {
 function guildTag(ctx, name, x, y, castle) {
   const label = (castle ? '👑 ' : '') + '⟦' + name + '⟧';
   ctx.font = '700 10px "Be Vietnam Pro", sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = '#000';
+  if (!castle && text3(ctx, '[' + name + ']', x, y, 11.5, '#ffd54a')) return;
   ctx.strokeText(label, x, y); ctx.fillStyle = castle ? '#fff0a0' : '#ffd54a'; if (castle) { ctx.shadowColor = '#ffb020'; ctx.shadowBlur = 8; } ctx.fillText(label, x, y); ctx.shadowBlur = 0;
 }
 
