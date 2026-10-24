@@ -2,6 +2,8 @@
 // thời trang (trang phục, mũ, hào quang). Gốc toạ độ do hero.js đặt sẵn.
 import { WINGS } from '../../../config/items.js';
 import { mix } from '../../paint.js';
+import { gfx3d } from '../v3d/flag.js';
+import { gem as gem3, flame as flame3, orb as orb3, petal as petal3, ring as ring3 } from '../v3d/fx3d.js';
 import { tones, pEll, pCirc, pPoly, pRR, fs, vgrad, rgrad, gloss, sparkle, hash } from './kit.js';
 
 export const ORB = ['#7fb3ff', '#9fe8ff', '#c8ff9f', '#bff0ff', '#ff7a3a', '#fff2a0'];
@@ -345,25 +347,25 @@ export function auraLayer(c, f, t, front) {
   c.save(); c.globalCompositeOperation = 'lighter';
   switch (f.style) {
     case 'fire':
-      if (!front) { c.globalAlpha = 0.6; c.fillStyle = rgrad(c, 0, -2, 2, 30, a, 'rgba(0,0,0,0)'); c.save(); c.scale(1, 0.45); pCirc(c, 0, 0, 30); c.fill(); c.restore();
+      if (!front) { c.globalAlpha = 0.6; if (gfx3d()) { ring3(c, 30, a, 0.04); ring3(c, 19, b, 0.04); } else { c.fillStyle = rgrad(c, 0, -2, 2, 30, a, 'rgba(0,0,0,0)'); c.save(); c.scale(1, 0.45); pCirc(c, 0, 0, 30); c.fill(); c.restore(); }
         c.globalAlpha = 0.18 + Math.sin(t * 6) * 0.05; c.fillStyle = rgrad(c, 0, -30, 4, 34, a, 'rgba(0,0,0,0)'); pEll(c, 0, -30, 24, 38); c.fill(); }
       for (let i = 0; i < 16; i++) { const k = (t * 1.4 + hash(i)) % 1, x = (hash(i + 4) - 0.5) * 30 * (1 - k * 0.4), back = hash(i + 9) < 0.5; if (back === front) continue;
         const w = 5 * (1 - k) + 1, y = -k * 60;
-        c.globalAlpha = (1 - k); c.beginPath(); c.moveTo(x - w, y); c.quadraticCurveTo(x, y - 16 * (1 - k) - 5, x + w, y); c.quadraticCurveTo(x, y + w, x - w, y); c.fillStyle = k < 0.35 ? b : a; c.fill(); }
+        c.globalAlpha = (1 - k); if (gfx3d() && flame3(c, x, y + 6, (16 * (1 - k) + 10) * 1.6, k < 0.35 ? b : a, b)) continue; c.beginPath(); c.moveTo(x - w, y); c.quadraticCurveTo(x, y - 16 * (1 - k) - 5, x + w, y); c.quadraticCurveTo(x, y + w, x - w, y); c.fillStyle = k < 0.35 ? b : a; c.fill(); }
       break;
     case 'frost':
       for (let i = 0; i < 10; i++) { const ang = t * 1.2 + (i / 10) * 6.283, x = Math.cos(ang) * 22, y = -26 + Math.sin(ang) * 7 + Math.sin(t * 2 + i) * 8, isFront = Math.sin(ang) > 0; if (isFront !== front) continue;
-        c.globalAlpha = 0.9; c.save(); c.translate(x, y); c.rotate(t * 2 + i); pPoly(c, [0, -6, 2.6, 0, 0, 6, -2.6, 0]); c.fillStyle = i % 2 ? a : b; c.fill(); c.restore(); }
-      if (!front) { c.globalAlpha = 0.3; c.strokeStyle = a; c.lineWidth = 2; c.beginPath(); c.ellipse(0, 0, 18, 7, 0, 0, 6.283); c.stroke(); }
+        c.globalAlpha = 0.9; if (gfx3d() && gem3(c, x, y, 13, i % 2 ? a : b, Math.sin(t + i) * 0.5)) continue; c.save(); c.translate(x, y); c.rotate(t * 2 + i); pPoly(c, [0, -6, 2.6, 0, 0, 6, -2.6, 0]); c.fillStyle = i % 2 ? a : b; c.fill(); c.restore(); }
+      if (!front) { c.globalAlpha = 0.3; if (gfx3d()) ring3(c, 18, a, 0.03); else { c.strokeStyle = a; c.lineWidth = 2; c.beginPath(); c.ellipse(0, 0, 18, 7, 0, 0, 6.283); c.stroke(); } }
       break;
     case 'fireflies':
       for (let i = 0; i < 12; i++) { const x = Math.sin(t * (0.7 + hash(i)) + i * 2) * 24, y = -30 + Math.cos(t * (0.9 + hash(i + 2)) + i) * 26, isFront = hash(i + 7) < 0.5; if (isFront !== front) continue;
-        c.globalAlpha = 0.55 + 0.45 * Math.sin(t * 5 + i * 3); c.fillStyle = rgrad(c, x, y, 0.5, 7, a, 'rgba(0,0,0,0)'); pCirc(c, x, y, 7); c.fill(); pCirc(c, x, y, 1.6); c.fillStyle = '#ffffe0'; c.fill(); }
+        c.globalAlpha = 0.55 + 0.45 * Math.sin(t * 5 + i * 3); if (gfx3d() && orb3(c, x, y, 5, a)) continue; c.fillStyle = rgrad(c, x, y, 0.5, 7, a, 'rgba(0,0,0,0)'); pCirc(c, x, y, 7); c.fill(); pCirc(c, x, y, 1.6); c.fillStyle = '#ffffe0'; c.fill(); }
       break;
     case 'sakura':
       c.globalCompositeOperation = 'source-over';
       for (let i = 0; i < 16; i++) { const k = (t * 0.35 + hash(i)) % 1, x = (hash(i + 3) - 0.5) * 48 + Math.sin(t * 2 + i) * 5, y = -64 + k * 66, isFront = hash(i + 5) < 0.5; if (isFront !== front) continue;
-        c.globalAlpha = Math.min(1, (1 - k) * 2); c.save(); c.translate(x, y); c.rotate(t * 2 + i); pEll(c, 0, 0, 3.6, 2); c.fillStyle = i % 2 ? a : b; c.fill(); c.restore(); }
+        c.globalAlpha = Math.min(1, (1 - k) * 2); if (gfx3d() && petal3(c, x, y, 9, i % 2 ? a : b, t * 2 + i)) continue; c.save(); c.translate(x, y); c.rotate(t * 2 + i); pEll(c, 0, 0, 3.6, 2); c.fillStyle = i % 2 ? a : b; c.fill(); c.restore(); }
       break;
   }
   c.restore();

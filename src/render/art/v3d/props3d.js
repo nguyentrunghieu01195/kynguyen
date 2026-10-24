@@ -66,7 +66,7 @@ export function propSprite(spec) {
   m.wrap.rotation.y = spec.rot || 0;
   return capture(m.wrap, ppu, key);
 }
-function capture(wrap, ppu, key) {
+function capture(wrap, ppu, key, opt = {}) {
   const S = SZ / 2 / (ppu * D);
   cam.left = -S; cam.right = S; cam.top = S; cam.bottom = -S; cam.updateProjectionMatrix();
   const ty = (OY - SZ / 2) / (0.866 * ppu * D), tgt = new TH.Vector3(0, ty, 0); cam.position.copy(tgt).addScaledVector(DIR, 60); cam.lookAt(tgt);
@@ -76,14 +76,14 @@ function capture(wrap, ppu, key) {
   for (let y = 0; y < SZ; y++) for (let x = 0; x < SZ; x++) if (px[(y * SZ + x) * 4 + 3] > 10) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
   if (x1 < 0) { const e = { cv: document.createElement('canvas'), box: { x: 0, y: 0, w: 1, h: 1 } }; sprites.set(key, e); return e; }
   const cw = x1 - x0 + 1, ch = y1 - y0 + 1, c1 = document.createElement('canvas'); c1.width = cw; c1.height = ch; c1.getContext('2d').drawImage(full, x0, y0, cw, ch, 0, 0, cw, ch);
-  const pad = 4, c2 = rim(c1, pad), e = { cv: c2, box: { x: (x0 - pad - SZ / 2) / D, y: (y0 - pad - OY) / D, w: c2.width / D, h: c2.height / D } };
-  if (sprites.size > 260) sprites.clear(); sprites.set(key, e); return e;
+  const pad = opt.rim === false ? 0 : 4, c2 = opt.rim === false ? c1 : rim(c1, pad), e = { cv: c2, box: { x: (x0 - pad - SZ / 2) / D, y: (y0 - pad - OY) / D, w: c2.width / D, h: c2.height / D } };
+  if (sprites.size > 400) sprites.clear(); sprites.set(key, e); return e;
 }
 /** Ảnh dựng sẵn từ khối hình học tự dựng (đồng bộ, không cần tải mô hình). build(TH) → Group; ppu = px game trên 1 đơn vị. */
-export function geoSprite(key, build, ppu = 40) {
+export function geoSprite(key, build, ppu = 40, opt = {}) {
   const hit = sprites.get(key); if (hit) return hit;
   if (!init()) return null;
-  const g = build(TH); return capture(g, ppu, key);
+  const g = build(TH); return capture(g, ppu, key, opt);
 }
 export const propPreload = (files) => { if (init()) for (const f of files) load(f); };
 

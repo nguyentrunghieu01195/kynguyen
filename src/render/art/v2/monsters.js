@@ -3,6 +3,7 @@
 import { themeParticles, bossOrbiters, haloColor, isRage, variant, drawPolished } from './monsterFx.js';
 import { blob, beast, humanoid, bug, golem, winged, dragon, serpent, crab, ghost } from './creatures.js';
 import { gfx3d } from '../v3d/flag.js';
+import { ring as ring3, gem as gem3, orb as orb3 } from '../v3d/fx3d.js';
 import { frame as frame3d, mobFrame, FRAME as F3, MOB3D } from '../v3d/hero3d.js';
 import { MOB_MODEL } from '../v3d/mobmap.js';
 import { tones, pEll, pCirc, pPoly, pRR, fs, vgrad, rgrad, groundShadow, hash } from './kit.js';
@@ -37,7 +38,8 @@ export function drawMob(c, m, t, iso) {
   c.save(); c.translate(s.x, s.y); c.scale(VIS, VIS);
   if (m.boss) {
     const a = 0.35 + Math.sin(t * 4) * 0.12;
-    c.save(); c.globalAlpha = a; c.fillStyle = rgrad(c, 0, 0, 2, 30 * m.size, m.c2, 'rgba(0,0,0,0)'); c.scale(1, 0.45); pCirc(c, 0, 0, 30 * m.size); c.fill(); c.restore();
+    if (gfx3d()) { c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = a * 1.4; ring3(c, 30 * m.size, m.c2, 0.04); c.globalAlpha = 0.75; c.save(); c.rotate(0); ring3(c, 36 * m.size, m.c2, 0.04); c.restore(); for (let i = 0; i < 6; i++) { const ang = (i / 6) * 6.283 + t * 0.5; gem3(c, Math.cos(ang) * 36 * m.size, Math.sin(ang) * 36 * m.size * 0.5, 9, '#ffffff', ang); } for (let i = 0; i < 5; i++) { const q = (t * 0.45 + i / 5) % 1; c.globalAlpha = (1 - q) * 0.9; orb3(c, Math.sin(i * 2.3 + t * 1.3) * 16 * m.size, -q * 78 * m.size, (2 * (1 - q) + 1.2) * 3, m.c2); } c.restore(); }
+    else { c.save(); c.globalAlpha = a; c.fillStyle = rgrad(c, 0, 0, 2, 30 * m.size, m.c2, 'rgba(0,0,0,0)'); c.scale(1, 0.45); pCirc(c, 0, 0, 30 * m.size); c.fill(); c.restore();
     // vòng phù văn xoay dưới chân Boss + tàn lửa bay lên
     c.save(); c.globalCompositeOperation = 'lighter'; c.scale(1, 0.45); c.rotate(t * 0.5); c.strokeStyle = m.c2; c.globalAlpha = 0.5; c.lineWidth = 2.5; c.setLineDash([10, 8]);
     c.beginPath(); c.arc(0, 0, 36 * m.size, 0, 6.283); c.stroke(); c.setLineDash([]); c.globalAlpha = 0.75; c.fillStyle = '#ffffff';
@@ -46,15 +48,21 @@ export function drawMob(c, m, t, iso) {
     c.save(); c.globalCompositeOperation = 'lighter';
     for (let i = 0; i < 5; i++) { const q = (t * 0.45 + i / 5) % 1; c.globalAlpha = (1 - q) * 0.8; c.fillStyle = m.c2; pCirc(c, Math.sin(i * 2.3 + t * 1.3) * 16 * m.size, -q * 78 * m.size, 2 * (1 - q) + 0.6); c.fill(); }
     c.restore();
+    }
   }
-  if (m.elite) {
+  if (m.elite && gfx3d()) {
+    c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.6 + Math.sin(t * 5) * 0.15; ring3(c, 18 * m.size, '#ffd54a', 0.04);
+    for (let i = 0; i < 3; i++) { const q = (t * 0.7 + i / 3) % 1; c.globalAlpha = (1 - q) * 0.9; gem3(c, Math.cos(i * 2.1 + t) * 12 * m.size, -q * 40 * m.size, 7, '#ffe680', t + i); }
+    c.restore();
+  } else if (m.elite) {
     c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.55 + Math.sin(t * 5) * 0.15; c.strokeStyle = '#ffd54a'; c.lineWidth = 2;
     c.beginPath(); c.ellipse(0, 0, 18 * m.size, 8 * m.size, 0, 0, 6.283); c.stroke();
     for (let i = 0; i < 3; i++) { const q = (t * 0.7 + i / 3) % 1; c.globalAlpha = (1 - q) * 0.8; pCirc(c, Math.cos(i * 2.1 + t) * 12 * m.size, -q * 40 * m.size, 1.6); c.fillStyle = '#ffe680'; c.fill(); }
     c.restore();
   }
   const rage = isRage(m);
-  if (rage) { c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.3 + 0.15 * Math.sin(t * 10); c.fillStyle = '#ff2010'; c.scale(1, 0.45); pCirc(c, 0, 0, 40 * m.size); c.fill(); c.restore(); }
+  if (rage && gfx3d()) { c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.55 + 0.25 * Math.sin(t * 10); ring3(c, 40 * m.size, '#ff2010', 0.04); ring3(c, 26 * m.size, '#ff5030', 0.03); c.restore(); }
+  else if (rage) { c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.3 + 0.15 * Math.sin(t * 10); c.fillStyle = '#ff2010'; c.scale(1, 0.45); pCirc(c, 0, 0, 40 * m.size); c.fill(); c.restore(); }
   if (!m.static) themeParticles(c, m, t, m.boss ? (rage ? 9 : 6) : m.elite ? 4 : 2, rage ? 1.6 : 1);
   groundShadow(c, 14 * m.size, 6 * m.size);
   const lg = m.lunge > 0 ? Math.sin((m.lunge / 0.2) * Math.PI) * 5 : 0;

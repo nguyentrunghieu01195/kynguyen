@@ -154,20 +154,42 @@ function gearOf(tier, col) {
 }
 let mbud = 0, mbudPending = false;
 const MPOSE = { idle: /(^|[|_])(Flying_Idle|Idle)(\||$)/, walk: /(Fast_Flying|Walk|Run)(\||$)/, attack: /(Bite_Front|Punch|Headbutt|Attack)\d?(\||$)/, hit: /HitRe/, death: /Death(\||$)/ };
+function setupMat(mat) { // đổi màu theo sắc độ: chỉ vùng có màu (độ bão hoà cao) bị đổi sang màu quái, vùng trắng / xám (mắt, răng) giữ nguyên
+  mat.userData.c0 = mat.color.clone();
+  const u = { uTint: { value: new THREE.Color(1, 1, 1) }, uAmt: { value: 0 } }; mat.userData.u = u;
+  mat.onBeforeCompile = (sh) => {
+    sh.uniforms.uTint = u.uTint; sh.uniforms.uAmt = u.uAmt;
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 uTint; uniform float uAmt;').replace('#include <map_fragment>', '#include <map_fragment>\n{ float l = dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11)); float sat = max(max(diffuseColor.r, diffuseColor.g), diffuseColor.b) - min(min(diffuseColor.r, diffuseColor.g), diffuseColor.b); float w = uAmt * smoothstep(0.08, 0.28, sat); diffuseColor.rgb = mix(diffuseColor.rgb, uTint * (0.55 + l * 1.4), w); }');
+  };
+}
+// Quái dựng hoàn toàn bằng hình học (không có mô hình sẵn): sâu cát
+const PROC = {
+  G_Worm: () => {
+    const wrap = new THREE.Group(), parts = [], segs = [], N = 9;
+    const mk = (geo, col, rough = 0.85) => { const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: col, roughness: rough, flatShading: true })); setupMat(m.material); m.frustumCulled = false; parts.push(m); return m; };
+    for (let i = 0; i < N; i++) { const r = 0.62 - i * 0.045, sg = mk(new THREE.IcosahedronGeometry(r, 1), i % 2 ? new THREE.Color('#d9a560') : new THREE.Color('#b9854a')); segs.push(sg); wrap.add(sg); }
+    const head = new THREE.Group(); const hs = mk(new THREE.IcosahedronGeometry(0.72, 1), new THREE.Color('#c99350')); head.add(hs);
+    const mouth = mk(new THREE.TorusGeometry(0.42, 0.1, 6, 14), new THREE.Color('#6a2a1a')); mouth.position.set(0.5, -0.05, 0); mouth.rotation.y = Math.PI / 2; head.add(mouth);
+    for (let k = 0; k < 8; k++) { const a = (k / 8) * Math.PI * 2, t = mk(new THREE.ConeGeometry(0.07, 0.3, 5), new THREE.Color('#f4ecd6'), 0.4); t.position.set(0.5, -0.05 + Math.cos(a) * 0.36, Math.sin(a) * 0.36); t.rotation.z = -Math.PI / 2; t.rotation.x = a; head.add(t); }
+    for (const sd of [-1, 1]) { const e = mk(new THREE.SphereGeometry(0.1, 8, 6), new THREE.Color('#ffffff'), 0.3); e.position.set(0.3, 0.38, sd * 0.38); head.add(e); }
+    wrap.add(head);
+    const anim = (ph) => { // thân uốn lượn đi lên, đầu ngẩng
+      for (let i = 0; i < N; i++) { const k = i / (N - 1), y = 0.35 + k * 1.9, x = Math.sin(ph * 6.283 + k * 3.2) * 0.22 * (0.4 + k); segs[i].position.set(-x - 0.1 * k, y, Math.cos(ph * 6.283 + k * 2.2) * 0.1); }
+      head.position.set(0.22 + Math.sin(ph * 6.283 + 3.2) * 0.1, 2.45 + Math.sin(ph * 12.566) * 0.04, 0); head.rotation.z = -0.35 + Math.sin(ph * 6.283) * 0.12;
+    };
+    anim(0); wrap.scale.setScalar(0.72); return { wrap, parts, anim };
+  },
+};
+
 async function loadMob(name) {
   if (mobs.has(name)) return;
+  if (PROC[name]) { const pr = PROC[name](); mobs.set(name, { wrap: pr.wrap, root: pr.wrap, mixer: null, clips: [], parts: pr.parts, anim: pr.anim, k: 1 }); return; }
   const p = (async () => {
     const gltf = await loader.loadAsync(urlOf('m/' + name + '.glb')), root = gltf.scene, parts = [], hulls = [];
     root.traverse((o) => {
       if (o.isMesh || o.isSkinnedMesh) {
-        o.material = o.material.clone(); o.material.userData.c0 = o.material.color.clone(); parts.push(o); o.frustumCulled = false;
-        { // đổi màu theo sắc độ: chỉ vùng có màu (độ bão hoà cao) bị đổi sang màu quái, vùng trắng / xám (mắt, răng) giữ nguyên
-          const u = { uTint: { value: new TH.Color(1, 1, 1) }, uAmt: { value: 0 } }; o.material.userData.u = u;
-          o.material.onBeforeCompile = (sh) => {
-            sh.uniforms.uTint = u.uTint; sh.uniforms.uAmt = u.uAmt;
-            sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 uTint; uniform float uAmt;').replace('#include <map_fragment>', '#include <map_fragment>\n{ float l = dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11)); float sat = max(max(diffuseColor.r, diffuseColor.g), diffuseColor.b) - min(min(diffuseColor.r, diffuseColor.g), diffuseColor.b); float w = uAmt * smoothstep(0.08, 0.28, sat); diffuseColor.rgb = mix(diffuseColor.rgb, uTint * (0.55 + l * 1.4), w); }');
-          };
-        }
+        o.material = o.material.clone(); parts.push(o); o.frustumCulled = false;
+        setupMat(o.material);
         if (o.isSkinnedMesh && !name.startsWith('Q_')) {
           o.geometry.computeBoundingSphere(); const th = Math.min(0.02, o.geometry.boundingSphere.radius * 0.012);
           const mt = new TH.MeshBasicMaterial({ color: 0x1a1020, side: TH.BackSide }); mt.onBeforeCompile = (sh) => { sh.vertexShader = sh.vertexShader.replace('#include <project_vertex>', 'transformed += normalize(objectNormal) * ' + th.toFixed(5) + ';\n#include <project_vertex>'); };
@@ -200,13 +222,14 @@ export function mobFrame(r) {
   if (!mbudPending) { mbudPending = true; requestAnimationFrame(() => { mbud = 0; mbudPending = false; }); }
   if (mbud >= 3) return mobLast.get(lk) || null;
   mbud++;
-  const clip = m.clips.find((a) => MPOSE[r.pose] && MPOSE[r.pose].test(a.name)) || m.clips.find((a) => MPOSE.idle.test(a.name)) || m.clips[0];
+  const clip = m.anim ? null : (m.clips.find((a) => MPOSE[r.pose] && MPOSE[r.pose].test(a.name)) || m.clips.find((a) => MPOSE.idle.test(a.name)) || m.clips[0]);
   const col = new TH.Color(r.tint || '#ffffff'); for (const p of m.parts) { p.material.color.copy(p.material.userData.c0 || new TH.Color(1, 1, 1)).multiplyScalar(1.2); const u = p.material.userData.u; if (u) { u.uTint.value.copy(col); u.uAmt.value = r.amt || 0; } }
-  m.mixer.stopAllAction();
-  if (clip) { const a = m.mixer.clipAction(clip); a.play(); a.paused = true; const loop = r.pose === 'idle' || r.pose === 'walk'; a.time = loop ? ((q / 12) % 1) * clip.duration : Math.min(clip.duration - 0.001, (q / 11) * clip.duration); m.mixer.update(0); }
+  if (m.anim) m.anim((r.f % 1.0001) * (r.pose === 'walk' ? 2 : 1));
+  else m.mixer.stopAllAction();
+  if (clip && !m.anim) { const a = m.mixer.clipAction(clip); a.play(); a.paused = true; const loop = r.pose === 'idle' || r.pose === 'walk'; a.time = loop ? ((q / 12) % 1) * clip.duration : Math.min(clip.duration - 0.001, (q / 11) * clip.duration); m.mixer.update(0); }
   m.wrap.rotation.y = Math.PI / 2; scene.add(m.wrap); rdr.render(scene, cam); scene.remove(m.wrap);
   const cv = document.createElement('canvas'); cv.width = FW; cv.height = FH; const cg = cv.getContext('2d');
-  if (r.model.startsWith('Q_')) rim(cg, rdr.domElement); else cg.drawImage(rdr.domElement, 0, 0);
+  if (/^(Q_|G_)/.test(r.model)) rim(cg, rdr.domElement); else cg.drawImage(rdr.domElement, 0, 0);
   if (mobFrames.size > 360) mobFrames.clear(); mobFrames.set(key, cv); mobLast.set(lk, cv); return cv;
 }
 /** Viền tối 2D quanh hình (cho mô hình không dùng được viền vỏ lật mặt) */

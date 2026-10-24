@@ -3,6 +3,7 @@ import { SIEGE } from '../config/siege.js';
 import { iso, isoRadius } from './iso.js';
 import { gfx3d } from './art/v3d/flag.js';
 import { geoSprite } from './art/v3d/props3d.js';
+import { ring as ring3, gem as gem3, beam as beam3 } from './art/v3d/fx3d.js';
 import { throneBase, throneChair, flagPole, gateRuins } from './art/v3d/structures.js';
 const blit = (c, sp) => { if (sp) c.drawImage(sp.cv, sp.box.x, sp.box.y, sp.box.w, sp.box.h); return !!sp; };
 
@@ -19,7 +20,8 @@ export function drawThrone(c, t, col, frac) {
     c.fillStyle = tone; c.beginPath(); c.ellipse(0, -h, rx, ry, 0, 0, 6.283); c.fill();
     c.strokeStyle = '#1a1620'; c.lineWidth = 1.4; c.stroke();
   }
-  c.strokeStyle = col; c.globalAlpha = 0.9; c.lineWidth = 2; c.beginPath(); c.ellipse(0, -12, 26, 11, 0, 0, 6.283); c.stroke(); c.globalAlpha = 1; // vòng màu bang giữ ngai
+  if (gfx3d()) { c.save(); c.translate(0, -12); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.95; ring3(c, 26, col, 0.04); c.restore(); }
+  else { c.strokeStyle = col; c.globalAlpha = 0.9; c.lineWidth = 2; c.beginPath(); c.ellipse(0, -12, 26, 11, 0, 0, 6.283); c.stroke(); c.globalAlpha = 1; } // vòng màu bang giữ ngai
   const chair3 = gfx3d() && geoSprite('throne-chair', throneChair, 40), flag3 = gfx3d() && geoSprite('throne-flag|' + col, (TH) => flagPole(TH, col), 40);
   if (chair3 && flag3) { // cờ + ghế 3D (cờ đung đưa nhẹ)
     for (const sx of [-1, 1]) { c.save(); c.translate(sx * 40, -2); c.scale(sx, 1); c.transform(1, 0, Math.sin(t * 2 + sx) * 0.04, 1, 0, 0); blit(c, flag3); c.restore(); }
@@ -46,8 +48,7 @@ export function drawThrone(c, t, col, frac) {
   if (frac > 0) {
     c.save(); c.globalCompositeOperation = 'lighter';
     const b = c.createLinearGradient(0, -12, 0, -190); b.addColorStop(0, col); b.addColorStop(1, 'rgba(0,0,0,0)');
-    c.globalAlpha = 0.28 + 0.12 * Math.sin(t * 6); c.fillStyle = b; c.fillRect(-14 - frac * 10, -190, 28 + frac * 20, 178);
-    c.restore();
+    c.globalAlpha = 0.28 + 0.12 * Math.sin(t * 6); if (gfx3d() && (c.translate(0, -12), beam3(c, 28 + frac * 20, 178, col))) { c.restore(); } else { c.fillStyle = b; c.fillRect(-14 - frac * 10, -190, 28 + frac * 20, 178); c.restore(); }
   }
   c.restore();
 }
@@ -73,13 +74,14 @@ export function drawTeamMarker(c, x, y, col, t) {
 export function drawBossRing(c, m, t) {
   const s = iso(m.x, m.y), r = isoRadius(3.2);
   c.save(); c.translate(s.x, s.y);
+  if (gfx3d()) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.8 + 0.12 * Math.sin(t * 2.5); ring3(c, r.rx, '#ff9a4a', 0.03); c.globalAlpha = 0.6; ring3(c, r.rx * 0.72, '#ff7030', 0.03); c.globalAlpha = 0.9; for (let i = 0; i < 8; i++) { const a = i * 0.7854 + t * 0.4; gem3(c, Math.cos(a) * r.rx * 0.9, Math.sin(a) * r.ry * 0.9, 8, '#ffd09a', a); } c.restore(); return; }
   c.globalAlpha = 0.16 + 0.05 * Math.sin(t * 2.5); c.fillStyle = '#ff5a2a'; c.beginPath(); c.ellipse(0, 0, r.rx, r.ry, 0, 0, 6.283); c.fill();
   c.globalAlpha = 0.85; c.strokeStyle = '#ff9a4a'; c.lineWidth = 2.4; c.beginPath(); c.ellipse(0, 0, r.rx, r.ry, 0, 0, 6.283); c.stroke();
   c.lineWidth = 1.4; c.setLineDash([6, 8]); c.lineDashOffset = -t * 18; c.beginPath(); c.ellipse(0, 0, r.rx * 0.72, r.ry * 0.72, 0, 0, 6.283); c.stroke(); c.setLineDash([]);
   c.fillStyle = '#ffd09a'; for (let i = 0; i < 8; i++) { const a = i * 0.7854 + t * 0.4; c.globalAlpha = 0.8; c.beginPath(); c.arc(Math.cos(a) * r.rx * 0.9, Math.sin(a) * r.ry * 0.9, 2.2, 0, 6.283); c.fill(); }
   c.restore();
 }
-export function drawAllyRing(c, x, y, col) { const q = iso(x, y); c.save(); c.globalAlpha = 0.75; c.strokeStyle = col; c.lineWidth = 2; c.beginPath(); c.ellipse(q.x, q.y, 16, 7, 0, 0, 6.283); c.stroke(); c.restore(); }
+export function drawAllyRing(c, x, y, col) { const q = iso(x, y); c.save(); if (gfx3d()) { c.translate(q.x, q.y); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.85; ring3(c, 16, col, 0.04); c.restore(); return; } c.globalAlpha = 0.75; c.strokeStyle = col; c.lineWidth = 2; c.beginPath(); c.ellipse(q.x, q.y, 16, 7, 0, 0, 6.283); c.stroke(); c.restore(); }
 
 /** Thanh máu Cổng Thành: rộng, có khung, hiện % */
 export function drawGateBar(c, m, A) {

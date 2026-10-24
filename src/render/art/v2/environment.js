@@ -5,6 +5,7 @@ import { bakePolished } from './monsterFx.js';
 import { gfx3d } from '../v3d/flag.js';
 import { propSprite, tileSprite, propPreload, geoSprite } from '../v3d/props3d.js';
 import { torchPole } from '../v3d/structures.js';
+import { flame as flame3, orb as orb3 } from '../v3d/fx3d.js';
 import { tones, pEll, pCirc, pPoly, pRR, fs, vgrad, rgrad, gloss, groundShadow, sparkle, hash } from './kit.js';
 
 const diamond = (g, iso, i, j, inset = 0) => {
@@ -294,10 +295,12 @@ const DECO = {
     const f = Math.sin(t * 15 + d.x) * 1.5;
     c.save(); c.globalCompositeOperation = 'lighter';
     c.fillStyle = rgrad(c, 0, -44, 1, 26, 'rgba(255,170,60,.55)', 'rgba(255,100,0,0)'); pCirc(c, 0, -44, 26); c.fill();
+    if (!(gfx3d() && flame3(c, 0, -36, 17 + f * 1.4, '#ff7a10', '#ffe890'))) {
     c.beginPath(); c.moveTo(-5, -36); c.quadraticCurveTo(-6, -46, 0, -52 - f); c.quadraticCurveTo(6, -46, 5, -36); c.closePath(); c.fillStyle = '#ff7a10'; c.fill();
     c.beginPath(); c.moveTo(-2.5, -36); c.quadraticCurveTo(-3, -42, 0, -46 - f); c.quadraticCurveTo(3, -42, 2.5, -36); c.closePath(); c.fillStyle = '#ffe890'; c.fill();
+    }
     c.restore();
-    for (let i = 0; i < 3; i++) { const k = (t * 1.2 + i / 3) % 1; c.globalAlpha = 1 - k; pCirc(c, Math.sin(t * 3 + i * 2) * 4, -50 - k * 22, 1.2); c.fillStyle = '#ffb040'; c.fill(); }
+    for (let i = 0; i < 3; i++) { const k = (t * 1.2 + i / 3) % 1; c.globalAlpha = 1 - k; if (gfx3d() && orb3(c, Math.sin(t * 3 + i * 2) * 4, -50 - k * 22, 2.4, '#ffb040')) continue; pCirc(c, Math.sin(t * 3 + i * 2) * 4, -50 - k * 22, 1.2); c.fillStyle = '#ffb040'; c.fill(); }
     c.globalAlpha = 1;
   },
 };

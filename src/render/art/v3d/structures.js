@@ -1,5 +1,5 @@
 // Công trình 3D dựng từ khối hình học (ngai vàng, tàn tích cổng, đuốc, cờ) — dùng với props3d.geoSprite (40 px game / đơn vị)
-const std = (TH, color, o = {}) => new TH.MeshStandardMaterial({ color, roughness: o.r ?? 0.8, metalness: o.m ?? 0, flatShading: !!o.flat, side: o.side });
+const std = (TH, color, o = {}) => new TH.MeshStandardMaterial({ color, roughness: o.r ?? 0.8, metalness: o.m ?? 0, flatShading: !!o.flat, ...(o.side !== undefined ? { side: o.side } : {}) });
 const mesh = (TH, geo, mat, x = 0, y = 0, z = 0) => { const m = new TH.Mesh(geo, mat); m.position.set(x, y, z); return m; };
 
 export function throneBase(TH) {

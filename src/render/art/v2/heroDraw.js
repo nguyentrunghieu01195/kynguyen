@@ -6,6 +6,7 @@ import { drawWings, outfitBody, outfitSkirt, headwear, HEADWEAR_HIDES_HAIR, aura
 import { ARMOR_SETS } from '../../../config/gear.js';
 import { glowColor } from '../../paint.js';
 import { gfx3d } from '../v3d/flag.js';
+import { ring as ring3, gem as gem3 } from '../v3d/fx3d.js';
 import { frame as frame3d, FRAME as F3, tint3d } from '../v3d/hero3d.js';
 
 export const HERO_HEIGHT = 100;
@@ -36,18 +37,19 @@ const plKey = (pl) => Object.values(pl).map((g) => g.lv + (g.lv >= 3 ? g.col : '
 
 /** Ánh sáng nền (bộ trang bị đủ, +9, vũ khí đặc biệt) */
 function groundGlows(c, L, t) {
-  const disc = (col, r, a) => { c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = a; c.scale(1, 0.42); const g = c.createRadialGradient(0, 0, 2, 0, 0, r); g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = g; c.beginPath(); c.arc(0, 0, r, 0, 6.283); c.fill(); c.restore(); };
+  const disc = (col, r, a) => { if (gfx3d()) { c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = Math.min(1, a * 1.8); const ok = ring3(c, r * 1.15, col, 0.04); c.globalAlpha = Math.min(1, a * 0.9); ring3(c, r * 0.7, col, 0.035); c.restore(); if (ok) return; } c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = a; c.scale(1, 0.42); const g = c.createRadialGradient(0, 0, 2, 0, 0, r); g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = g; c.beginPath(); c.arc(0, 0, r, 0, 6.283); c.fill(); c.restore(); };
   if (L.weapon.special) disc('#ffd34a', 24, 0.3 + Math.sin(t * 3.2) * 0.1);
   if (L.setGlow) disc(L.setGlow, 26, 0.28 + Math.sin(t * 2.5) * 0.08);
   if (L.minPlus >= 9) disc(glowColor(L.minPlus, t) || '#ffd700', 30 + (L.minPlus >= 13 ? 6 : 0), 0.35 + Math.sin(t * 3) * 0.1 + (L.minPlus >= 11 ? 0.12 : 0));
-  if (L.minPlus >= 15) { c.save(); c.globalCompositeOperation = 'lighter'; c.strokeStyle = glowColor(15, t); c.globalAlpha = 0.5; c.lineWidth = 1.6; c.scale(1, 0.42); for (let i = 0; i < 12; i++) { const a = i * 0.5236 + t * 0.6; c.beginPath(); c.moveTo(Math.cos(a) * 22, Math.sin(a) * 22); c.lineTo(Math.cos(a) * 40, Math.sin(a) * 40); c.stroke(); } c.restore(); }
+  if (L.minPlus >= 15 && gfx3d()) { c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.85; const gc = glowColor(15, t); for (let i = 0; i < 12; i++) { const a = i * 0.5236 + t * 0.6, r = 31; gem3(c, Math.cos(a) * r * 1.15, Math.sin(a) * r * 0.5, 7, gc, a); } c.restore(); }
+  else if (L.minPlus >= 15) { c.save(); c.globalCompositeOperation = 'lighter'; c.strokeStyle = glowColor(15, t); c.globalAlpha = 0.5; c.lineWidth = 1.6; c.scale(1, 0.42); for (let i = 0; i < 12; i++) { const a = i * 0.5236 + t * 0.6; c.beginPath(); c.moveTo(Math.cos(a) * 22, Math.sin(a) * 22); c.lineTo(Math.cos(a) * 40, Math.sin(a) * 40); c.stroke(); } c.restore(); }
 }
 /** Hạt sáng bay quanh người khi cả bộ cộng cao (+9 trở lên) — vẽ ngoài cache để chuyển động mượt */
 function sparks(c, L, t) {
   const n = L.minPlus >= 15 ? 11 : L.minPlus >= 13 ? 8 : L.minPlus >= 11 ? 6 : L.minPlus >= 9 ? 4 : 0; if (!n) return;
   const col = glowColor(L.minPlus, t) || '#ffd700';
   c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = col;
-  for (let i = 0; i < n; i++) { const q = (t * 0.55 + i / n) % 1, x = Math.sin(i * 2.4 + t) * 22, y = -4 - q * 78, r = 1.3 + (1 - q) * 1.4; c.globalAlpha = (1 - q) * 0.9; c.beginPath(); c.moveTo(x, y - r * 2); c.lineTo(x + r, y); c.lineTo(x, y + r * 2); c.lineTo(x - r, y); c.closePath(); c.fill(); }
+  for (let i = 0; i < n; i++) { const q = (t * 0.55 + i / n) % 1, x = Math.sin(i * 2.4 + t) * 22, y = -4 - q * 78, r = 1.3 + (1 - q) * 1.4; c.globalAlpha = (1 - q) * 0.9; if (gem3(c, x, y, r * 4.4, col, t * 2 + i)) continue; c.beginPath(); c.moveTo(x, y - r * 2); c.lineTo(x + r, y); c.lineTo(x, y + r * 2); c.lineTo(x - r, y); c.closePath(); c.fill(); }
   c.restore();
 }
 

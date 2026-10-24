@@ -1,6 +1,8 @@
 // Làm quái / Boss bớt đơn điệu: biến thể từng con, chủ đề nguyên tố theo màu, quầng viền theo hình dáng, vật thể bay quanh Boss, trạng thái cuồng nộ.
 import { pCirc, pPoly, sparkle, hash } from './kit.js';
 import { mix } from '../../paint.js';
+import { gfx3d } from '../v3d/flag.js';
+import { gem as gem3, orb as orb3 } from '../v3d/fx3d.js';
 
 /** Chủ đề nguyên tố suy từ sắc độ của màu nhấn: lửa · vàng · độc · băng · huyền bí · xương */
 export function themeOf(m) {
@@ -30,6 +32,15 @@ export function themeParticles(c, m, t, n, k = 1) {
   for (let i = 0; i < n; i++) {
     const q = (t * (0.5 + 0.25 * k) + i / n + hash(i + m.lv)) % 1, ph = i * 2.4 + hash(i) * 6, x = Math.sin(ph + t * 1.1) * 15 * sz, y = -q * 62 * sz, a = (1 - q);
     c.globalAlpha = a * 0.85;
+    if (gfx3d()) { // hạt 3D phát sáng theo chủ đề
+      const done = th === 'fire' ? orb3(c, x, y, (2.2 * (1 - q) + 0.9) * sz * k * 2.2, q < 0.5 ? '#ffd060' : '#ff6a20')
+        : th === 'ice' ? gem3(c, x, y, 7 * sz, '#e8fbff', Math.sin(ph))
+        : th === 'poison' ? orb3(c, x, y, (1.5 + q * 3) * sz * 1.8, '#b8ff60')
+        : th === 'arcane' ? gem3(c, x, y, 7 * sz, col, Math.sin(ph))
+        : th === 'gold' ? gem3(c, x, y, 6.5 * sz, '#ffe680', ph)
+        : orb3(c, x, y * 0.8, (1 + (1 - q)) * sz * 2.4, '#e8e4d0');
+      if (done) continue;
+    }
     if (th === 'fire') { c.fillStyle = q < 0.5 ? '#ffd060' : '#ff6a20'; pCirc(c, x, y, (2.2 * (1 - q) + 0.5) * sz * k); c.fill(); }
     else if (th === 'ice') { c.fillStyle = '#e8fbff'; pPoly(c, [x, y - 3 * sz, x + 2 * sz, y, x, y + 3 * sz, x - 2 * sz, y]); c.fill(); }
     else if (th === 'poison') { c.strokeStyle = '#b8ff60'; c.lineWidth = 1; pCirc(c, x, y, (1.5 + q * 3) * sz); c.stroke(); }
@@ -47,6 +58,12 @@ export function bossOrbiters(c, m, t, rage) {
   for (let i = 0; i < N; i++) {
     const a = t * sp + (i / N) * 6.283, x = Math.cos(a) * 34 * sz, y = -34 * sz + Math.sin(a) * 12 * sz - Math.sin(t * 2 + i) * 3, back = Math.sin(a) < 0;
     c.globalAlpha = back ? 0.45 : 0.9;
+    if (gfx3d()) {
+      const hh = th === 'fire' ? 14 : th === 'ice' ? 17 : th === 'gold' ? 15 : 11;
+      const done = th === 'fire' ? orb3(c, x, y, 7.5 * sz, '#ff7a20') : th === 'ice' ? gem3(c, x, y, hh * sz, '#bff0ff', 0)
+        : th === 'poison' ? orb3(c, x, y, 7 * sz, '#9aff40') : th === 'arcane' ? gem3(c, x, y, 13 * sz, m.c2, a) : th === 'gold' ? gem3(c, x, y, hh * sz, '#ffe080', a + 1.57) : orb3(c, x, y, 6.5 * sz, '#f0ecd8');
+      if (done) continue;
+    }
     if (th === 'fire') { c.fillStyle = '#ff7a20'; pPoly(c, [x, y - 7 * sz, x + 3.5 * sz, y + 2 * sz, x, y + 4 * sz, x - 3.5 * sz, y + 2 * sz]); c.fill(); c.fillStyle = '#ffe080'; pCirc(c, x, y + 1.5 * sz, 1.6 * sz); c.fill(); }
     else if (th === 'ice') { c.fillStyle = '#bff0ff'; pPoly(c, [x, y - 8 * sz, x + 3 * sz, y, x, y + 8 * sz, x - 3 * sz, y]); c.fill(); }
     else if (th === 'poison') { c.fillStyle = '#9aff40'; pCirc(c, x, y, 3.4 * sz); c.fill(); c.strokeStyle = '#e8ff90'; c.lineWidth = 1; c.stroke(); }
