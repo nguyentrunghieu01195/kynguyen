@@ -66,3 +66,20 @@ export function spike(c, x, y, h, col) { if (!gfx3d()) return false; const sp = 
 export function disc(c, rx, col) { if (!gfx3d()) return false; const sp = get('disc|' + norm(col), B.disc(norm(col)), 40); if (!sp) return false; const k = rx / 40; put(c, sp, 0, 0, k, k); return true; }
 export function swordSprite(c, h) { if (!gfx3d()) return false; const sp = get('sword', B.sword(), 20); if (!sp) return false; const k = h / (sp.box.h || 1); put(c, sp, 0, 0, k, k); return true; }
 export function arrowSprite(c, len, tipCol) { if (!gfx3d()) return false; const sp = get('arrow|' + norm(tipCol), B.arrow(norm(tipCol)), 20); if (!sp) return false; const k = len / (sp.box.w || 1); put(c, sp, 0, 0, k, k); return true; }
+
+// Thanh máu 3D: khung tối bo góc + phần máu phát sáng (khối), quay mặt về camera; làm tròn theo 1/24 để dùng lại ảnh
+Object.assign(B, {
+  hp: (col, step, ratio) => (TH) => {
+    const g = new TH.Group(), W = 1, H = ratio, rb = (w, h, d, r) => { const sh = new TH.Shape(), x = -w / 2, y = -h / 2; sh.moveTo(x + r, y); sh.lineTo(x + w - r, y); sh.quadraticCurveTo(x + w, y, x + w, y + r); sh.lineTo(x + w, y + h - r); sh.quadraticCurveTo(x + w, y + h, x + w - r, y + h); sh.lineTo(x + r, y + h); sh.quadraticCurveTo(x, y + h, x, y + h - r); sh.lineTo(x, y + r); sh.quadraticCurveTo(x, y, x + r, y); return new TH.ExtrudeGeometry(sh, { depth: d, bevelEnabled: true, bevelSize: d * 0.3, bevelThickness: d * 0.3, bevelSegments: 2 }); };
+    g.add(new TH.Mesh(rb(W, H, 0.05, H * 0.4), new TH.MeshStandardMaterial({ color: '#15101a', roughness: 0.6, metalness: 0.2 })));
+    const fw = Math.max(0.0001, (W - H * 0.35) * step), fh = H * 0.62;
+    if (step > 0.001) { const f = new TH.Mesh(rb(fw, fh, 0.06, fh * 0.45), new TH.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.6, roughness: 0.35 })); f.position.set(-W / 2 + H * 0.175 + fw / 2, 0, 0.04); g.add(f); }
+    g.lookAt(new TH.Vector3(Math.sin(Math.PI / 4) * Math.cos(Math.PI / 6), Math.sin(Math.PI / 6), Math.cos(Math.PI / 4) * Math.cos(Math.PI / 6)).multiplyScalar(10)); return g;
+  },
+});
+/** Vẽ thanh máu 3D tâm tại (x,y), rộng w px, cao h px, tỉ lệ máu frac (0..1). Trả true nếu đã vẽ. */
+export function hpBar(c, x, y, w, frac, col, h = 7) {
+  if (!gfx3d()) return false; const st = Math.round(Math.max(0, Math.min(1, frac)) * 24) / 24, ratio = h / w, rk = Math.round(ratio * 40) / 40;
+  const sp = get('hp|' + norm(col) + '|' + st + '|' + rk, B.hp(norm(col), st, rk), 120 / 1); if (!sp) return false;
+  const k = w / 120; c.drawImage(sp.cv, x + sp.box.x * k, y + sp.box.y * k, sp.box.w * k, sp.box.h * k); return true;
+}

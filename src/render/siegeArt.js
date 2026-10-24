@@ -3,7 +3,7 @@ import { SIEGE } from '../config/siege.js';
 import { iso, isoRadius } from './iso.js';
 import { gfx3d } from './art/v3d/flag.js';
 import { geoSprite } from './art/v3d/props3d.js';
-import { ring as ring3, gem as gem3, beam as beam3 } from './art/v3d/fx3d.js';
+import { ring as ring3, gem as gem3, beam as beam3, hpBar } from './art/v3d/fx3d.js';
 import { throneBase, throneChair, flagPole, gateRuins } from './art/v3d/structures.js';
 const blit = (c, sp) => { if (sp) c.drawImage(sp.cv, sp.box.x, sp.box.y, sp.box.w, sp.box.h); return !!sp; };
 
@@ -87,10 +87,12 @@ export function drawAllyRing(c, x, y, col) { const q = iso(x, y); c.save(); if (
 export function drawGateBar(c, m, A) {
   const s = iso(m.x, m.y), y = s.y - A.mobHeight(m) - 22, bw = 120, k = Math.max(0, m.hp / m.maxHp);
   c.save(); c.textAlign = 'center';
+  if (!hpBar(c, s.x, y + 3, bw + 4, k, '#ffa830', 12)) {
   c.fillStyle = '#000'; c.fillRect(s.x - bw / 2 - 2, y - 2, bw + 4, 10);
   const g = c.createLinearGradient(s.x - bw / 2, 0, s.x + bw / 2, 0); g.addColorStop(0, '#ff8a2a'); g.addColorStop(1, '#ffd34a');
   c.fillStyle = g; c.fillRect(s.x - bw / 2, y, bw * k, 6);
   c.strokeStyle = '#ffd34a'; c.lineWidth = 1; c.strokeRect(s.x - bw / 2 - 2, y - 2, bw + 4, 10);
+  }
   c.font = '700 11px "Be Vietnam Pro", sans-serif'; c.lineWidth = 3; c.strokeStyle = '#000';
   const tx = 'Cổng Thành ' + Math.ceil(k * 100) + '%'; c.strokeText(tx, s.x, y - 6); c.fillStyle = '#ffe9b0'; c.fillText(tx, s.x, y - 6);
   c.restore();

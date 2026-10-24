@@ -3,6 +3,7 @@ import { G } from '../core/state.js';
 
 import { CFG, SPAWN, SAFE_RADIUS } from '../config/constants.js';
 import { SIEGE } from '../config/siege.js';
+import { hpBar } from './art/v3d/fx3d.js';
 import { drawThrone, drawGateRuins, drawTeamMarker, drawBossRing, drawAllyRing, drawGateBar } from './siegeArt.js';
 import { iso, isoRadius, VIEW, camPos } from './iso.js';
 import { art } from './art/index.js';
@@ -101,8 +102,9 @@ function drawBars(c, m, A) {
   c.textAlign = 'center';
   if (show) {
     const bw = m.boss ? 70 : 34;
+    if (!hpBar(c, s.x, s.y - h + 2, bw + 2, m.hp / m.maxHp, m.boss ? '#ff8a2a' : '#ee3333', 7)) {
     c.fillStyle = '#000'; c.fillRect(s.x - bw / 2 - 1, s.y - h - 1, bw + 2, 6);
-    c.fillStyle = m.boss ? '#ff8a2a' : '#e33'; c.fillRect(s.x - bw / 2, s.y - h, bw * Math.max(0, m.hp / m.maxHp), 4);
+    c.fillStyle = m.boss ? '#ff8a2a' : '#e33'; c.fillRect(s.x - bw / 2, s.y - h, bw * Math.max(0, m.hp / m.maxHp), 4); }
     c.font = (m.boss ? 'bold 12px ' : '11px ') + 'sans-serif'; c.lineWidth = 3; c.strokeStyle = '#000';
     const tx = m.name + ' Lv' + m.lv;
     c.strokeText(tx, s.x, s.y - h - 5); c.fillStyle = m.boss ? '#ffb070' : m.elite ? '#ffd54a' : '#eee'; c.fillText(tx, s.x, s.y - h - 5);
@@ -275,8 +277,9 @@ function drawSiegeGround(ctx, R, t) {
 function drawPvpBar(c, m, A) {
   const s = iso(m.x, m.y), y = s.y - A.heroHeight - 26, bw = 44, col = SIEGE.teamColors[m.team] || '#ff5a4a';
   c.save(); c.textAlign = 'center';
+  if (!hpBar(c, s.x, y + 2, bw + 2, m.hp / m.maxHp, col, 7)) {
   c.fillStyle = '#000'; c.fillRect(s.x - bw / 2 - 1, y - 1, bw + 2, 6);
-  c.fillStyle = col; c.fillRect(s.x - bw / 2, y, bw * Math.max(0, m.hp / m.maxHp), 4);
+  c.fillStyle = col; c.fillRect(s.x - bw / 2, y, bw * Math.max(0, m.hp / m.maxHp), 4); }
   if (m === G.R.p.target) { c.strokeStyle = '#ff4040'; c.lineWidth = 2; c.beginPath(); c.ellipse(s.x, s.y, 20, 9, 0, 0, 6.283); c.stroke(); }
   c.restore();
 }
