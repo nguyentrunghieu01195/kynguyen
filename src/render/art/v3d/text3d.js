@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import * as opentype from 'opentype.js';
 import { geoSprite } from './props3d.js';
 import { gfx3d } from './flag.js';
+import { pixelOn } from '../../pixel.js';
 
 let font = null, loading = false, failed = false;
 function loadFont() {
@@ -31,7 +32,7 @@ const ok = (txt) => { for (const ch of txt) if (ch !== ' ' && font.charToGlyphIn
 
 /** Vẽ chữ 3D canh giữa tại (x, y = đường cơ sở), cao ~px (px game). Trả true nếu đã vẽ (false → vẽ lại bằng 2D). */
 export function text3(c, txt, x, y, px, color) {
-  if (!gfx3d() || failed) return false;
+  if (!gfx3d() || failed || pixelOn()) return false;
   if (!font) { loadFont(); return false; }
   txt = String(txt); if (!txt || !ok(txt)) return false;
   const col = String(color || '#ffffff'), key = 'tx|' + txt + '|' + col;

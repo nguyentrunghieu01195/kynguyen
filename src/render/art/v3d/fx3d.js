@@ -1,6 +1,7 @@
 // Hiệu ứng 3D: hạt, ngọn lửa, cánh hoa, vòng sáng, cột sáng… dựng bằng khối phát sáng (three.js) rồi chụp thành ảnh nhỏ, vẽ chồng ('lighter').
 import { geoSprite } from './props3d.js';
 import { gfx3d } from './flag.js';
+import { pixelOn } from '../../pixel.js';
 
 const em = (TH, col, k = 0.85, o = {}) => new TH.MeshStandardMaterial({ color: new TH.Color(col).lerp(new TH.Color('#ffffff'), 0.08), emissive: col, emissiveIntensity: k * 0.62, roughness: 0.4, metalness: 0.1, flatShading: true, ...o });
 const get = (key, build, ppu = 32) => geoSprite('fx|' + key, build, ppu, { rim: false });
@@ -79,7 +80,7 @@ Object.assign(B, {
 });
 /** Vẽ thanh máu 3D tâm tại (x,y), rộng w px, cao h px, tỉ lệ máu frac (0..1). Trả true nếu đã vẽ. */
 export function hpBar(c, x, y, w, frac, col, h = 7) {
-  if (!gfx3d()) return false; const st = Math.round(Math.max(0, Math.min(1, frac)) * 24) / 24, ratio = h / w, rk = Math.round(ratio * 40) / 40;
+  if (!gfx3d() || pixelOn()) return false; const st = Math.round(Math.max(0, Math.min(1, frac)) * 24) / 24, ratio = h / w, rk = Math.round(ratio * 40) / 40;
   const sp = get('hp|' + norm(col) + '|' + st + '|' + rk, B.hp(norm(col), st, rk), 120 / 1); if (!sp) return false;
   const k = w / 120; c.drawImage(sp.cv, x + sp.box.x * k, y + sp.box.y * k, sp.box.w * k, sp.box.h * k); return true;
 }

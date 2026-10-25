@@ -7,6 +7,8 @@ import { saveGame, exportCode, importCode, deleteSave } from '../../core/save.js
 import { enterMap } from '../../systems/world.js';
 import { ART_PACKS, art, setArt } from '../../render/art/index.js';
 import { btn } from '../components.js';
+import { pixelOn } from '../../render/pixel.js';
+import { gfx3d, setGfx3d } from '../../render/art/v3d/flag.js';
 import { applyUiIcons } from '../icons.js';
 import { NET, connect, disconnect, setAuto, defaultUrl } from '../../net/client.js';
 import { UI, $ } from '../dom.js';
@@ -14,6 +16,9 @@ import { ACC, loggedIn, pushSave, logout, changePassword, statusText, logSync, d
 import { esc } from '../../core/utils.js';
 import { act, isRemote } from '../../net/actions.js';
 import { requestWipe } from '../../net/remote.js';
+
+/** Lưu game, bỏ tham số ?style / ?gfx3d khỏi địa chỉ (để không ghi đè lựa chọn vừa đổi) rồi tải lại */
+function reloadClean() { saveGame(); try { const u = new URL(location.href); u.searchParams.delete('style'); u.searchParams.delete('gfx3d'); history.replaceState(null, '', u); } catch (e) { /* bỏ qua */ } location.reload(); }
 
 export default {
   id: 'set',
@@ -44,6 +49,7 @@ export default {
         btn('Sáng hơn (ngoài trời): ' + (FXP.outdoor ? 'BẬT' : 'TẮT'), 'fxPref', { k: 'outdoor' }, { cls: 'sm ' + (FXP.outdoor ? 'green' : '') }) + '</div>' +
       '<h4>Đồ hoạ</h4><div class="row">' +
       Object.values(ART_PACKS).map((a) => btn(a.name, 'artStyle', { v: a.id }, { cls: 'sm ' + (art().id === a.id ? 'green' : '') })).join('') + '</div>' +
+      '<h4>Giao diện & 3D</h4><div class="row">' + btn('Giao diện mặc định', 'uiStyle', { v: 'default' }, { cls: 'sm ' + (!pixelOn() ? 'green' : '') }) + btn('Giao diện Pixel', 'uiStyle', { v: 'pixel' }, { cls: 'sm ' + (pixelOn() ? 'green' : '') }) + btn('Đồ hoạ 3D: ' + (gfx3d() ? 'BẬT' : 'TẮT'), 'gfx3dToggle', {}, { cls: 'sm ' + (gfx3d() ? 'green' : '') }) + '</div><p class="muted" style="margin-top:4px">Đổi giao diện hoặc 3D sẽ tải lại trang (tiến độ được lưu trước).</p>' +
       '<h4>Sự kiện</h4><label class="row"><input type="checkbox" data-act="eventTest" ' + (S.eventTest ? 'checked' : '') + (G.online ? ' disabled' : '') + '> Chế độ thử: vào sự kiện bất cứ lúc nào (không cần chờ giờ mở cổng)</label>' +
       '<h4>Lưu trữ</h4><div class="tip">' +
       (ok ? 'Tiến độ được tự động lưu trên trình duyệt này mỗi 15 giây.' : '⚠ Trình duyệt này không cho lưu tự động. Hãy dùng <b>Xuất mã lưu</b> để giữ tiến độ, hoặc tải file về mở bằng Chrome/Safari.') + '</div>' +
@@ -56,6 +62,8 @@ export default {
     );
   },
   actions: {
+    uiStyle: (d) => { try { localStorage.setItem('kng_style', d.v); } catch (e) { /* bỏ qua */ } reloadClean(); },
+    gfx3dToggle: () => { setGfx3d(!gfx3d()); reloadClean(); },
     expRate: (d) => act('setPref', 'expRate', +d.v),
     vol: (d) => { setVolume(d.k, +d.v); if (d.k === 'sfx') play('zen'); },
     fxPref: (d) => { setFxPref(d.k, d.k === 'particles' || d.k === 'daynight' ? FXP[d.k] === false : !FXP[d.k]); document.documentElement.classList.toggle('outdoor', !!FXP.outdoor); },

@@ -4,6 +4,7 @@ import { fmt } from '../../core/utils.js';
 import { PET, PETS, PET_BY_ID, RARITY, petFx, petFight } from '../../config/pets.js';
 import { drawPet } from '../../render/art/v2/pets.js';
 import { renderPanel } from './index.js';
+import { pixelOn, pixelate } from '../../render/pixel.js';
 import { btn } from '../components.js';
 import { act } from '../../net/actions.js';
 
@@ -15,6 +16,7 @@ function petIcon(kind, v = 0, band = 1) {
   if (icons[key]) return icons[key];
   const cv = document.createElement('canvas'); cv.width = 96; cv.height = 96; const c = cv.getContext('2d');
   c.translate(48, 78); c.scale(2.4, 2.4); const ready = drawPet(c, kind, 0.6, { v, band });
+  if (pixelOn()) pixelate(c, 96, 96, 3, true);
   const url = cv.toDataURL();
   if (ready) return (icons[key] = url);
   if (!retry) retry = setTimeout(() => { retry = 0; renderPanel(); }, 150); // mô hình 3D chưa tải xong: không lưu cache, vẽ lại sau

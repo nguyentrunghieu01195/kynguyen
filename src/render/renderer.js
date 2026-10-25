@@ -5,6 +5,7 @@ import { CFG, SPAWN, SAFE_RADIUS } from '../config/constants.js';
 import { SIEGE } from '../config/siege.js';
 import { hpBar } from './art/v3d/fx3d.js';
 import { text3 } from './art/v3d/text3d.js';
+import { pixelOn, pixelate, pxBar } from './pixel.js';
 import { drawThrone, drawGateRuins, drawTeamMarker, drawBossRing, drawAllyRing, drawGateBar } from './siegeArt.js';
 import { iso, isoRadius, VIEW, camPos } from './iso.js';
 import { art } from './art/index.js';
@@ -103,7 +104,8 @@ function drawBars(c, m, A) {
   c.textAlign = 'center';
   if (show) {
     const bw = m.boss ? 70 : 34;
-    if (!hpBar(c, s.x, s.y - h + 2, bw + 2, m.hp / m.maxHp, m.boss ? '#ff8a2a' : '#ee3333', 7)) {
+    if (pixelOn()) pxBar(c, s.x, s.y - h, bw, m.hp / m.maxHp, m.boss ? '#f77622' : '#e43b44', m.boss ? 6 : 5);
+    else if (!hpBar(c, s.x, s.y - h + 2, bw + 2, m.hp / m.maxHp, m.boss ? '#ff8a2a' : '#ee3333', 7)) {
     c.fillStyle = '#000'; c.fillRect(s.x - bw / 2 - 1, s.y - h - 1, bw + 2, 6);
     c.fillStyle = m.boss ? '#ff8a2a' : '#e33'; c.fillRect(s.x - bw / 2, s.y - h, bw * Math.max(0, m.hp / m.maxHp), 4); }
     c.font = (m.boss ? 'bold 12px ' : '11px ') + 'sans-serif'; c.lineWidth = 3; c.strokeStyle = '#000';
@@ -223,6 +225,7 @@ export function render() {
   for (const pr of R.projs) A.drawProjectile(ctx, pr, t);
   for (const pr of R.eprojs || []) A.drawProjectile(ctx, pr, t);
   for (const f of R.fx) A.drawFx(ctx, f, t);
+  const labels = () => {
   for (const m of R.mobs) if (inView(m)) { if (m.pvp) drawPvpBar(ctx, m, A); else drawBars(ctx, m, A); }
 
   if (p.dead <= 0) {
@@ -240,12 +243,29 @@ export function render() {
     if (o.look && o.look.g) guildTag(ctx, o.look.g, s.x, y - 13, o.look.ct);
     if (R.event && R.event.id === 'siege' && o.look && o.look.g) drawTeamMarker(ctx, s.x, y - 26, teamColor(R, o.look.g), t);
   }
-  drawLighting(ctx, t);
-  drawParticles(ctx, t, dt);
-  drawTexts(ctx);
-  drawWeather(ctx, t, dt);
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  drawVignette(ctx, t, dt);
+  };
+  if (pixelOn()) { // pixel: vẽ thế giới + ánh sáng → làm pixel → mới vẽ chữ / thanh máu cho còn rõ nét
+    const tf = ctx.getTransform(), k = Math.max(2, Math.min(4, Math.round(W / 560))) * DPR;
+    pixelate(ctx, W * DPR, H * DPR, k, true); // bảng màu giới hạn cho thế giới (trước khi phủ ánh sáng để khỏi bị chia dải)
+    ctx.setTransform(tf);
+    drawLighting(ctx, t);
+    drawParticles(ctx, t, dt);
+    drawWeather(ctx, t, dt);
+    pixelate(ctx, W * DPR, H * DPR, k, false); // ánh sáng / hạt cũng thành khối pixel
+    ctx.setTransform(tf);
+    labels();
+    drawTexts(ctx);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    drawVignette(ctx, t, dt);
+  } else {
+    labels();
+    drawLighting(ctx, t);
+    drawParticles(ctx, t, dt);
+    drawTexts(ctx);
+    drawWeather(ctx, t, dt);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    drawVignette(ctx, t, dt);
+  }
 
   if (p.dead > 0) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = 'rgba(80,0,0,.35)'; ctx.fillRect(0, 0, W * DPR, H * DPR); }
 }
@@ -279,7 +299,8 @@ function drawSiegeGround(ctx, R, t) {
 function drawPvpBar(c, m, A) {
   const s = iso(m.x, m.y), y = s.y - A.heroHeight - 26, bw = 44, col = SIEGE.teamColors[m.team] || '#ff5a4a';
   c.save(); c.textAlign = 'center';
-  if (!hpBar(c, s.x, y + 2, bw + 2, m.hp / m.maxHp, col, 7)) {
+  if (pixelOn()) pxBar(c, s.x, y, bw, m.hp / m.maxHp, col, 5);
+  else if (!hpBar(c, s.x, y + 2, bw + 2, m.hp / m.maxHp, col, 7)) {
   c.fillStyle = '#000'; c.fillRect(s.x - bw / 2 - 1, y - 1, bw + 2, 6);
   c.fillStyle = col; c.fillRect(s.x - bw / 2, y, bw * Math.max(0, m.hp / m.maxHp), 4); }
   if (m === G.R.p.target) { c.strokeStyle = '#ff4040'; c.lineWidth = 2; c.beginPath(); c.ellipse(s.x, s.y, 20, 9, 0, 0, 6.283); c.stroke(); }

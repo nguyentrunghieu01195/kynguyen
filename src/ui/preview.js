@@ -3,6 +3,7 @@
 import { G } from '../core/state.js';
 import { art } from '../render/art/index.js';
 import { fashionLook } from '../systems/fashion.js';
+import { pixelOn, pixelate } from '../render/pixel.js';
 
 let running = false;
 
@@ -27,6 +28,7 @@ function frame(now) {
     g.setTransform(sc, 0, 0, sc, w / 2, h * 0.86);
     const atk = state.mode === 2 ? Math.max(0, 0.25 - (t % 1.1)) : 0;
     art().drawHero(g, G.S.cls, G.S.equip, t, { face: state.face, moving: state.mode === 1, atk, fa: fashionLook(G.S) });
+    if (pixelOn()) pixelate(g, w, h, 4, true);
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.font = 'bold 20px sans-serif'; g.fillStyle = 'rgba(255,255,255,.45)'; g.textAlign = 'left'; g.fillText(MODES[state.mode], 12, 28);
   }

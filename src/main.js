@@ -7,6 +7,9 @@
 import './styles/fonts.css';
 import './styles/main.css';
 import './styles/theme.css'; // Design System V1 (Claude Design)
+import './styles/pixel.css'; // phiên bản giao diện pixel (chỉ có tác dụng với html.pixel)
+import { initPixel } from './render/pixel.js';
+initPixel();
 import { G } from './core/state.js';
 import { log } from './core/events.js';
 import { esc } from './core/utils.js';

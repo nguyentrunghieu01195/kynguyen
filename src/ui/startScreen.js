@@ -1,4 +1,5 @@
 // Màn hình bắt đầu: tài khoản (đăng nhập / đăng ký / chơi khách), tiếp tục nhân vật, tạo nhân vật mới.
+import { pixelOn, pixelate } from '../render/pixel.js';
 import { esc, rint } from '../core/utils.js';
 import { CLASSES, FEMALE_CLASSES } from '../config/classes.js';
 import { loadRaw, isValidSave, guestSlot, currentSlot } from '../core/save.js';
@@ -37,6 +38,7 @@ function drawPreviews() {
     for (const sl of ['helm', 'armor', 'pants', 'gloves', 'boots']) eq[sl] = { slot: sl, tier: PREVIEW_TIER[k], plus: 7 };
     eq.weapon = { slot: 'weapon', tier: PREVIEW_TIER[k], plus: 7, cls: k };
     art().drawHero(g, k, eq, 0.3, { face: 1, moving: false, atk: 0, gd: FEMALE_CLASSES.includes(k) && selected === k ? gender : 'm' });
+    if (pixelOn()) pixelate(g, cv.width, cv.height, 3, true);
   });
 }
 
@@ -153,7 +155,7 @@ export function initStartScreen({ onCreate, onContinue, onPlay }) {
     '<div class="cc' + (k === selected ? ' sel' : '') + '" data-act="pickClass" data-c="' + k + '"><canvas width="180" height="200" data-c="' + k + '"></canvas><b>' + c.name + '</b><p>' + c.desc + '</p></div>').join('');
   L.insertAdjacentHTML('afterend', '<div id="genderRow" class="row" style="justify-content:center;gap:8px;margin:8px 0"></div>');
   renderGender();
-  drawPreviews();
+  drawPreviews(); setTimeout(drawPreviews, 1500); setTimeout(drawPreviews, 3500); // vẽ lại khi mô hình 3D đã tải xong
   $('cname').value = randomName();
   renderAcc();
   refreshCont();

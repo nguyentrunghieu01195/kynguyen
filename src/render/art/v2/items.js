@@ -1,4 +1,5 @@
 // Icon vật phẩm V2 (vẽ bằng code, cache thành ảnh) + vật phẩm rơi trên đất.
+import { pixelOn, pixelate } from '../../pixel.js';
 import { SETS, WINGS, JEWELS } from '../../../config/items.js';
 import { tones, pEll, pCirc, pPoly, pRR, fs, vgrad, rgrad, gloss, sparkle } from './kit.js';
 import { TRIM } from './hero.js';
@@ -374,6 +375,7 @@ export function iconCanvas(kind, arg) {
   const cv = document.createElement('canvas'); cv.width = cv.height = SIZE * 1.5;
   const c = cv.getContext('2d'); c.scale(1.5, 1.5);
   ICON[kind](c, arg);
+  if (pixelOn()) pixelate(c, cv.width, cv.height, 2, true);
   return (cache[key] = cv);
 }
 
