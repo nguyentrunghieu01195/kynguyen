@@ -52,7 +52,7 @@ const PET_MODEL = { slime: 'Blob_GreenBlob', wolf: 'Blob_Dog', cat: 'Blob_Cat', 
 
 /** Vẽ pet. o: { moving, atk (0..1), face, v (biến thể), band (bậc tiến hoá 1..4), idle (giây chủ đứng yên), seed } — gốc: dưới chân pet */
 export function drawPet(c, kind, t, o = {}) {
-  const d = PET_BY_ID[kind]; if (!d) return;
+  const d = PET_BY_ID[kind]; if (!d) return true;
   const pal = palette(d, o.v || 0), T = tones(pal[0]); T.d2 = tones(pal[1]);
   c.save(); c.scale(o.face || 1, 1);
   groundShadow(c, d.shape === 'bird' || d.shape === 'ghost' || d.shape === 'phoenix' ? 7 : 11, 3.4, 0.3);
@@ -60,9 +60,10 @@ export function drawPet(c, kind, t, o = {}) {
   const bob = o.moving && !['bird', 'ghost', 'phoenix'].includes(d.shape) ? Math.abs(Math.sin(t * 10)) * 2 : 0, sleep = !o.moving && (o.idle || 0) > 9;
   c.translate(0, -bob); c.scale(1.3, sleep ? 1.3 * 0.86 : 1.3);
   const mdl = PET_MODEL[kind], f3 = mdl && gfx3d() ? mobFrame({ model: mdl, pose: o.atk > 0 ? 'attack' : o.moving ? 'walk' : 'idle', f: o.atk > 0 ? 1 - Math.min(1, o.atk) : (t * (o.moving ? 1.8 : 0.6) + (o.seed || 0) * 3) % 1, tint: /^#[0-9a-f]{6}$/i.test(pal[0]) ? pal[0] : '#ffffff', amt: 0.65 }) : null;
-  if (f3) { const hh = 40 * (1 + 0.08 * ((o.band || 1) - 1)), ww = hh * F3.w / F3.h, fly = /^Flying_/.test(mdl); c.translate(0, fly ? -8 : 0); c.drawImage(f3, -ww / 2, fly ? -hh * 0.55 : -hh * 0.86, ww, hh); }
+  if (f3) { const hh = (/^Flying_/.test(mdl) ? 54 : 40) * (1 + 0.08 * ((o.band || 1) - 1)), ww = hh * F3.w / F3.h, fly = /^Flying_/.test(mdl); c.translate(0, fly ? -8 : 0); c.drawImage(f3, -ww / 2, fly ? -hh * 0.55 : -hh * 0.86, ww, hh); }
   else (DRAW[d.shape] || DRAW.blob)(c, T, t, o);
   if ((o.v || 0) === 3) sparkle(c, -6, -22, 1.8, '#fff0a0', 0.5 + 0.5 * Math.sin(t * 5 + 1));
   c.restore();
   c.save(); c.scale(o.face || 1, 1); c.scale(1.3, 1.3); evolution(c, d, t, o, false); idleExtras(c, d, t, o); c.restore();
+  return !gfx3d() || !mdl || !!f3; // false = đang chờ mô hình 3D (đã vẽ tạm bằng 2D)
 }

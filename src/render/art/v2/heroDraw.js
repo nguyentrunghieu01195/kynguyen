@@ -21,6 +21,11 @@ const fashionKey = (eq, fa) => [eq.wings ? eq.wings.tier + ':' + (eq.wings.plus 
 
 /** Bộ giáp cụ thể của game → thông số đổi màu / điểm nhấn. Ba bộ mẫu tự vẽ tay (Da, Xương, Thiên Thần dòng 0) giữ nguyên chất liệu. */
 const METAL = { bronze: 1, ice: 1, dragon: 1, magma: 1, angel: 1, demon: 1 };
+/** Phụ kiện 3D: kiểu giáp theo bộ (ARMOR_SETS) + trang phục / đồ đầu thời trang */
+function gearSpec(eq, tier, L) {
+  const a = eq && eq.armor, row = ARMOR_SETS[tier] || ARMOR_SETS[0], ar = row[(a && a.line) || 0] || row[0];
+  return { style: ar.style, tier, e: ar.color, d: ar.trim, outfit: L.outfit ? { style: L.outfit.style, colors: L.outfit.colors } : null, head: L.head ? { style: L.head.style, colors: L.head.colors } : null };
+}
 function setOf(eq) {
   const a = eq && eq.armor; if (!a) return null;
   const line = a.line || 0, ar = ARMOR_SETS[a.tier] && (ARMOR_SETS[a.tier][line] || ARMOR_SETS[a.tier][0]); if (!ar) return null;
@@ -75,7 +80,7 @@ export function drawHero(c, cls, eq, t, o) {
   if (L.aura) { c.save(); c.scale(1.15, 1.15); auraLayer(c, L.aura, t, false); c.restore(); }
   if (gfx3d()) {
     const tierTint = ['#c8c8d0', '#b9a98a', '#8fb4d8', '#d8c070', '#c070e0', '#ff9a50', '#70e0ff'][tier] || '#ffffff';
-    const f3 = frame3d({ cls, pose, f: pose === 'walk' || pose === 'idle' ? (tq / (pose === 'walk' ? 0.6618 : 2.618)) % 1 : (k == null ? 0 : k), weapon: L.weapon.type, tint: tint3d(L.outfit ? L.outfit.colors[0] : set ? set.e : tierTint, 0.65), capeTint: tint3d(L.outfit ? L.outfit.colors[1] : set ? set.d : tierTint, 0.8), helm: !!eq.helm || !!L.head, gear: tier >= 2 && !L.head ? { tier, col: set ? set.d : '#c8c8d0' } : null, wing: L.wings ? { tier: L.wings.tier, ph: Math.floor(t * 3 / 6.2832 * 6) % 6, glow: L.wings.plus >= 7 } : null, shield: cls === 'knight' && (tier >= 2) ? 'Knight_Shield' : '' });
+    const gs = gearSpec(eq, tier, L), f3 = frame3d({ cls, pose, f: pose === 'walk' || pose === 'idle' ? (tq / (pose === 'walk' ? 0.6618 : 2.618)) % 1 : (k == null ? 0 : k), weapon: L.weapon.type, tint: tint3d(L.outfit ? L.outfit.colors[0] : gs.e, 0.65), capeTint: tint3d(L.outfit ? L.outfit.colors[1] : gs.d, 0.8), helm: !!eq.helm && !L.head, gear: gs, wing: L.wings ? { tier: L.wings.tier, ph: Math.floor(t * 3 / 6.2832 * 6) % 6, glow: L.wings.plus >= 7 } : null, shield: cls === 'knight' && (tier >= 2) ? 'Knight_Shield' : '' });
     if (f3) {
       c.save(); c.scale(o.face || 1, 1); const hh = 78, ww = hh * F3.w / F3.h; c.drawImage(f3, -ww / 2, -hh * 0.86, ww, hh); c.restore();
       sparks(c, L, t);
