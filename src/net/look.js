@@ -5,7 +5,7 @@ import { SLOTS } from '../config/items.js';
 const petKind = (S) => { const a = S.pets && S.pets.list.find((p) => p.id === S.pets.active); return a ? a.kind + '.' + (a.v || 0) + '.' + (a.lv >= 10 ? 4 : a.lv >= 7 ? 3 : a.lv >= 4 ? 2 : 1) : undefined; };
 export function lookOf(S) {
   const eq = {};
-  for (const sl of SLOTS) { const it = S.equip[sl]; if (it) eq[sl] = [it.tier, it.plus, sl === 'weapon' ? it.wt || 0 : it.line || 0]; }
+  for (const sl of SLOTS) { const it = S.equip[sl]; if (it) eq[sl] = [it.tier, it.plus, sl === 'weapon' ? it.wt || 0 : it.line || 0, it.god || 0]; }
   const F = S.fashion && S.fashion.show ? S.fashion.eq : null;
   return { cls: S.cls, eq, fa: F ? { o: F.outfit, h: F.head, a: F.aura } : null, tr: S.tier || 1, g: S.guild ? S.guild.name : null, ct: S.guild && S.guild.castle ? 1 : undefined, pt: petKind(S), gd: S.gender === 'f' ? 'f' : undefined };
 }

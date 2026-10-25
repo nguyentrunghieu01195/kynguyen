@@ -32,9 +32,9 @@ export default {
     const setsHTML = P.sets.filter((g) => g.count >= 2).map((g) => '<div class="stat"><span>🛡 Bộ <b style="color:' + g.set.trim + '">' + g.set.name + '</b> ' + g.count + '/5</span><span class="muted" style="text-align:right">' +
       (g.count >= 3 ? '<span style="color:#5dff7a">' + bonusText(g.set.bonus3) + '</span>' : '3 món: ' + bonusText(g.set.bonus3)) + (g.count >= 5 ? '<br><span style="color:#5dff7a">' + bonusText(g.set.bonus5) + '</span>' : '') + '</span></div>').join('');
     return (
-      previewHTML(170) + '<div class="row" style="justify-content:center;margin:4px 0 10px">' + btn('👗 Thời trang', 'open', { p: 'fashion' }, { cls: 'sm' }) + btn('🐾 Thú cưng', 'open', { p: 'pets' }, { cls: 'sm' }) + btn('📖 Kỹ năng', 'open', { p: 'skills' }, { cls: 'sm' }) + '</div>' +
+      previewHTML(170) + '<div class="row" style="justify-content:center;margin:4px 0 10px">' + btn('👗 Thời trang', 'open', { p: 'fashion' }, { cls: 'sm' }) + btn('🐾 Thú cưng', 'open', { p: 'pets' }, { cls: 'sm' }) + btn('📖 Kỹ năng', 'open', { p: 'skills' }, { cls: 'sm' }) + btn('🌟 Master', 'open', { p: 'master' }, { cls: 'sm' }) + btn('🔁 Chuyển class', 'open', { p: 'classchange' }, { cls: 'sm' }) + '</div>' +
       '<div class="tip"><b style="color:#f3d58a">' + esc(S.name) + '</b> — ' + CLASSES[S.cls].name + ' · <b style="color:#ffd54a">Bậc ' + tierOf() + ' ' + tierName() + '</b>' +
-      '<br>Cấp ' + S.lv + ' · Reset ' + S.resets + ' · Đã hạ ' + fmt(S.kills) + ' quái<br>EXP: ' + fmt(S.exp) + ' / ' + fmt(expNeed(S.lv)) + '</div>' +
+      '<br>Cấp ' + S.lv + (S.master && S.master.lv ? ' · <b style="color:#ffd54a">Master ' + S.master.lv + '</b>' : '') + ' · Reset ' + S.resets + ' · Đã hạ ' + fmt(S.kills) + ' quái<br>EXP: ' + fmt(S.exp) + ' / ' + fmt(expNeed(S.lv)) + '</div>' +
       '<div class="row" style="justify-content:space-between"><b>Điểm chưa cộng: <span style="color:#5dff7a">' + S.pts + '</span></b>' + btn('🔄 Reset nhân vật', 'open', { p: 'reset' }, { cls: 'sm' }) + '</div>' +
       STAT_ROWS(S.cls).map(([k, name, desc]) =>
         '<div class="stat"><div><b>' + name + '</b> <span style="color:#ffd54a">' + st[k] + '</span><div class="muted">' + desc + '</div></div><div class="row">' +

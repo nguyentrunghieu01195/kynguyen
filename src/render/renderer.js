@@ -36,7 +36,7 @@ function petFollow(key, o, dt) {
 function eqOf(p) {
   if (p._lookRef === p.look) return p._eq;
   const eq = {};
-  for (const [sl, v] of Object.entries((p.look && p.look.eq) || {})) eq[sl] = { slot: sl, tier: v[0], plus: v[1], cls: p.look.cls, wt: sl === 'weapon' ? v[2] || 0 : 0, line: sl !== 'weapon' ? v[2] || 0 : 0 };
+  for (const [sl, v] of Object.entries((p.look && p.look.eq) || {})) eq[sl] = { slot: sl, tier: v[0], plus: v[1], cls: p.look.cls, wt: sl === 'weapon' ? v[2] || 0 : 0, line: sl !== 'weapon' ? v[2] || 0 : 0, god: v[3] || 0 };
   p.fa = p.look && p.look.fa ? { outfit: p.look.fa.o || null, head: p.look.fa.h || null, aura: p.look.fa.a || null } : null;
   p.gd = p.look && p.look.gd === 'f' ? 'f' : null;
   p._lookRef = p.look; p._eq = eq;

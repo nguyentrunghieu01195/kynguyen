@@ -14,7 +14,12 @@ import { commandMove, commandAttack, toggleAuto } from '../systems/player.js';
 import { usePotion } from '../systems/combat.js';
 import { castSlot, learnSkill, setSlot, toggleAutoSkill } from '../systems/skills.js';
 import { addPoints, doReset, canEnterMap } from '../systems/character.js';
-import { equip, unequip, sell, sellJunk, findItem } from '../systems/items.js';
+import { masterAdd, masterReset } from '../systems/master.js';
+import { ascend, dismantle } from '../systems/divine.js';
+import { LOOT_TOGGLES, LOOT_MAX_TIER, LOOT_MAX_PLUS } from '../config/loot.js';
+import { changeClass } from '../systems/classchange.js';
+import { CLASSES } from '../config/classes.js';
+import { equip, unequip, sell, sellJunk, sellMany, findItem } from '../systems/items.js';
 import { upgradeItem, craftWing, reforge } from '../systems/upgrade.js';
 import { buy } from '../systems/shop.js';
 import { claimMain, claimDaily, claimChest, doCheckin, claimTierStep } from '../systems/quests.js';
@@ -56,6 +61,16 @@ export const ACTIONS = {
   learnSkill: [(a) => [id(a[0])], (k) => !!learnSkill(k)],
   setSlot: [(a) => [int(a[0], 0, 3), optId(a[1])], (i, k) => !!setSlot(i, k)],
   toggleAutoSkill: [(a) => [id(a[0])], (k) => { toggleAutoSkill(k); return true; }],
+  dismantle: [(a) => [id(a[0])], (k) => dismantle(k)],
+  ascend: [(a) => [id(a[0])], (k) => ascend(k)],
+  setLoot: [(a) => [oneOf(a[0], [...LOOT_TOGGLES, 'minTier', 'minPlus']), a[1]], (k, v) => {
+    const L = G.S.loot; if (!L) return false;
+    if (k === 'minTier') L.minTier = int(v, 0, LOOT_MAX_TIER); else if (k === 'minPlus') L.minPlus = int(v, 0, LOOT_MAX_PLUS); else L[k] = !!v;
+    return true;
+  }],
+  masterAdd: [(a) => [id(a[0])], (k) => masterAdd(k)],
+  masterReset: [() => [], () => masterReset()],
+  changeClass: [(a) => [oneOf(a[0], Object.keys(CLASSES))], (c) => changeClass(c)],
   doReset: [() => [], () => {
     const mi = doReset();
     if (mi == null) return null;
@@ -69,6 +84,7 @@ export const ACTIONS = {
   unequip: [(a) => [id(a[0])], (k) => !!unequip(k)],
   sell: [(a) => [id(a[0])], (k) => sell(k) || 0],
   sellJunk: [() => [], () => sellJunk()],
+  sellMany: [(a) => { if (!Array.isArray(a[0]) || a[0].length > 300) throw new Error('bad'); return [[...new Set(a[0].map(id))]]; }, (ids) => sellMany(ids)],
   upgrade: [(a) => [id(a[0]), bool(a[1])], (k, charm) => upgradeItem(k, charm) || null],
   craftWing: [() => [], () => craftWing() || null],
   reforge: [(a) => [id(a[0]), int(a[1], 0, 9)], (k, v) => {

@@ -8,6 +8,7 @@ import { SLOTS, DROP_SLOTS, PIECE_DEF, PIECE_PREFIX, WEAPON_NAMES, SETS, WINGS, 
 import { calcStats } from './stats.js';
 import { WEAPON_TYPES, ARMOR_SETS, TIER_ADJ, LINE_B_CHANCE, regularWeaponCount } from '../config/gear.js';
 import { ARMOR_SLOTS } from '../config/items.js';
+import { godDropMult, DIVINE_NAMES } from '../config/divine.js';
 
 /** Loại vũ khí của món đồ (mặc định loại đầu nếu save cũ không có) */
 export const weaponType = (it) => { const L = WEAPON_TYPES[it.cls || (G.S ? G.S.cls : 'knight')]; return L[it.wt || 0] || L[0]; };
@@ -25,9 +26,10 @@ export function activeSets(equip) {
 }
 
 export function itemPower(it) {
-  if (it.slot === 'weapon') return Math.round(ITEM.weaponDmg(it.tier, it.plus));
+  const g = godDropMult(it); // Thần cấp nhân chỉ số gốc
+  if (it.slot === 'weapon') return Math.round(ITEM.weaponDmg(it.tier, it.plus) * g);
   if (it.slot === 'wings') return 0;
-  return Math.round(ITEM.armorDef(it.tier, PIECE_DEF[it.slot], it.plus));
+  return Math.round(ITEM.armorDef(it.tier, PIECE_DEF[it.slot], it.plus) * g);
 }
 
 export function wingStats(it) {
@@ -36,6 +38,10 @@ export function wingStats(it) {
 }
 
 export function itemName(it) {
+  if (it.god > 0 && DIVINE_NAMES[it.slot]) return '✦ ' + (it.slot === 'weapon' ? DIVINE_NAMES.weapon[it.cls || (G.S ? G.S.cls : 'knight')] : DIVINE_NAMES[it.slot]);
+  return baseName(it);
+}
+function baseName(it) {
   if (it.slot === 'weapon') { const W = weaponType(it); return W.names ? W.names[it.tier] : W.name + ' ' + TIER_ADJ[it.tier]; }
   if (it.slot === 'wings') return WINGS[it.tier].name;
   return PIECE_PREFIX[it.slot] + ' ' + armorSet(it).name;
@@ -44,6 +50,7 @@ export const itemFull = (it) => itemName(it) + (it.plus ? ' +' + it.plus : '');
 
 export function itemRarity(it) {
   if (it.slot === 'wings') return 'wings';
+  if (it.god > 0) return 'god';
   if (it.slot === 'weapon' && weaponType(it).special) return 'royal'; // vũ khí Vương Giả (công thành)
   if (it.exc) return 'excellent';
   if (it.plus >= 7) return 'high';
@@ -52,7 +59,7 @@ export function itemRarity(it) {
 }
 export const itemColor = (it) => RARITY_COLORS[itemRarity(it)];
 export const sellPrice = (it) => ITEM.sellPrice(it);
-export const isJunk = (it) => !it.exc && it.plus < 4 && it.slot !== 'wings';
+export const isJunk = (it) => !it.exc && !(it.god > 0) && it.plus < 4 && it.slot !== 'wings';
 
 export function rollExc(slot, n) {
   const pool = EXC_OPTS.filter((o) => o.t === (slot === 'weapon' ? 'atk' : 'def'));
@@ -128,6 +135,18 @@ export function sell(id) {
   G.S.zen += pr;
   G.S.inv.splice(r.key, 1);
   return pr;
+}
+
+/** Xoá (bán lấy Zen) nhiều món trong túi cùng lúc; đồ đang mặc không bị ảnh hưởng. Trả về { n, zen }. */
+export function sellMany(ids) {
+  const set = new Set(ids);
+  let zen = 0, n = 0;
+  G.S.inv = G.S.inv.filter((it) => {
+    if (set.has(it.id)) { zen += sellPrice(it); n++; return false; }
+    return true;
+  });
+  G.S.zen += zen;
+  return { zen, n };
 }
 
 export function sellJunk() {

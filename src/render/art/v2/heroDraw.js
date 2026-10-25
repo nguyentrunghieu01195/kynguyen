@@ -1,5 +1,6 @@
 // Cầu nối giữa chibi.js (renderer nhân vật) và giao diện drawHero(c, cls, eq, t, o) của game.
 // Dựng sẵn từng khung vào canvas nháp (cache) rồi chỉ drawImage; các phần nhấp nháy theo thời gian (hào quang, ánh sáng nền) vẽ ngoài cache.
+import { DIVINE } from '../../../config/divine.js';
 import { drawChibi } from './chibi.js';
 import { resolveLook } from './hero.js';
 import { drawWings, outfitBody, outfitSkirt, headwear, HEADWEAR_HIDES_HAIR, auraLayer } from './gear.js';
@@ -24,7 +25,8 @@ const METAL = { bronze: 1, ice: 1, dragon: 1, magma: 1, angel: 1, demon: 1 };
 /** Phụ kiện 3D: kiểu giáp theo bộ (ARMOR_SETS) + trang phục / đồ đầu thời trang */
 function gearSpec(eq, tier, L) {
   const a = eq && eq.armor, row = ARMOR_SETS[tier] || ARMOR_SETS[0], ar = row[(a && a.line) || 0] || row[0];
-  return { style: ar.style, tier, e: ar.color, d: ar.trim, outfit: L.outfit ? { style: L.outfit.style, colors: L.outfit.colors } : null, head: L.head ? { style: L.head.style, colors: L.head.colors } : null };
+  const gc = DIVINE.slots.filter((sl) => eq && eq[sl] && eq[sl].god > 0).length, divine = (a && a.god > 0) || gc >= 3;
+  return { style: divine ? 'divine' : ar.style, tier, e: divine ? '#fff0b0' : ar.color, d: divine ? '#ff7aff' : ar.trim, outfit: L.outfit ? { style: L.outfit.style, colors: L.outfit.colors } : null, head: L.head ? { style: L.head.style, colors: L.head.colors } : null };
 }
 function setOf(eq) {
   const a = eq && eq.armor; if (!a) return null;
@@ -73,7 +75,7 @@ export function drawHero(c, cls, eq, t, o) {
   const t4 = Math.round(t * 4) / 4; // màu cầu vồng đổi theo bước 0.25s để cache không bị tràn
   const pl = { armor: plusOf(eq.armor, t4), helm: plusOf(eq.helm, t4), gloves: plusOf(eq.gloves, t4), boots: plusOf(eq.boots, t4), pants: plusOf(eq.pants, t4), weapon: plusOf(eq.weapon, t4) };
   const set = setOf(eq);
-  const wglow = L.weapon.special ? '#ffcf3a' : glowColor(L.weapon.plus, Math.round(t * 4) / 4) || null;
+  const wglow = eq.weapon && eq.weapon.god > 0 ? '#ff7aff' : L.weapon.special ? '#ffcf3a' : glowColor(L.weapon.plus, Math.round(t * 4) / 4) || null;
   const key = cls + L.weapon.type + (L.weapon.special ? 'S' : '') + (wglow || '') + plKey(pl) + (set ? set.id : '') + tier + gender + pose + (k == null ? '' : k) + tq.toFixed(3) + '|' + fashionKey(eq, fa) + (L.wings ? wingT.toFixed(2) : '');
 
   groundGlows(c, L, t);

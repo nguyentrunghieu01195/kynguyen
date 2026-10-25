@@ -18,7 +18,7 @@ export const rankOf = (id) => G.S.skills.r[id] || 0;
 
 /** Chi phí MP của kỹ năng ở cấp hiện tại */
 export const mpCost = (sk, r = rankOf(sk.id) || 1) => Math.round(sk.cost * (1 + 0.06 * (r - 1)) + G.S.lv * 0.2);
-export const cdOf = (sk, r = rankOf(sk.id) || 1) => sk.cd * rankCd(r);
+export const cdOf = (sk, r = rankOf(sk.id) || 1) => sk.cd * rankCd(r) * ((G.P && G.P.cdMul) || 1);
 /** Chỉ số buff ở cấp r */
 export const buffMods = (sk, r) => Object.fromEntries(Object.entries(sk.mods).map(([k, v]) => [k, +(v + ((sk.rankMods && sk.rankMods[k]) || 0) * (r - 1)).toFixed(1)]));
 

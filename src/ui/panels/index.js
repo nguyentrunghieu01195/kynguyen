@@ -19,6 +19,10 @@ import { chatPanel, rankPanel } from './online.js';
 import fashion from './fashion.js';
 import pets from './pets.js';
 import skills from './skills.js';
+import master from './master.js';
+import classchange from './classchange.js';
+import divine from './divine.js';
+import lootPanel from './loot.js';
 import { bigMapPanel } from '../minimap.js';
 import { cloudPanel } from './cloud.js';
 import { marketPanel, initMarket } from './market.js';
@@ -27,7 +31,7 @@ import { auctionPanel, initAuctionUi } from './auction.js';
 import { tradePanel, onTradeEvent, TR } from './trade.js';
 import { on, EV } from '../../core/events.js';
 
-const PANEL_LIST = [character, inventory, upgrade, worldmap, shop, reset, settings, quests, offline, eventsPanel, resultPanel, towerResultPanel, chatPanel, rankPanel, fashion, pets, skills, bigMapPanel, cloudPanel, marketPanel, tradePanel, guildPanel, auctionPanel];
+const PANEL_LIST = [character, inventory, upgrade, worldmap, shop, reset, settings, quests, offline, eventsPanel, resultPanel, towerResultPanel, chatPanel, rankPanel, fashion, pets, skills, master, classchange, divine, lootPanel, bigMapPanel, cloudPanel, marketPanel, tradePanel, guildPanel, auctionPanel];
 export const PANELS = Object.fromEntries(PANEL_LIST.map((p) => [p.id, p]));
 
 export function initTradeUi() {

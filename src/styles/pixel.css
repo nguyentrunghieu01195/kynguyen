@@ -56,3 +56,7 @@ html.pixel #center-msg { letter-spacing: .08em; text-shadow: 3px 3px 0 #000, -1p
 html.pixel #log { font-size: 16px; }
 html.pixel #minimap, html.pixel #mmc { border: 2px solid var(--line); box-shadow: 0 0 0 2px #05060e; }
 html.pixel #start { background: radial-gradient(circle at 50% 30%, #2a2f5a, #0e0f1a); }
+
+html.pixel .cell.pick { outline-color: #2ce8f5; background: #124e89; }
+
+html.pixel .cell.r-god, html.pixel .cell.r-god.exc { animation: none !important; border-color: #b55088; box-shadow: 0 0 0 2px #05060e, 0 0 0 4px #f6757a; background: #68386c; }

@@ -52,4 +52,4 @@ export const WINGS = [
   { name: 'Cánh Thần Quang', dmg: 75, abs: 50, color: '#fff2b0' },
 ];
 
-export const RARITY_COLORS = { normal: '#ffffff', good: '#9fd0ff', high: '#ffd54a', excellent: '#5dff7a', wings: '#d6a8ff', royal: '#ffd34a' };
+export const RARITY_COLORS = { normal: '#ffffff', good: '#9fd0ff', high: '#ffd54a', excellent: '#5dff7a', wings: '#d6a8ff', royal: '#ffd34a', god: '#ff7aff' };

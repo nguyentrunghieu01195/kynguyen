@@ -8,6 +8,8 @@ import { defaultTowerState } from '../systems/tower.js';
 import { defaultFashion } from '../systems/fashion.js';
 import { defaultPets } from '../systems/pets.js';
 import { migrateSkills } from '../config/skills.js';
+import { migrateMaster } from '../config/master.js';
+import { migrateLoot } from '../config/loot.js';
 
 // Ô lưu: khách dùng SAVE_KEY; tài khoản dùng ô riêng theo tên đăng nhập (không ghi đè lẫn nhau)
 let slot = SAVE_KEY;
@@ -59,6 +61,12 @@ export function migrate(o) {
   s.fashion = Object.assign(defaultFashion(), o.fashion);
   s.fashion.eq = Object.assign(defaultFashion().eq, o.fashion && o.fashion.eq);
   s.evDone = o.evDone || 0;
+  s.master = migrateMaster(o.master);
+  s.alt = {};
+  if (o.alt && typeof o.alt === 'object') for (const c of Object.keys(CLASSES)) if (c !== s.cls && o.alt[c] && o.alt[c].skills) s.alt[c] = { skills: migrateSkills(o.alt[c].skills, c) };
+  s.ccAt = Math.max(0, +o.ccAt || 0);
+  s.shards = Math.max(0, Math.floor(+o.shards || 0));
+  s.loot = migrateLoot(o.loot);
   s.skills = migrateSkills(o.skills, s.cls);
   // Save trước khi có nhiệm vụ chuyển chức: giữ bậc theo số Reset như cũ
   if (!(o.tier >= 1)) s.tier = s.resets >= 3 ? 3 : s.resets >= 1 ? 2 : 1;

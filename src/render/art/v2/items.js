@@ -393,13 +393,14 @@ export function itemIconHTML(it) {
 }
 
 // ---------------- VẬT RƠI TRÊN ĐẤT ----------------
-const RARITY_BEAM = { excellent: '#5dff7a', high: '#ffd54a', good: '#9fd0ff', royal: '#ffd34a' };
+const RARITY_BEAM = { excellent: '#5dff7a', high: '#ffd54a', good: '#9fd0ff', royal: '#ffd34a', god: '#ff7aff' };
 export function makeDrawDrop(iso, rarityOf, labelOf) {
   return function drawDrop(c, d, t) {
     const s = iso(d.x, d.y), b = Math.sin(t * 4 + d.x * 3) * 2;
     let img, beam = null, size = 22, label = null, lcol = '#fff';
     if (d.kind === 'zen') { img = iconCanvas('zen'); size = 18; }
     else if (d.kind === 'jewel') { img = iconCanvas('jewel', d.val); beam = JEWELS[d.val].color; label = JEWELS[d.val].name; lcol = beam; }
+    else if (d.kind === 'shard') { img = iconCanvas('jewel', 'chaos'); size = 20; beam = '#ff7aff'; label = 'Mảnh Thần'; lcol = beam; }
     else if (d.kind === 'pot') { img = iconCanvas('potion', d.val.t); size = 18; }
     else if (d.kind === 'ticket') { img = iconCanvas('ticket', d.val); beam = d.val === 'bc' ? '#ff4050' : '#c060ff'; label = d.val === 'bc' ? 'Vé Huyết Lâu' : 'Thư Mời Quỷ'; lcol = beam; }
     else { const [k, a] = itemIconKind(d.val); img = iconCanvas(k, a); const r = rarityOf(d.val); beam = RARITY_BEAM[r] || null; label = labelOf(d.val); lcol = beam || '#fff'; }

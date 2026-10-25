@@ -1,4 +1,7 @@
 // Nhân vật: tạo mới, cộng điểm, kinh nghiệm, reset.
+import { defaultLoot } from '../config/loot.js';
+import { gainMasterExp } from './master.js';
+import { defaultMaster } from '../config/master.js';
 import { G } from '../core/state.js';
 import { log, announce, emit, EV } from '../core/events.js';
 import { SAVE_VERSION } from '../config/constants.js';
@@ -25,7 +28,7 @@ export function createCharacter(cls, name, gender = 'm') {
     charm: 0, equip: {}, inv: [], map: 0,
     expRate: PG.defaultExpRate, autoSell: false, kills: 0,
     quest: defaultQuestState(), lastSeen: Date.now(),
-    tickets: { ...START_TICKETS }, eventTest: false, art: null, tower: defaultTowerState(), fashion: defaultFashion(), pets: defaultPets(), evDone: 0, skills: defaultSkills(cls), tier: 1,
+    tickets: { ...START_TICKETS }, eventTest: false, art: null, tower: defaultTowerState(), fashion: defaultFashion(), pets: defaultPets(), evDone: 0, skills: defaultSkills(cls), tier: 1, master: defaultMaster(), alt: {}, shards: 0, loot: defaultLoot(),
   };
   S.equip.weapon = makeItem('weapon', 0, 0, null, cls);
   for (const sl of ARMOR_SLOTS) S.equip[sl] = makeItem(sl, 0);
@@ -56,7 +59,7 @@ export function addPoints(stat, n) {
 
 export function gainExp(amount) {
   const S = G.S;
-  if (isMaxLevel()) return;
+  if (isMaxLevel()) { gainMasterExp(amount); return; } // đủ bậc → EXP dư thành cấp Master
   S.exp += amount;
   let up = 0;
   while (S.lv < PG.resetLevel && S.exp >= expNeed(S.lv)) {

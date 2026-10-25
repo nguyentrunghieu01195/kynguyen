@@ -88,7 +88,7 @@ export function killMob(m) {
   if (i >= 0) R.mobs.splice(i, 1);
   if (R.p.target === m) R.p.target = null;
   S.kills++;
-  gainExp(m.exp * expRate() * petExpMul());
+  gainExp(m.exp * expRate() * petExpMul() * ((G.P && G.P.expMul) || 1));
   if (P.heal) R.p.hp = Math.min(P.maxHp, R.p.hp + (P.maxHp * P.heal) / 100);
   rollDrops(m);
   R.fx.push({ k: 'die', x: m.x, y: m.y, t: 0, d: 0.45, col: m.c1, size: m.size });

@@ -1,4 +1,5 @@
 // Mảnh giao diện tái sử dụng giữa các bảng
+import { DIVINE } from '../config/divine.js';
 import { G } from '../core/state.js';
 import { esc, fmt } from '../core/utils.js';
 import { SLOT_NAMES, EXC_OPTS, JEWELS } from '../config/items.js';
@@ -33,7 +34,7 @@ export function itemCell(it, { placeholder = '', act = 'sel', selId = UI.sel } =
   return (
     '<div class="cell r-' + itemRarity(it) + ' ' + (it.exc ? 'exc ' : '') + (selId === it.id ? 'sel' : '') + '"' + (act ? ' data-act="' + act + '"' : '') + ' data-id="' + it.id + '" style="color:' + itemColor(it) + '">' +
     art().itemIconHTML(it) +
-    (it.plus ? '<small class="pl">+' + it.plus + '</small>' : '') +
+    (it.plus ? '<small class="pl">+' + it.plus + '</small>' : '') + (it.god > 0 ? '<small class="gd">✦' + it.god + '</small>' : '') +
     '<small class="tr">' + (it.slot === 'wings' ? 'C' + it.tier : 'T' + (it.tier + 1)) + '</small></div>'
   );
 }
@@ -48,6 +49,7 @@ export function itemCard(ref, actionsHTML) {
   return (
     '<div class="tip"><b style="color:' + itemColor(it) + ';font-size:15px">' + (it.exc ? '[Hoàn Hảo] ' : '') + esc(itemFull(it)) + '</b>' +
     '<div class="muted">' + SLOT_NAMES[it.slot] + (it.slot !== 'wings' ? ' · Bậc ' + (it.tier + 1) : '') + '</div>' +
+    (it.god > 0 ? '<div style="color:' + DIVINE.color + '">✦ Thần cấp ' + it.god + '/' + DIVINE.maxGod + ' · chỉ số gốc ×' + DIVINE.mult(it.god).toFixed(2) + '</div>' : '') +
     '<div>' + powerLine(it) + cmp + '</div>' + variantLines(it) + excLines(it) +
     '<div class="muted">Giá bán: ' + fmt(sellPrice(it)) + ' Zen</div>' +
     (actionsHTML ? '<div class="row" style="margin-top:8px">' + actionsHTML + '</div>' : '') + '</div>'

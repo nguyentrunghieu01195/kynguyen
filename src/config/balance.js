@@ -89,7 +89,7 @@ export const ITEM = {
   plusMult: (p) => 1 + 0.12 * p + (p > 9 ? 0.15 * (p - 9) : 0),
   weaponDmg: (tier, plus) => 6 * Math.pow(tier + 1, 1.6) * ITEM.plusMult(plus) + plus * 2,
   armorDef: (tier, pieceK, plus) => (2 * Math.pow(tier + 1, 1.5) + 1) * pieceK * ITEM.plusMult(plus) + plus,
-  sellPrice: (it) => Math.round(Math.pow(it.tier + 1, 2) * 60 * (1 + it.plus * 0.5) * (it.exc ? 4 : 1) * (it.slot === 'wings' ? 50 : 1)),
+  sellPrice: (it) => Math.round(Math.pow(it.tier + 1, 2) * 60 * (1 + it.plus * 0.5) * (it.exc ? 4 : 1) * (it.slot === 'wings' ? 50 : 1) * (it.god > 0 ? 25 * it.god : 1)),
   maxPlus: 15,
 };
 

@@ -11,6 +11,8 @@ import { generateDrop, sellPrice, isJunk, itemColor, itemFull } from './items.js
 import { addText } from './combat.js';
 import { blockedAt } from './nav.js';
 import { MAPS } from '../config/maps.js';
+import { DIVINE } from '../config/divine.js';
+import { defaultLoot } from '../config/loot.js';
 
 /** Bậc đồ rơi theo bản đồ hiện tại */
 export const mapTier = () => (MAPS[G.S.map] ? MAPS[G.S.map].tier : 0);
@@ -37,9 +39,11 @@ export function rollDrops(m) {
     for (const k of JEWEL_KEYS) for (let i = rint(...B[k]); i--; ) addDrop(m, 'jewel', k, sp);
     for (let i = 0; i < B.items; i++) addDrop(m, 'item', generateDrop(tier, true), sp);
     addDrop(m, 'pot', { t: 'hp', n: B.potHp }, sp);
+    if (tier >= DIVINE.drop.bossMapTier) addDrop(m, 'shard', rint(...DIVINE.drop.boss), sp);
     return;
   }
   if (chance(E ? E.itemChance : DROP.item)) addDrop(m, 'item', generateDrop(tier, !!E));
+  if (!G.R.event && ((E && tier >= DIVINE.drop.bossMapTier && chance(DIVINE.drop.eliteChance)) || (!E && tier >= DIVINE.drop.mobMapTier && chance(DIVINE.drop.mobChance)))) addDrop(m, 'shard', 1);
   for (let r = E ? E.jewelRolls : 1; r--; ) for (const k of JEWEL_KEYS) if (chance(DROP.jewel[k])) addDrop(m, 'jewel', k);
   if (chance(DROP.potHp)) addDrop(m, 'pot', { t: 'hp', n: rint(1, 3) });
   if (chance(DROP.potMp)) addDrop(m, 'pot', { t: 'mp', n: rint(1, 3) });
@@ -47,7 +51,28 @@ export function rollDrops(m) {
 }
 
 const willAutoSell = (it) => G.S.autoSell && isJunk(it);
-export const canPick = (d) => d.kind !== 'item' || willAutoSell(d.val) || G.S.inv.length < CFG.INV_SIZE;
+
+/** Bộ lọc nhặt: vật phẩm này có được nhặt không (đồ Thần luôn được nhặt) */
+export function wantPick(d) {
+  const L = G.S.loot || defaultLoot();
+  switch (d.kind) {
+    case 'zen': return L.zen;
+    case 'jewel': return L[d.val] !== false;
+    case 'shard': return L.shard;
+    case 'pot': return d.val.t === 'hp' ? L.hp : L.mp;
+    case 'ticket': return L.ticket;
+    case 'item': {
+      const it = d.val;
+      if (it.god > 0) return true;
+      if (!L.items) return false;
+      if (it.slot !== 'wings' && L[it.slot] === false) return false;
+      if (L.excOnly && !it.exc) return false;
+      return it.tier >= L.minTier && it.plus >= L.minPlus;
+    }
+    default: return true;
+  }
+}
+export const canPick = (d) => wantPick(d) && (d.kind !== 'item' || willAutoSell(d.val) || G.S.inv.length < CFG.INV_SIZE);
 
 export function pickup(d, i) {
   const S = G.S;
@@ -67,6 +92,11 @@ export function pickup(d, i) {
       }
       break;
     }
+    case 'shard':
+      S.shards = (S.shards || 0) + d.val;
+      log('Nhặt được <span style="color:' + DIVINE.color + '">' + d.val + ' Mảnh Thần</span>');
+      addText(d.x, d.y, '+' + d.val + ' Mảnh Thần', DIVINE.color, true);
+      break;
     case 'zen':
       S.zen += d.val;
       addText(d.x, d.y, '+' + fmt(d.val) + ' Zen', '#ffd54a');
@@ -98,6 +128,6 @@ export function updateDrops(dt) {
     const d = R.drops[i];
     d.t += dt;
     if (d.t > DROP.despawnSec) { R.drops.splice(i, 1); continue; }
-    if (p.dead <= 0 && Math.hypot(d.x - p.x, d.y - p.y) < DROP.pickupRadius + petPickup()) pickup(d, i);
+    if (p.dead <= 0 && Math.hypot(d.x - p.x, d.y - p.y) < DROP.pickupRadius + petPickup() && wantPick(d)) pickup(d, i);
   }
 }

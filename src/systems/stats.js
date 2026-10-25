@@ -8,10 +8,12 @@ import { itemPower, wingStats, weaponType, activeSets } from './items.js';
 import { guildBuff } from '../config/guild.js';
 import { CASTLE } from '../config/siege.js';
 import { petBonus } from './pets.js';
+import { masterBonus } from './master.js';
+import { divineBonus } from './divine.js';
 
 export function calcStats() {
   const S = G.S, c = CLASSES[S.cls], f = STAT_FORMULA[S.cls], st = S.stats, lv = S.lv;
-  const ex = { dmg: 0, crit: 0, spd: 0, heal: 0, hp: 0, def: 0, zen: 0, reflect: 0, mp: 0, skill: 0, guard: 0 };
+  const ex = { dmg: 0, crit: 0, spd: 0, heal: 0, hp: 0, def: 0, zen: 0, reflect: 0, mp: 0, skill: 0, guard: 0, cd: 0, exp: 0 };
   let wdmg = 0, adef = 0, wingDmg = 0, wingAbs = 0;
 
   for (const sl of SLOTS) {
@@ -34,6 +36,8 @@ export function calcStats() {
   if (S.guild) { const gb = guildBuff(S.guild.lv); for (const k in gb) ex[k] += gb[k]; } // buff bang hội
   if (S.guild && S.guild.castle) for (const k in CASTLE.buff) ex[k] += CASTLE.buff[k]; // buff bang giữ thành
   const pb = petBonus(S); for (const k in pb) if (k in ex) ex[k] += pb[k]; // thú cưng đang theo
+  const mb = masterBonus(S); for (const k in mb) if (k in ex) ex[k] += mb[k]; // cây Master
+  const dv = divineBonus(S.equip); for (const k in dv) if (k in ex) ex[k] += dv[k]; // Thần Uy (đồ Thần)
   const buffs = (G.R && G.R.p && G.R.p.buffs) || {};
   for (const id in buffs) for (const k in buffs[id].mods) ex[k] += buffs[id].mods[k];
   // Chỉ số riêng của loại vũ khí
@@ -59,6 +63,8 @@ export function calcStats() {
     reflect: ex.reflect,
     abs: wingAbs,
     guard: Math.min(60, ex.guard),
+    cdMul: Math.max(0.5, 1 - ex.cd / 100),
+    expMul: 1 + ex.exp / 100,
   };
 
   const p = G.R && G.R.p;

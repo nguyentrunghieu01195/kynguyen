@@ -28,7 +28,7 @@ export function cleanLook(look) {
   const out = { cls: CLASSES.includes(look?.cls) ? look.cls : 'knight', eq: {} };
   for (const s of SLOTS) {
     const v = look?.eq?.[s];
-    if (Array.isArray(v)) out.eq[s] = [int(v[0], s === 'wings' ? 1 : 0, s === 'wings' ? 6 : 5), int(v[1], 0, 15), int(v[2], 0, s === 'weapon' ? 9 : 3)]; // loại vũ khí tới 9 (gồm vũ khí đặc biệt)
+    if (Array.isArray(v)) out.eq[s] = [int(v[0], s === 'wings' ? 1 : 0, s === 'wings' ? 6 : 5), int(v[1], 0, 15), int(v[2], 0, s === 'weapon' ? 9 : 3), int(v[3], 0, 5)]; // loại vũ khí tới 9 (gồm vũ khí đặc biệt)
   }
   // Thời trang: chỉ nhận id dạng chữ thường ngắn
   const id = (x) => (typeof x === 'string' && /^[a-z]{2,16}$/.test(x) ? x : null);
