@@ -11,15 +11,17 @@ import { isRemote } from './actions.js';
 
 const ACC_KEY = 'kng_acc';
 const load = () => { try { return JSON.parse(localStorage.getItem(ACC_KEY)) || {}; } catch (e) { return {}; } };
-const persist = () => { try { localStorage.setItem(ACC_KEY, JSON.stringify({ user: ACC.user, token: ACC.token, rev: ACC.rev, base: ACC.base })); } catch (e) { /* bỏ qua */ } };
+const persist = () => { try { localStorage.setItem(ACC_KEY, JSON.stringify({ user: ACC.user, token: ACC.token, rev: ACC.rev, base: ACC.base, char: ACC.char })); } catch (e) { /* bỏ qua */ } };
 
 export const ACC = {
   user: null, token: null,
+  char: '',               // id nhân vật đang chọn (mỗi tài khoản có nhiều nhân vật)
   rev: 0,                 // rev của bản lưu trên máy chủ mà máy này đang dựa vào
   base: '',               // địa chỉ máy chủ (http/https) nếu người chơi tự nhập
   status: 'guest',        // guest | idle | saving | synced | offline | conflict | expired
   lastSync: 0, conflict: null, error: '',
 };
+export function setActiveChar(id) { ACC.char = id || ''; persist(); }
 export const loggedIn = () => !!(ACC.user && ACC.token);
 
 /** Địa chỉ HTTP của máy chủ: tự nhập → theo địa chỉ WebSocket đã lưu → chính trang đang mở */
@@ -45,7 +47,7 @@ async function req(method, path, body, opts = {}) {
   try {
     r = await fetch(base + path, {
       method,
-      headers: { 'Content-Type': 'application/json', ...(ACC.token ? { Authorization: 'Bearer ' + ACC.token } : {}) },
+      headers: { 'Content-Type': 'application/json', ...(ACC.token ? { Authorization: 'Bearer ' + ACC.token } : {}), ...(ACC.char ? { 'X-Char': ACC.char } : {}) },
       body: body ? JSON.stringify(body) : undefined,
       keepalive: !!opts.keepalive,
     });
@@ -61,7 +63,7 @@ async function req(method, path, body, opts = {}) {
 }
 
 function setSession(j) {
-  ACC.user = j.user; ACC.token = j.token; ACC.rev = 0; ACC.status = 'idle'; ACC.error = '';
+  ACC.user = j.user; ACC.token = j.token; ACC.char = ''; ACC.rev = 0; ACC.status = 'idle'; ACC.error = '';
   setSaveSlot(ACC.user);
   persist(); emit(EV.NET);
 }
@@ -70,7 +72,7 @@ export async function login(user, pass) { setSession(await req('POST', '/api/log
 export async function logout() {
   try { if (G.S) await pushSave(); } catch (e) { /* vẫn đăng xuất */ }
   try { await req('POST', '/api/logout'); } catch (e) { /* bỏ qua */ }
-  ACC.user = ACC.token = null; ACC.rev = 0; ACC.status = 'guest';
+  ACC.user = ACC.token = null; ACC.char = ''; ACC.rev = 0; ACC.status = 'guest';
   setSaveSlot(null); persist(); emit(EV.NET);
 }
 export const changePassword = (old, pass) => req('POST', '/api/password', { old, pass });
@@ -196,7 +198,7 @@ export const statusText = () => (isRemote() ? '🛡 Nhân vật đang chạy và
 export function initAccount() {
   const a = load();
   ACC.base = a.base || '';
-  if (a.user && a.token) { ACC.user = a.user; ACC.token = a.token; ACC.rev = a.rev || 0; ACC.status = 'idle'; setSaveSlot(a.user); }
+  if (a.user && a.token) { ACC.user = a.user; ACC.token = a.token; ACC.char = a.char || ''; ACC.rev = a.rev || 0; ACC.status = 'idle'; setSaveSlot(a.user); }
   if (ACC.base && NET.prefs && !NET.prefs.url) NET.prefs.url = ACC.base.replace(/^http/, 'ws') + '/ws';
 }
 export const logSync = (ok) => ACC.status !== 'conflict' && log(ok ? '☁️ Đã lưu nhân vật lên máy chủ.' : '⚠ Chưa lưu lên máy chủ được, sẽ thử lại sau.', ok ? '#8f8' : '#f88');

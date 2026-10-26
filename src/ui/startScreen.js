@@ -2,11 +2,11 @@
 import { pixelOn, pixelate } from '../render/pixel.js';
 import { esc, rint } from '../core/utils.js';
 import { CLASSES, FEMALE_CLASSES } from '../config/classes.js';
-import { loadRaw, isValidSave, guestSlot, currentSlot } from '../core/save.js';
+import { loadRaw, isValidSave, GUEST_SLOTS, guestKey, setGuestSlot } from '../core/save.js';
 import { art } from '../render/art/index.js';
 import { $ } from './dom.js';
 import { registerActions } from './input.js';
-import { ACC, loggedIn, login, register, logout, apiBase, setServer, apiReq } from '../net/account.js';
+import { ACC, loggedIn, login, register, logout, apiBase, setServer, apiReq, setActiveChar } from '../net/account.js';
 import { installState, promptInstall } from '../pwa.js';
 
 const NAME_A = ['Long', 'Phong', 'Vân', 'Hổ', 'Ưng', 'Kiếm', 'Thiên', 'Hắc', 'Bạch', 'Lôi'];
@@ -15,8 +15,8 @@ export const randomName = () => NAME_A[rint(0, NAME_A.length - 1)] + NAME_B[rint
 
 const PREVIEW_TIER = { knight: 1, wizard: 5, archer: 3, lord: 4, gladiator: 2 };
 let selected = 'knight', gender = 'm';
-let cont = null;           // bản lưu sẽ dùng khi bấm "Tiếp tục"
-let guestSave = null;      // nhân vật khách trên máy (để đưa vào tài khoản)
+let chars = [];            // danh sách nhân vật: khách = [{slot, save}], tài khoản = [{id, ...tóm tắt}]
+let maxChars = GUEST_SLOTS;
 let authMode = null;       // null | 'login' | 'register'
 let busy = false;
 
@@ -114,23 +114,32 @@ async function submitAuth() {
 }
 
 // ---------------- TIẾP TỤC / ĐƯA NHÂN VẬT VÀO TÀI KHOẢN ----------------
+const charRow = (c, i) => '<div class="charrow"><button class="btn big green" data-act="continue" data-i="' + i + '">▶ ' + desc(c) + '</button></div>';
+function renderChars(note) {
+  const box = $('contbox');
+  const full = chars.length >= maxChars;
+  box.innerHTML = (chars.length ? '<div class="charlist">' + chars.map(charRow).join('') + '</div>' : '') +
+    '<p class="muted" style="margin-top:6px">' + (chars.length ? 'Nhân vật ' + chars.length + '/' + maxChars + (full ? ' — đã đầy, hãy xoá bớt trong Cài đặt để tạo mới.' : ' — hoặc tạo nhân vật mới bên dưới.') : 'Chưa có nhân vật — chọn lớp nhân vật bên dưới để bắt đầu.') + '</p>' + (note || '');
+  const btn = document.querySelector('[data-act="create"]');
+  if (btn) btn.disabled = full;
+}
 async function refreshCont() {
   const box = $('contbox');
-  cont = null;
-  guestSave = isValidSave(loadRaw(guestSlot)) ? loadRaw(guestSlot) : null;
+  chars = [];
   if (!loggedIn()) {
-    cont = guestSave;
-    box.innerHTML = cont ? '<button class="btn big green" data-act="continue">▶ Tiếp tục: ' + desc(cont) + '</button><p class="muted" style="margin-top:6px">hoặc tạo nhân vật mới bên dưới</p>' : '';
+    maxChars = GUEST_SLOTS;
+    for (let i = 0; i < GUEST_SLOTS; i++) { const raw = loadRaw(guestKey(i)); if (isValidSave(raw)) chars.push({ ...raw, slot: i }); }
+    renderChars();
     return;
   }
   box.innerHTML = '<p class="muted">☁️ Đang tải nhân vật từ máy chủ…</p>';
+  setActiveChar(''); // màn hình này tự chọn nhân vật
   try {
     // Chơi bằng tài khoản: nhân vật nằm & chạy trên máy chủ → chỉ cần thông tin tóm tắt
     const me = await apiReq('GET', '/api/me');
-    cont = me.summary && me.summary.cls ? me.summary : null;
-    box.innerHTML = (cont ? '<button class="btn big green" data-act="continue">▶ Vào game: ' + desc(cont) + '</button>'
-      : '<p class="muted">Tài khoản chưa có nhân vật — chọn lớp nhân vật bên dưới để bắt đầu.</p>') +
-      '<p class="muted" style="margin-top:6px">🛡 Nhân vật chạy và được lưu trên máy chủ — cần có mạng khi chơi.</p>' + (playErr ? '<p class="warn">' + esc(playErr) + '</p>' : '');
+    maxChars = me.maxChars || 5;
+    chars = (me.chars || []).filter((c) => c && c.cls);
+    renderChars('<p class="muted">🛡 Nhân vật chạy và được lưu trên máy chủ — cần có mạng khi chơi.</p>' + (playErr ? '<p class="warn">' + esc(playErr) + '</p>' : ''));
   } catch (e) {
     if (e.status === 401) { await logout(); renderAcc(); refreshCont(); return; }
     box.innerHTML = '<p class="warn">⚠ ' + esc(e.message || 'Không kết nối được máy chủ') + '</p><p class="muted">Chơi bằng tài khoản cần kết nối máy chủ. Có thể đăng xuất để chơi khách (chỉ lưu trên máy này).</p>' +
@@ -166,13 +175,21 @@ export function initStartScreen({ onCreate, onContinue, onPlay }) {
     pickClass: (d) => { selected = d.c; document.querySelectorAll('.cc').forEach((e) => e.classList.toggle('sel', e.dataset.c === selected)); renderGender(); drawPreviews(); },
     pickGender: (d) => { gender = d.g; renderGender(); drawPreviews(); },
     create: () => {
-      if (loggedIn() && cont && !confirm('Tài khoản đã có nhân vật ' + cont.name + ' (cấp ' + cont.lv + '). Tạo nhân vật mới sẽ THAY THẾ nhân vật đó. Tiếp tục?')) return;
+      if (chars.length >= maxChars) return;
       const name = ($('cname').value.trim() || randomName()).slice(0, 12);
       playErr = '';
       const gd = FEMALE_CLASSES.includes(selected) ? gender : 'm';
-      if (loggedIn()) onPlay({ cls: selected, name, gender: gd }); else onCreate(selected, name, gd);
+      if (loggedIn()) onPlay({ cls: selected, name, gender: gd });
+      else {
+        let slot = 0; while (slot < GUEST_SLOTS && isValidSave(loadRaw(guestKey(slot)))) slot++;
+        if (slot >= GUEST_SLOTS) return;
+        setGuestSlot(slot); onCreate(selected, name, gd);
+      }
     },
-    continue: () => { if (!cont) return; playErr = ''; if (loggedIn()) onPlay(null); else onContinue(cont); },
+    continue: (d) => {
+      const c = chars[+d.i]; if (!c) return; playErr = '';
+      if (loggedIn()) { setActiveChar(c.id); onPlay(null); } else { setGuestSlot(c.slot); const { slot, ...raw } = c; onContinue(raw); }
+    },
     retryCont: () => refreshCont(),
     authOpen: (d) => { authMode = d.m; renderAuth(); },
     authClose: () => { authMode = null; UI_SERVER.show = false; renderAuth(); },

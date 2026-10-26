@@ -12,6 +12,7 @@ export const ACC_LIMITS = {
   saveBytes: 1024 * 1024,          // tối đa 1MB mỗi bản lưu
   sessionDays: 90,                 // phiên đăng nhập hết hạn sau 90 ngày không dùng
   sessionsPerAccount: 8,           // tối đa 8 thiết bị đăng nhập cùng lúc
+  maxChars: 5,                     // tối đa 5 nhân vật mỗi tài khoản
 };
 
 const SCRYPT = { N: 16384, r: 8, p: 1, keylen: 32 };
@@ -23,8 +24,9 @@ export class AuthError extends Error { constructor(code, msg, status = 400) { su
 export function createAccounts(dir) {
   fs.mkdirSync(path.join(dir, 'saves'), { recursive: true });
   const file = path.join(dir, 'accounts.json');
-  let data = { accounts: {}, sessions: {} };
+  let data = { accounts: {}, sessions: {}, chars: {} };
   try { data = Object.assign(data, JSON.parse(fs.readFileSync(file, 'utf8'))); } catch (e) { /* file mới */ }
+  data.chars = data.chars || {};
   const byUser = new Map(Object.values(data.accounts).map((a) => [a.ul, a]));
   let dirty = false, timer = null;
 
@@ -55,6 +57,11 @@ export function createAccounts(dir) {
   const savePath = (id) => path.join(dir, 'saves', id + '.json');
   const summaryOf = (d) => (d ? { name: String(d.name || '').slice(0, 20), cls: d.cls, lv: d.lv | 0, resets: d.resets | 0 } : null);
 
+  // Nhân vật chính dùng chính bản ghi tài khoản (id trùng); nhân vật phụ là bản ghi riêng trong data.chars
+  const ownerOf = (rec) => data.accounts[rec.owner || rec.id];
+  const charsOf = (acc) => [acc, ...Object.values(data.chars).filter((c) => c.owner === acc.id).sort((a, b) => a.created - b.created)];
+  const charList = (acc) => charsOf(acc).filter((c) => c.summary).map((c) => ({ id: c.id, ...c.summary }));
+
   return {
     register(user, pass, ua) {
       checkCreds(user, pass);
@@ -78,7 +85,7 @@ export function createAccounts(dir) {
       return { acc, token: newSession(acc, ua) };
     },
     /** Tài khoản từ token phiên (null nếu không hợp lệ / hết hạn) */
-    auth(token) {
+    auth(token, charId) {
       if (typeof token !== 'string' || token.length !== 64) return null;
       const k = sha(token), s = data.sessions[k];
       if (!s) return null;
@@ -86,6 +93,7 @@ export function createAccounts(dir) {
       const acc = data.accounts[s.id];
       if (!acc || acc.banned) return null;
       if (Date.now() - s.at > 36e5) { s.at = Date.now(); touch(); } // gia hạn (tối đa 1 lần/giờ)
+      if (charId && charId !== acc.id) { const c = data.chars[charId]; return c && c.owner === acc.id ? c : null; }
       return acc;
     },
     logout(token) { if (typeof token === 'string') { delete data.sessions[sha(token)]; touch(); } },
@@ -100,7 +108,19 @@ export function createAccounts(dir) {
       for (const [k, s] of Object.entries(data.sessions)) if (s.id === acc.id && k !== keep) delete data.sessions[k];
       touch();
     },
-    info: (acc) => ({ user: acc.user, created: acc.created, rev: acc.rev, saveAt: acc.saveAt, summary: acc.summary }),
+    info: (acc) => { const o = ownerOf(acc); return { user: acc.user, created: acc.created, rev: acc.rev, saveAt: acc.saveAt, summary: acc.summary, chars: charList(o), maxChars: ACC_LIMITS.maxChars }; },
+    /** Bản ghi cho nhân vật mới: dùng chỗ nhân vật chính nếu đang trống, không thì thêm nhân vật phụ */
+    newChar(acc) {
+      const o = ownerOf(acc);
+      if (!o.summary) return o;
+      const list = charsOf(o);
+      if (list.filter((c) => c.summary).length >= ACC_LIMITS.maxChars) throw new AuthError('chars_full', 'Tài khoản đã đủ ' + ACC_LIMITS.maxChars + ' nhân vật. Hãy xoá bớt để tạo mới.', 409);
+      const empty = list.find((c) => c !== o && !c.summary); // nhân vật phụ tạo dở dang
+      if (empty) return empty;
+      const c = { id: crypto.randomBytes(8).toString('hex'), owner: o.id, user: o.user, ul: o.ul, created: Date.now(), rev: 0, saveAt: 0, summary: null };
+      data.chars[c.id] = c; touch();
+      return c;
+    },
     getSave(acc) {
       if (!acc.rev || !acc.summary) return null;
       try { return { rev: acc.rev, at: acc.saveAt, data: JSON.parse(fs.readFileSync(savePath(acc.id), 'utf8')) }; } catch (e) { return null; }
@@ -123,12 +143,13 @@ export function createAccounts(dir) {
     /** Xoá nhân vật trên máy chủ (người chơi chọn chơi lại từ đầu) */
     deleteSave(acc) {
       try { fs.unlinkSync(savePath(acc.id)); } catch (e) { /* chưa có */ }
+      if (acc.owner) { delete data.chars[acc.id]; touch(); return { rev: acc.rev + 1, removed: true }; } // nhân vật phụ: xoá hẳn
       acc.rev++; acc.saveAt = Date.now(); acc.summary = null; touch();
       return { rev: acc.rev };
     },
     // ---------------- QUẢN TRỊ ----------------
     list: () => Object.values(data.accounts),
-    get: (id) => data.accounts[id] || null,
+    get: (id) => data.accounts[id] || data.chars[id] || null,
     sessionCount: (acc) => Object.values(data.sessions).filter((s) => s.id === acc.id).length,
     /** Quản trị đặt mật khẩu mới (người chơi quên mật khẩu) → đăng xuất mọi thiết bị */
     setPassword(acc, pass) {
@@ -145,7 +166,7 @@ export function createAccounts(dir) {
     /** Dữ liệu thô để sao lưu (gồm cả bản lưu nhân vật) */
     dump() {
       const saves = {};
-      for (const a of Object.values(data.accounts)) { const sv = this.getSave(a); if (sv) saves[a.id] = sv.data; }
+      for (const a of [...Object.values(data.accounts), ...Object.values(data.chars)]) { const sv = this.getSave(a); if (sv) saves[a.id] = sv.data; }
       return { accounts: data, saves };
     },
     touch,

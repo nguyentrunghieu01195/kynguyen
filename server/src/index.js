@@ -71,7 +71,7 @@ const ADMIN_HTML = path.join(__dirname, '..', 'admin', 'index.html');
 
 // ---------------- HTTP ----------------
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.webmanifest': 'application/manifest+json', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type, Authorization', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Access-Control-Max-Age': '86400' };
+const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Char', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Access-Control-Max-Age': '86400' };
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
@@ -143,7 +143,7 @@ async function api(req, res, url) {
     } catch (e) { if (e instanceof AuthError) return json(res, e.status, { error: e.code, message: e.message }); throw e; }
   }
   // Các API còn lại cần đăng nhập
-  const token = bearer(req), acc = accounts.auth(token);
+  const token = bearer(req), acc = accounts.auth(token, String(req.headers['x-char'] || '') || undefined);
   if (!acc) { if (limited('bad401:' + ip, 120, 60000)) { audit('token_flood', ip); return json(res, 429, { error: 'rate', message: 'Quá nhiều yêu cầu không hợp lệ.' }); } return json(res, 401, { error: 'auth', message: 'Phiên đăng nhập đã hết hạn, hãy đăng nhập lại.' }); }
   try {
     switch (route) {
@@ -510,7 +510,12 @@ const HANDLERS = {
   hello(s, m) {
     if (s.p) return;
     // Đã đăng nhập tài khoản → hồ sơ trực tuyến gắn với tài khoản (đổi máy vẫn giữ tên & xếp hạng)
-    const acc = accounts.auth(m.auth);
+    let acc = accounts.auth(m.auth, m.create ? undefined : (typeof m.char === 'string' && /^[0-9a-f]{16}$/.test(m.char) ? m.char : undefined));
+    if (acc && m.create) { // tạo nhân vật mới: dùng chỗ trống hoặc thêm nhân vật phụ
+      try { acc = accounts.newChar(acc); }
+      catch (e) { out(s.ws, { t: 'playerr', code: e.code || 'error', message: e.message }); return s.ws.close(4004, 'full'); }
+    }
+    if (!acc && m.auth && accounts.auth(m.auth) && m.char) { out(s.ws, { t: 'playerr', code: 'nochar', message: 'Không tìm thấy nhân vật này.' }); return s.ws.close(4004, 'nochar'); }
     let p = acc ? store.findByAccount(acc.id) || store.findByToken(m.token) : store.findByToken(m.token);
     const byTok = store.findByToken(m.token);
     if (byTok && byTok.banned && !(acc && byTok.acc && byTok.acc !== acc.id)) p = byTok; // máy này đang dùng hồ sơ bị khoá → giữ để chặn
@@ -530,7 +535,7 @@ const HANDLERS = {
     s.p = p;
     s.look = cleanLook(m.look);
     clearTimeout(s.helloTimer);
-    out(s.ws, { t: 'welcome', id: p.id, token: p.token, name: p.name, online: sessions.size, chat: chatLog.slice(-20), play });
+    out(s.ws, { t: 'welcome', id: p.id, char: acc ? acc.id : undefined, token: p.token, name: p.name, online: sessions.size, chat: chatLog.slice(-20), play });
     toAll({ t: 'online', n: sessions.size });
     if (play) {
       try { host.join(s, acc, m.create ? { cls: m.create.cls, name: p.name, gender: m.create.gender } : null); }
@@ -542,6 +547,7 @@ const HANDLERS = {
     const c = s.ctx; if (!c) return;
     host.leave(s, true);
     accounts.deleteSave(c.acc);
+    if (c.acc.owner) store.remove(store.findByAccount(c.acc.id));
     out(s.ws, { t: 'wiped' });
   },
   room(s, m) { if (s.ctx) return; joinRoom(s, cleanRoom(m.room), cleanPos(m)); },

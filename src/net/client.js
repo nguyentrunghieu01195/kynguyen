@@ -6,7 +6,7 @@ import { on, emit, EV, log } from '../core/events.js';
 import { esc } from '../core/utils.js';
 import { SLOTS } from '../config/items.js';
 import { itemFull } from '../systems/items.js';
-import { ACC } from './account.js';
+import { ACC, setActiveChar } from './account.js';
 
 const PREFS_KEY = 'kng_net', TOKEN_KEY = 'kng_net_token';
 const loadPrefs = () => { try { return JSON.parse(localStorage.getItem(PREFS_KEY)) || {}; } catch (e) { return {}; } };
@@ -56,7 +56,7 @@ export function connect(url, opts) {
   try { ws = new WebSocket(url); } catch (e) { setStatus('off'); log('Địa chỉ máy chủ không hợp lệ.', '#f88'); return false; }
   ws.onopen = () => {
     retry = 0;
-    if (connOpts.play) send({ t: 'hello', token: getToken(), auth: ACC.token || undefined, play: true, create: connOpts.create });
+    if (connOpts.play) send({ t: 'hello', token: getToken(), auth: ACC.token || undefined, play: true, create: connOpts.create, char: connOpts.create ? undefined : ACC.char || undefined });
     else send({ t: 'hello', token: getToken(), auth: ACC.token || undefined, name: G.S.name, look: lookOf(G.S), stats: statsOf() });
   };
   ws.onmessage = (e) => { let m; try { m = JSON.parse(e.data); } catch (er) { return; } const h = RECV[m.t] || EXTRA[m.t]; if (h) h(m); };
@@ -83,6 +83,7 @@ export function setAuto(v) { NET.prefs.auto = !!v; savePrefs(NET.prefs); }
 const toRemote = (p) => ({ ...p, sx: p.x, sy: p.y, face: p.f || 1, moving: !!p.mv });
 const RECV = {
   welcome(m) {
+    if (m.char) setActiveChar(m.char);
     NET.id = m.id; NET.name = m.name; NET.online = m.online; setToken(m.token);
     NET.chat = m.chat || [];
     setStatus('online');

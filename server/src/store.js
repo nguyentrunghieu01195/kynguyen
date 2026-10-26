@@ -34,6 +34,7 @@ export function createStore(dir) {
       return p;
     },
     update(p, fields) { Object.assign(p, fields, { lastSeen: Date.now() }); touch(); },
+    remove(p) { if (!p) return; delete data.players[p.id]; byToken.delete(p.token); touch(); },
     all: () => Object.values(data.players),
     get: (id) => data.players[id] || null,
     dump: () => data,

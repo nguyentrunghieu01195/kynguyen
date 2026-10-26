@@ -148,11 +148,11 @@ export function updateMonsters(dt) {
 
   // Hỗn Mang Chi Vương (đủ Reset + bản đồ cuối): biến mất nếu không hạ được sau lifeSec
   if (R.nm) { R.nm.life -= dt; if (R.nm.life <= 0 || R.nm.hp <= 0) { const i = R.mobs.indexOf(R.nm); if (i >= 0) R.mobs.splice(i, 1); R.nm = null; R.nmT = NIGHTMARE.respawnSec; log('🌀 Hỗn Mang Chi Vương đã rút lui vào hư không.', '#c080ff'); } }
-  else if (!R.event && G.S.resets >= NIGHTMARE.minResets && (R.M.tier || 0) >= NIGHTMARE.minMapTier) {
+  else if (!R.event && !R.boss && G.S.resets >= NIGHTMARE.minResets && (R.M.tier || 0) >= NIGHTMARE.minMapTier) {
     R.nmT = (R.nmT == null ? NIGHTMARE.firstSec : R.nmT) - dt;
     if (R.nmT <= 0) { R.nm = spawnNightmare(); announce('🌀 HỖN MANG CHI VƯƠNG xuất hiện!'); log('🌀 <b>Hỗn Mang Chi Vương</b> đã xuất hiện — sức mạnh của nó thích nghi theo bạn! Hạ nó để nhận Mảnh Thần, ngọc và đồ +9 trở lên.', '#d070ff'); }
   }
-  if (!R.boss && !R.event) {
+  if (!R.boss && !R.event && !R.nm) { // mỗi lúc chỉ một boss trên bản đồ (boss thường / Hỗn Mang Chi Vương)
     R.bossT -= dt;
     if (R.bossT <= 0) {
       R.boss = spawnMob(R.map.bossCi, true);

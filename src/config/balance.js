@@ -68,7 +68,7 @@ export const MONSTER = {
   activeRadius: 26,
   /** Chiêu đập đất của boss: cảnh báo vùng đỏ rồi gây sát thương lớn — người chơi có thể né */
   bossSlam: { every: [6, 9], warn: 1.3, radius: 2.6, dmgMul: 2.4, triggerRange: 3.5 },
-  boss: { hp: 25, dmg: 2.2, def: 1.5, exp: 25, size: 2, speed: 0.85, range: 1.9, aggroRange: 6, attackCd: 1.3, leash: 14, levelBonus: 5, firstSpawnSec: 45, respawnSec: 180 },
+  boss: { hp: 25, dmg: 2.2, def: 1.5, exp: 25, size: 2, speed: 0.85, range: 1.9, aggroRange: 6, attackCd: 1.3, leash: 20, levelBonus: 5, firstSpawnSec: 45, respawnSec: 180 },
 };
 
 export const DROP = {

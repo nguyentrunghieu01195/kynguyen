@@ -16,6 +16,10 @@ let slot = SAVE_KEY;
 export const guestSlot = SAVE_KEY;
 export const setSaveSlot = (user) => { slot = user ? SAVE_KEY + '@' + user.toLowerCase() : SAVE_KEY; };
 export const currentSlot = () => slot;
+// Chơi khách: tối đa 5 nhân vật trên máy (ô 0 giữ khoá cũ để không mất save đã có)
+export const GUEST_SLOTS = 5;
+export const guestKey = (i) => (i ? SAVE_KEY + '#' + (i + 1) : SAVE_KEY);
+export const setGuestSlot = (i) => { slot = guestKey(i); };
 
 export function saveGame() {
   if (!G.S) return false;

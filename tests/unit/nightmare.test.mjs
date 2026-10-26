@@ -17,7 +17,11 @@ W.enterMap(9); G.S.resets = NIGHTMARE.minResets - 1; for (let i = 0; i < 200; i+
 G.S.resets = NIGHTMARE.minResets; W.enterMap(0); for (let i = 0; i < 200; i++) updateMonsters(1); assert(!G.R.nm, 'bản đồ thấp không có');
 // đủ điều kiện → xuất hiện sau firstSec
 W.enterMap(9); G.S.resets = NIGHTMARE.minResets; calcStats(); G.R.nmT = undefined;
-for (let i = 0; i < NIGHTMARE.firstSec + 5 && !G.R.nm; i++) updateMonsters(1); assert(G.R.nm && G.R.nm.nightmare && G.R.nm.boss, 'xuất hiện sau ' + NIGHTMARE.firstSec + 's');
+for (let i = 0; i < NIGHTMARE.firstSec + 5 && !G.R.nm; i++) updateMonsters(1);
+// mỗi lúc chỉ một boss: boss thường đã xuất hiện (45s) thì Hỗn Mang Chi Vương chờ
+assert(G.R.boss && !G.R.nm, 'không có 2 boss cùng lúc');
+G.R.mobs.splice(G.R.mobs.indexOf(G.R.boss), 1); G.R.boss = null; G.R.bossT = 999;
+for (let i = 0; i < 70 && !G.R.nm; i++) updateMonsters(1); assert(G.R.nm && G.R.nm.nightmare && G.R.nm.boss && !G.R.boss, 'xuất hiện khi boss thường không còn');
 const nm = G.R.nm; assert(G.R.mobs.includes(nm));
 // chỉ số thích nghi: mạnh lên theo sức mạnh người chơi, và theo số Reset
 G.R.mobs = G.R.mobs.filter((m) => m !== nm); G.R.nm = null;

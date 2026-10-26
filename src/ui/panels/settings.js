@@ -58,7 +58,7 @@ export default {
       '<h4>Nhập mã lưu</h4><textarea id="impcode" placeholder="Dán mã lưu vào đây"></textarea><div style="margin-top:4px">' + btn('Nhập', 'import', {}, { cls: 'sm' }) + '</div>' +
       '<h4>Phím tắt (PC)</h4><div class="muted">Chuột trái: di chuyển/tấn công · 1–4 (hoặc Space): kỹ năng ô 1–4 · A: Auto · Q/W: bình máu/mana · K: kỹ năng · N: bản đồ khu vực · C: nhân vật · I: túi đồ · U: ép đồ · M: bản đồ · Esc: đóng</div>' +
       '<h4>Hướng dẫn</h4>' + btn('Xem lại hướng dẫn tân thủ', 'tutRestart', {}, { cls: 'sm' }) +
-      '<h4>Nhân vật</h4>' + btn(UI.wipeConfirm ? 'Bấm lần nữa để XÓA và tạo nhân vật mới' : 'Xóa nhân vật, chơi lại từ đầu', 'wipe', {}, { cls: 'sm red' })
+      '<h4>Nhân vật</h4><div class="row">' + btn('Đổi / tạo nhân vật khác', 'switchChar', {}, { cls: 'sm green' }) + btn(UI.wipeConfirm ? 'Bấm lần nữa để XÓA nhân vật này' : 'Xóa nhân vật này', 'wipe', {}, { cls: 'sm red' }) + '</div>'
     );
   },
   actions: {
@@ -89,6 +89,7 @@ export default {
     },
     cloudSave: async () => { if (isRemote()) { log('☁️ Nhân vật được máy chủ lưu tự động.', '#8f8'); return; } logSync(await pushSave()); },
     cloudLogout: async () => { await logout(); UI.noSave = true; location.reload(); },
+    switchChar: () => { if (!isRemote()) saveGame(); UI.noSave = true; location.reload(); },
     toStart: () => { saveGame(); UI.noSave = true; location.reload(); },
     openCloud: () => ({ open: 'cloud' }),
     pwToggle: () => { UI.pwOpen = !UI.pwOpen; UI.pwMsg = ''; },

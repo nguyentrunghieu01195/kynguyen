@@ -30,7 +30,8 @@ function autoThink() {
   if (HOOKS.auto && HOOKS.auto()) return; // chế độ riêng (công thành: ưu tiên địch / cổng / ngai)
   if (R.manualT > 0 || R.travel) return;
   // Nhặt đồ rơi gần khi không bị đánh (class đánh xa hay bỏ sót đồ vì đứng xa chỗ quái chết)
-  if (!(p.hurtT > 0)) {
+  const fightingBoss = p.target && p.target.boss && p.target.hp > 0 && !p.target.ret;
+  if (!(p.hurtT > 0) && !fightingBoss) { // đang đánh boss thì không bỏ đi nhặt đồ (boss bị kéo xa sẽ chạy về hồi máu)
     let near = null, nd = AUTO.quickLoot;
     for (const d of R.drops) { if (!canPick(d) || d.ignoreT > R.time) continue; const dd = dist(d, p); if (dd < nd) { nd = dd; near = d; } }
     if (near) { p.target = null; p.tx = near.x; p.ty = near.y; return; }
@@ -42,7 +43,7 @@ function autoThink() {
     else if ((p.prog.t += R.dtLast || 0) > 4) { t.ignoreT = R.time + 25; p.target = null; p.prog = { m: null }; return; }
     // Có quái gần hơn hẳn → đổi mục tiêu
     const dt = dist(p.target, p);
-    if (dt > 2.5 && !p.target.nightmare) { const n = nearestMob(p, dt - AUTO.switchMargin, true); if (n) p.target = n; } // đang đi tới Hỗn Mang Chi Vương thì không bị quái gần cướp mục tiêu
+    if (dt > 2.5 && !p.target.boss) { const n = nearestMob(p, dt - AUTO.switchMargin, true); if (n) p.target = n; } // đã nhắm boss (thường / Hỗn Mang Chi Vương) thì không bị quái gần cướp mục tiêu
     return;
   }
   let best = null, bd = AUTO.lootRadius;
