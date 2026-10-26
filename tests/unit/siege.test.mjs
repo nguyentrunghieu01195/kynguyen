@@ -69,7 +69,7 @@ siege.brain.gateHit('G2', 1e9); const th = SIEGE.throne; for (let i = 0; i < 20;
 // 20:31 → kết thúc
 T = Date.UTC(2026, 9, 25, 13, 31); siege.tick();
 const res = siege.takeResult(); assert.equal(res.winner, 'Ho'); assert.equal(res.changed, true); assert.equal(siege.owner().name, 'Ho'); assert.equal(siege.ownerGid(), 'G2');
-assert.equal(lots.length, 1); assert.equal(lots[0].gid, 'G2'); assert.deepEqual(lots[0].accs, ['P1', 'P2'], 'chỉ người chiến đấu đủ 5 phút'); assert.equal(lots[0].specs.length, 3);
+assert.equal(lots.length, 1); assert.equal(lots[0].gid, 'G2'); assert.deepEqual(lots[0].accs, ['P1', 'P2'], 'chỉ người chiến đấu đủ 5 phút'); assert.equal(lots[0].specs.length, 5, '5 vũ khí đặc biệt (mỗi class một)');
 assert(lots[0].specs.every((s) => s.item.special && s.item.slot === 'weapon' && s.start > 0));
 const part = mails.filter((m) => /Thưởng công thành/.test(m.t)); assert.equal(part.length, 3, 'P1,P2 (thắng) + P4 (tham gia)');
 assert.equal(part.find((m) => m.a === 'P1').g.zen, 80 * 3000 * 2, 'bang thắng ×2'); assert.equal(part.find((m) => m.a === 'P4').g.zen, 60 * 3000);

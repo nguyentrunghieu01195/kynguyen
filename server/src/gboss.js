@@ -13,20 +13,20 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { GBOSS, gbossStatus, rewardsForRank, AUCTION, nextBid } from '../../src/config/gboss.js';
 import { makeItem, rollExc } from '../../src/systems/items.js';
-import { WEAPON_TYPES, LINE_B_CHANCE, specialWeaponIndex } from '../../src/config/gear.js';
+import { WEAPON_TYPES, LINE_B_CHANCE, specialWeaponIndex, regularIndexes } from '../../src/config/gear.js';
 import { DROP_SLOTS } from '../../src/config/items.js';
 import { TradeError, cleanItem, goodsText } from './market.js';
 
 const nid = () => crypto.randomBytes(5).toString('hex');
 const bad = (msg, status = 400) => new TradeError(msg, status);
 const rint = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
-const CLASSES = ['knight', 'wizard', 'archer'];
+const CLASSES = ['knight', 'wizard', 'archer', 'lord', 'gladiator'];
 const emptyGoods = () => ({ items: [], jewels: {}, zen: 0 });
 
 /** Tạo món đồ cho 1 phần quà: loại đồ ngẫu nhiên, vũ khí thuộc lớp ngẫu nhiên */
 function lotItem(spec) {
   const slot = spec.slot || DROP_SLOTS[rint(0, DROP_SLOTS.length - 1)], cls = spec.cls || CLASSES[rint(0, 2)];
-  const extra = slot === 'weapon' ? { wt: spec.special ? specialWeaponIndex(cls) : rint(0, WEAPON_TYPES[cls].filter((w) => !w.special).length - 1) } : { line: Math.random() < LINE_B_CHANCE ? 1 : 0 };
+  const extra = slot === 'weapon' ? { wt: spec.special ? specialWeaponIndex(cls) : regularIndexes(cls)[rint(0, regularIndexes(cls).length - 1)] } : { line: Math.random() < LINE_B_CHANCE ? 1 : 0 };
   return cleanItem(makeItem(slot, spec.tier, spec.plus || 0, spec.exc ? rollExc(slot, spec.exc) : null, cls, extra));
 }
 

@@ -5,7 +5,7 @@ import { log, announce } from '../core/events.js';
 import { fmt } from '../core/utils.js';
 import { CLASSES, FEMALE_CLASSES } from '../config/classes.js';
 import { defaultSkills, migrateSkills } from '../config/skills.js';
-import { regularWeaponCount, specialWeaponIndex } from '../config/gear.js';
+import { regularIndexes, specialWeaponIndex } from '../config/gear.js';
 import { makeItem } from './items.js';
 import { calcStats } from './stats.js';
 
@@ -33,7 +33,8 @@ export function classChangeBlock(cls, S = G.S) {
 /** Đổi vũ khí sang class mới: giữ bậc, cấp ép, dòng thuộc tính; kiểu vũ khí map theo thứ tự (đặc biệt → đặc biệt) */
 function convertWeapon(it, from, to) {
   const special = it.wt === specialWeaponIndex(from) && specialWeaponIndex(from) >= 0;
-  const wt = special ? specialWeaponIndex(to) : Math.min(it.wt || 0, regularWeaponCount(to) - 1);
+  const RF = regularIndexes(from), RT = regularIndexes(to), pos = Math.max(0, RF.indexOf(it.wt || 0)); // theo thứ tự trong danh sách thường
+  const wt = special ? specialWeaponIndex(to) : RT[Math.min(pos, RT.length - 1)];
   const n = makeItem('weapon', it.tier, it.plus, it.exc, to, { wt });
   if (it.god > 0) n.god = it.god; // giữ Thần cấp khi đổi class
   return n;

@@ -21,7 +21,7 @@ export const DIVINE = {
 };
 /** Tên đồ Thần: vũ khí theo class, giáp theo ô */
 export const DIVINE_NAMES = {
-  weapon: { knight: 'Thần Kiếm Vô Cực', wizard: 'Thần Trượng Hỗn Nguyên', archer: 'Thần Cung Thiên Lý' },
+  weapon: { knight: 'Thần Kiếm Vô Cực', wizard: 'Thần Trượng Hỗn Nguyên', archer: 'Thần Cung Thiên Lý', lord: 'Thần Quyền Trượng Vô Thượng', gladiator: 'Thần Kiếm Phép Thiên Địa' },
   helm: 'Thần Miện', armor: 'Thần Giáp', pants: 'Thần Khố', gloves: 'Thần Thủ', boots: 'Thần Hài',
 };
 export const godDropMult = (it) => (it && it.god ? DIVINE.mult(it.god) : 1);

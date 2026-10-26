@@ -9,7 +9,7 @@ import { G } from '../core/state.js';
 import { log, announce } from '../core/events.js';
 import { MAPS } from '../config/maps.js';
 import { PROGRESSION as PG } from '../config/balance.js';
-import { WEAPON_TYPES, regularWeaponCount } from '../config/gear.js';
+import { WEAPON_TYPES, regularIndexes } from '../config/gear.js';
 import { commandMove, commandAttack, toggleAuto } from '../systems/player.js';
 import { usePotion } from '../systems/combat.js';
 import { castSlot, learnSkill, setSlot, toggleAutoSkill } from '../systems/skills.js';
@@ -90,8 +90,8 @@ export const ACTIONS = {
   reforge: [(a) => [id(a[0]), int(a[1], 0, 9)], (k, v) => {
     const r = findItem(k);
     if (!r) return false;
-    const max = r.it.slot === 'weapon' ? regularWeaponCount(r.it.cls || G.S.cls) - 1 : 1;
-    return v <= max ? !!reforge(k, v) : false;
+    const ok = r.it.slot === 'weapon' ? regularIndexes(r.it.cls || G.S.cls).includes(v) : v >= 0 && v <= 1;
+    return ok ? !!reforge(k, v) : false;
   }],
   buy: [(a) => [id(a[0]), int(a[1], 1, 1000)], (k, n) => !!buy(k, n)],
   // --- nhiệm vụ & thưởng ---

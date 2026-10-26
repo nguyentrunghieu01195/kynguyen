@@ -3,6 +3,7 @@
 // =====================================================================
 // Hằng tuần một trận: bang giữ thành (thủ) đấu với tối đa 3 bang công trong MỘT đấu trường dùng chung.
 // Phá Cổng Thành rồi chiếm / giữ Ngai Vàng; hết giờ bang giữ ngai lâu nhất thắng và chiếm thành 1 tuần.
+import { CLASSES } from './classes.js';
 export const SIEGE = {
   name: 'Công Thành Chiến', icon: '🏯',
   // ---- lịch (giờ Việt Nam UTC+7) ----
@@ -43,7 +44,7 @@ export const CASTLE = {
   winnerMul: 2,
 };
 /** Quà bang thắng: 1 vũ khí đặc biệt (Hoàn Hảo +9, bậc cao nhất) cho mỗi class, vào đấu giá bang 15' → thế giới 30'. Giá tham chiếu × premium vì chỉ có từ công thành */
-export const siegeRewardSpecs = (withStart) => ['knight', 'wizard', 'archer'].map((cls) => withStart({ item: { tier: 5, plus: 9, exc: 3, slot: 'weapon', cls, special: true }, premium: 1.8 }));
+export const siegeRewardSpecs = (withStart) => Object.keys(CLASSES).map((cls) => withStart({ item: { tier: 5, plus: 9, exc: 3, slot: 'weapon', cls, special: true }, premium: 1.8 }));
 
 export const PVP_TPL = { id: 'pvp', name: 'Đối thủ', shape: 'humanoid', c1: '#888', c2: '#ddd', size: 1 };
 export const GATE_TPL = { id: 'sgate', name: 'Cổng Thành', shape: 'gate', c1: '#6a5a4a', c2: '#ffb050', size: 1.6 };

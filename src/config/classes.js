@@ -26,12 +26,30 @@ export const CLASSES = {
     range: 7,
     attack: 'arrow',
   },
+  lord: {
+    name: 'Chúa Tể',
+    desc: 'Thủ lĩnh uy quyền: quyền trượng tầm trung, sát thương từ Sức Mạnh lẫn Năng Lượng, triệu lệnh sấm sét và hố hỗn mang.',
+    stats: { str: 22, agi: 16, vit: 20, ene: 20 },
+    atkSpd: 1.0,
+    range: 5,
+    attack: 'fire',
+  },
+  gladiator: {
+    name: 'Đấu Sĩ',
+    desc: 'Kiếm phép song tu: chém cận chiến được phép thuật cường hoá, vừa dẻo vừa bền.',
+    stats: { str: 24, agi: 18, vit: 22, ene: 16 },
+    atkSpd: 1.15,
+    range: 1.6,
+    attack: 'melee',
+  },
 };
 
 /** Công thức chỉ số gốc theo class */
 export const STAT_FORMULA = {
   knight: { dmg: (s) => s.str / 3.5, hp: (s, lv) => 60 + lv * 2 + s.vit * 3, mp: (s, lv) => 20 + lv * 1.6 + s.ene * 2, defDiv: 3 },
   wizard: { dmg: (s) => s.ene / 3.6, hp: (s, lv) => 60 + lv * 1.5 + s.vit * 2.5, mp: (s, lv) => 40 + lv + s.ene * 2, defDiv: 4 },
+  lord: { dmg: (s) => (s.str + s.ene) / 5.6, hp: (s, lv) => 55 + lv * 1.8 + s.vit * 2.8, mp: (s, lv) => 35 + lv * 1.4 + s.ene * 1.8, defDiv: 3.5 },
+  gladiator: { dmg: (s) => (s.str * 0.7 + s.ene * 0.5) / 3.4, hp: (s, lv) => 60 + lv * 2 + s.vit * 3, mp: (s, lv) => 25 + lv * 1.5 + s.ene * 1.6, defDiv: 3.2 },
   archer: { dmg: (s) => (s.str + s.agi * 2) / 11, hp: (s, lv) => 50 + lv * 1.5 + s.vit * 2.5, mp: (s, lv) => 30 + lv * 1.5 + s.ene * 1.5, defDiv: 4 },
 };
 

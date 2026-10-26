@@ -10,11 +10,13 @@ import { WEAPONS, MELEE, pauldron, chestEmblem, crest, drawWings, OUTFIT_COLORS,
 /** Viền của dòng giáp đầu mỗi bậc (giữ để tương thích icon/trang thiết kế) */
 export const TRIM = ARMOR_SETS.map((l) => l[0].trim);
 const SKIN = { b: '#f8d8b8', s: '#e8b48e', o: '#8a5238' };
-const HAIR = { knight: '#3a2418', wizard: '#dcd8ec', archer: '#e8b850' };
-const EYES = { knight: '#2a4a8a', wizard: '#6a3aaa', archer: '#2a7a4a' };
+const HAIR = { knight: '#3a2418', wizard: '#dcd8ec', archer: '#e8b850', lord: '#1a1224', gladiator: '#7a2a18' };
+const EYES = { knight: '#2a4a8a', wizard: '#6a3aaa', archer: '#2a7a4a', lord: '#c030a0', gladiator: '#c05020' };
 const PLAIN = { color: '#6a6a72', trim: '#4a4a52', style: 'cloth' };
 
 // ---------------- NGOẠI HÌNH ----------------
+/** Kiểu thời trang mới có `base` (kiểu 2D có sẵn gần nhất): bản 2D vẽ theo base, bản 3D giữ kiểu gốc ở s3 */
+const asBase = (f) => (f && f.base ? { ...f, style: f.base, s3: f.style } : f);
 function resolveLook(cls, eq, fa) {
   const set = (sl) => (eq[sl] ? ARMOR_SETS[eq[sl].tier][eq[sl].line || 0] || ARMOR_SETS[eq[sl].tier][0] : null);
   const armor = set('armor') || PLAIN, helm = set('helm'), pants = set('pants'), gloves = set('gloves'), boots = set('boots');
@@ -24,8 +26,8 @@ function resolveLook(cls, eq, fa) {
     legs: pants ? pants.color : '#4a4038', boots: boots ? boots.color : '#3a2a20', gloves: gloves ? gloves.color : SKIN.b,
     kneeStyle: pants ? pants.style : 'cloth',
     wings: eq.wings || null,
-    outfit: fa && fa.outfit ? FASHION_BY_ID[fa.outfit] : null,
-    head: fa && fa.head ? FASHION_BY_ID[fa.head] : null,
+    outfit: fa && fa.outfit ? asBase(FASHION_BY_ID[fa.outfit]) : null,
+    head: fa && fa.head ? asBase(FASHION_BY_ID[fa.head]) : null,
     aura: fa && fa.aura ? FASHION_BY_ID[fa.aura] : null,
   };
   if (L.outfit) Object.assign(L, OUTFIT_COLORS[L.outfit.style](L.outfit));

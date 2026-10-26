@@ -341,3 +341,7 @@ b.zen, .zen { color: var(--zen); }
 .cell.r-god, .cell.r-god.exc { border-color: #ff7aff; animation: kn-god 1.8s ease-in-out infinite; background: radial-gradient(circle at 50% 40%, #4a1a4a, #0d0b08); }
 @keyframes kn-god { 0%, 100% { box-shadow: 0 0 8px 1px rgba(255, 122, 255, .6), inset 0 0 8px rgba(255, 210, 74, .35); } 50% { box-shadow: 0 0 18px 4px rgba(255, 210, 74, .9), inset 0 0 14px rgba(255, 122, 255, .6); } }
 .cell .gd { bottom: 1px; right: 3px; color: #ff7aff; }
+
+/* Màu tươi hơn cho thế giới game */
+#cv { filter: saturate(1.35) contrast(1.06) brightness(1.04); }
+html.pixel #cv { filter: saturate(1.15) contrast(1.04); }

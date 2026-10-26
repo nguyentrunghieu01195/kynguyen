@@ -199,6 +199,33 @@ const SKILL_FN = {
     ts.forEach((m, i) => G.R.projs.push({ x: p.x, y: p.y, tgt: m, spd: 14 + i, mult, k: 'ice', skill: true, eff: { slow: sk.slow } }));
     return true;
   },
+  // Nổ quanh người: sát thương diện rộng tức thì, có thể làm choáng / chậm và hồi máu cho bản thân
+  burst(sk, p, mult, manual) {
+    const r = sk.radius * G.P.skillArea;
+    if (!G.R.mobs.some((m) => inR(m, p.x, p.y, r)) && !manual) return false;
+    G.R.fx.push({ k: 'nova', x: p.x, y: p.y, t: 0, d: 0.55, r, col: sk.col || '#ffd070', fire: !!sk.fire });
+    emit(EV.SHAKE, 4);
+    areaHit(p.x, p.y, r, mult, { stun: sk.stun, slow: sk.slow });
+    if (sk.heal) p.hp = Math.min(G.P.maxHp, p.hp + (G.P.maxHp * sk.heal) / 100);
+    return true;
+  },
+  // Hút máu: một mục tiêu, hồi % HP tối đa cho bản thân nếu trúng
+  drain(sk, p, mult, manual) {
+    const tg = pickTarget(p, sk.castRange, manual);
+    if (!tg) return false;
+    G.R.fx.push({ k: 'beam', x: p.x, y: p.y, x1: tg.x, y1: tg.y, t: 0, d: 0.4, col: sk.col || '#ff5a8a' });
+    hitMob(tg, mult, SKO);
+    if (sk.heal) { p.hp = Math.min(G.P.maxHp, p.hp + (G.P.maxHp * sk.heal) / 100); addText(p.x, p.y, '+' + Math.round((G.P.maxHp * sk.heal) / 100), '#7dff9a', true); }
+    return true;
+  },
+  // Loạt đạn: nhiều đạn bắn dồn vào các quái gần nhất (mỗi quái nhận lần lượt, quái gần nhất trúng nhiều nhất)
+  volley(sk, p, mult, manual) {
+    const ts = G.R.mobs.filter((m) => dist(m, p) <= sk.castRange).sort((a, b) => dist(a, p) - dist(b, p));
+    if (!ts.length) { if (manual) log('Không có mục tiêu trong tầm', '#aaa'); return false; }
+    const n = sk.count + G.P.extraArrows;
+    for (let i = 0; i < n; i++) G.R.projs.push({ x: p.x + rnd(-0.3, 0.3), y: p.y + rnd(-0.3, 0.3), tgt: ts[i % Math.min(ts.length, 3)], spd: 15 + (i % 4), mult, k: 'arrow2', skill: true });
+    return true;
+  },
   phoenix(sk, p, mult, manual) {
     const tg = pickTarget(p, sk.castRange, manual);
     if (!tg) return false;
@@ -214,7 +241,7 @@ function castBuff(sk, p, r) {
   calcStats();
   return true;
 }
-export const BUFF_COL = { warcry: '#ff7a3a', manashield: '#7fb8ff', focus: '#7fff9a' };
+export const BUFF_COL = { warcry: '#ff7a3a', manashield: '#7fb8ff', focus: '#7fff9a', rally: '#d070ff', spellblade: '#ffb060' };
 
 /** Thi triển kỹ năng theo id. manual = do người chơi bấm */
 export function castSkillId(id, manual) {
@@ -223,7 +250,7 @@ export function castSkillId(id, manual) {
   if ((p.cds[id] || 0) > 0 || p.gcd > 0) return false;
   const cost = mpCost(sk, r);
   if (p.mp < cost) { if (manual) log('Không đủ MP!', '#6aaaff'); return false; }
-  const ok = sk.type === 'buff' ? castBuff(sk, p, r) : SKILL_FN[sk.id](sk, p, sk.mult * rankMult(r) * G.P.skillMul, manual);
+  const ok = sk.type === 'buff' ? castBuff(sk, p, r) : SKILL_FN[sk.fn || sk.id](sk, p, sk.mult * rankMult(r) * G.P.skillMul, manual);
   if (!ok) return false;
   p.mp -= cost;
   p.cds[id] = cdOf(sk, r);

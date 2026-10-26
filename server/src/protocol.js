@@ -11,7 +11,8 @@ export const LIMITS = {
   helloTimeoutMs: 5000,
 };
 
-export const CLASSES = ['knight', 'wizard', 'archer'];
+import { CLASSES as ALL_CLASSES } from '../../src/config/classes.js';
+export const CLASSES = Object.keys(ALL_CLASSES);
 const SLOTS = ['weapon', 'helm', 'armor', 'pants', 'gloves', 'boots', 'wings'];
 
 const num = (v, min, max, def = min) => (Number.isFinite(+v) ? Math.min(max, Math.max(min, +v)) : def);

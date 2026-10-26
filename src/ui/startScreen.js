@@ -13,7 +13,7 @@ const NAME_A = ['Long', 'Phong', 'Vân', 'Hổ', 'Ưng', 'Kiếm', 'Thiên', 'H�
 const NAME_B = ['Vương', 'Thần', 'Hiệp', 'Ảnh', 'Tử', 'Nhân', 'Ma', 'Sát'];
 export const randomName = () => NAME_A[rint(0, NAME_A.length - 1)] + NAME_B[rint(0, NAME_B.length - 1)] + rint(1, 99);
 
-const PREVIEW_TIER = { knight: 1, wizard: 5, archer: 3 };
+const PREVIEW_TIER = { knight: 1, wizard: 5, archer: 3, lord: 4, gladiator: 2 };
 let selected = 'knight', gender = 'm';
 let cont = null;           // bản lưu sẽ dùng khi bấm "Tiếp tục"
 let guestSave = null;      // nhân vật khách trên máy (để đưa vào tài khoản)

@@ -362,6 +362,21 @@ export function auraLayer(c, f, t, front) {
       for (let i = 0; i < 12; i++) { const x = Math.sin(t * (0.7 + hash(i)) + i * 2) * 24, y = -30 + Math.cos(t * (0.9 + hash(i + 2)) + i) * 26, isFront = hash(i + 7) < 0.5; if (isFront !== front) continue;
         c.globalAlpha = 0.55 + 0.45 * Math.sin(t * 5 + i * 3); if (gfx3d() && orb3(c, x, y, 5, a)) continue; c.fillStyle = rgrad(c, x, y, 0.5, 7, a, 'rgba(0,0,0,0)'); pCirc(c, x, y, 7); c.fill(); pCirc(c, x, y, 1.6); c.fillStyle = '#ffffe0'; c.fill(); }
       break;
+    case 'storm':
+      for (let i = 0; i < 9; i++) { const ang = t * 2.2 + (i / 9) * 6.283, x = Math.cos(ang) * 24, y = -30 + Math.sin(ang) * 8 + Math.sin(t * 3 + i * 1.7) * 18, isFront = Math.sin(ang) > 0; if (isFront !== front) continue;
+        c.globalAlpha = 0.5 + 0.5 * Math.sin(t * 9 + i * 2.3); if (gfx3d() && gem3(c, x, y, 15, i % 2 ? a : b, ang)) continue; sparkle(c, x, y, 3.4, i % 2 ? a : b, c.globalAlpha); }
+      if (!front) { c.globalAlpha = 0.5; if (gfx3d()) ring3(c, 26, a, 0.03); else { c.strokeStyle = a; c.lineWidth = 1.6; c.beginPath(); c.ellipse(0, 0, 24, 9, 0, 0, 6.283); c.stroke(); } }
+      break;
+    case 'void':
+      for (let i = 0; i < 8; i++) { const ang = -t * 1.6 + (i / 8) * 6.283, rr = 20 + 5 * Math.sin(t * 2 + i), x = Math.cos(ang) * rr, y = -26 + Math.sin(ang) * rr * 0.4 - 8 * Math.sin(t + i), isFront = Math.sin(ang) > 0; if (isFront !== front) continue;
+        c.globalAlpha = 0.9; if (gfx3d() && orb3(c, x, y, 6.5, i % 2 ? a : b)) continue; c.fillStyle = rgrad(c, x, y, 0.5, 6.5, i % 2 ? a : b, 'rgba(0,0,0,0)'); pCirc(c, x, y, 6.5); c.fill(); }
+      if (!front) { c.globalAlpha = 0.45; if (gfx3d()) { ring3(c, 28, b, 0.03); ring3(c, 17, a, 0.03); } else { c.strokeStyle = a; c.lineWidth = 2; c.beginPath(); c.ellipse(0, 0, 22, 8, 0, 0, 6.283); c.stroke(); } }
+      break;
+    case 'holy':
+      for (let i = 0; i < 10; i++) { const k = (t * 0.5 + hash(i)) % 1, x = (hash(i + 3) - 0.5) * 34, y = -k * 70, isFront = hash(i + 6) < 0.5; if (isFront !== front) continue;
+        c.globalAlpha = (1 - k) * 0.95; if (gfx3d() && gem3(c, x, y, 11, i % 2 ? a : b, k * 6)) continue; sparkle(c, x, y, 3.2 * (1 - k) + 1, i % 2 ? a : b, c.globalAlpha); }
+      if (!front) { c.globalAlpha = 0.55 + 0.2 * Math.sin(t * 3); if (gfx3d()) { ring3(c, 24, a, 0.035); } else { c.strokeStyle = a; c.lineWidth = 2; c.beginPath(); c.ellipse(0, -66, 12, 4, 0, 0, 6.283); c.stroke(); } if (gfx3d()) { c.save(); c.translate(0, -66); ring3(c, 11, b, 0.03); c.restore(); } }
+      break;
     case 'sakura':
       c.globalCompositeOperation = 'source-over';
       for (let i = 0; i < 16; i++) { const k = (t * 0.35 + hash(i)) % 1, x = (hash(i + 3) - 0.5) * 48 + Math.sin(t * 2 + i) * 5, y = -64 + k * 66, isFront = hash(i + 5) < 0.5; if (isFront !== front) continue;

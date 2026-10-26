@@ -1,6 +1,7 @@
 // Chiến đấu: đánh thường, kỹ năng, nhận sát thương, chết, bình thuốc.
 import { G } from '../core/state.js';
 import { NIGHTMARE } from '../config/nightmare.js';
+import { checkUnlocks } from './fashion.js';
 import { log, announce, emit, EV } from '../core/events.js';
 import { rnd, dist, fmt } from '../core/utils.js';
 import { CLASSES } from '../config/classes.js';
@@ -95,7 +96,7 @@ export function killMob(m) {
   R.fx.push({ k: 'die', x: m.x, y: m.y, t: 0, d: 0.45, col: m.c1, size: m.size });
   if (m.event || m.noRespawn) { /* quái sự kiện: không hồi sinh */ }
   else if (m.nightmare) {
-    R.nm = null; R.nmT = NIGHTMARE.respawnSec;
+    R.nm = null; R.nmT = NIGHTMARE.respawnSec; S.nmKills = (S.nmKills || 0) + 1; checkUnlocks();
     announce('Đã hạ Hỗn Mang Chi Vương!');
     log('🌀 Bạn đã hạ gục <b>Hỗn Mang Chi Vương</b>! Nó sẽ trở lại sau ' + Math.round(NIGHTMARE.respawnSec / 60) + ' phút.', '#d070ff');
   } else if (m.boss) {

@@ -37,6 +37,14 @@ const NAMES = {
     branches: [['🔮', 'Tinh Hoa Phép', '#c070ff'], ['✨', 'Kết Giới', '#7ad4ff'], ['📘', 'Trí Tuệ', '#ffd54a']],
     nodes: ['Ma Lực', 'Tâm Pháp Bạo', 'Cộng Hưởng Phép', 'Pháp Thần Giáng Lâm', 'Ma Thể', 'Pháp Giáp', 'Phong Ấn', 'Bất Diệt', 'Tụ Niệm', 'Thi Triển Nhanh', 'Kim Thuật', 'Thông Tuệ'],
   },
+  lord: {
+    branches: [['👑', 'Vương Quyền', '#d070ff'], ['🛡️', 'Cận Vệ', '#7ab8ff'], ['🚩', 'Thống Lĩnh', '#ffd54a']],
+    nodes: ['Uy Lực', 'Sấm Lệnh', 'Cộng Hưởng Quyền', 'Hoàng Đế Vô Song', 'Thân Vương', 'Giáp Cận Vệ', 'Lá Chắn Lệnh', 'Bất Diệt Chi Vương', 'Nhịp Hiệu Lệnh', 'Lệnh Nhanh', 'Cống Phẩm', 'Chúa Tể Hỗn Mang'],
+  },
+  gladiator: {
+    branches: [['⚔️', 'Kiếm Phép', '#ff9a5a'], ['🛡️', 'Thể Phách', '#7ab8ff'], ['🔥', 'Chiến Ý', '#ffd54a']],
+    nodes: ['Lực Kiếm', 'Điểm Phép', 'Kiếm Khí Phép', 'Thánh Đấu Vô Song', 'Thể Phách Sắt', 'Giáp Phép', 'Hộ Thể Phép', 'Bất Khuất', 'Nhịp Chiến', 'Kiếm Nhanh', 'Chiến Lợi', 'Huyền Thoại Đấu Trường'],
+  },
   archer: {
     branches: [['🏹', 'Xạ Kích', '#ff9a5a'], ['🍃', 'Linh Hoạt', '#7aff9a'], ['🦅', 'Thợ Săn', '#ffd54a']],
     nodes: ['Lực Cung', 'Nhắm Chuẩn', 'Mũi Tên Phá Giáp', 'Tiễn Thánh Vô Song', 'Thể Lực', 'Áo Giáp Nhẹ', 'Né Tránh', 'Gió Lướt', 'Nhịp Bắn', 'Tay Nhanh', 'Chiến Lợi Phẩm', 'Truy Vết'],

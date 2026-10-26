@@ -47,4 +47,12 @@ await wait(500); c.ws.close(); await wait(800); await stop();
 // lưu bền
 const f = fs.readdirSync(path.join(DATA, 'saves'))[0], saved = JSON.parse(fs.readFileSync(path.join(DATA, 'saves', f))), d = saved.data || saved;
 assert.equal(d.cls, 'wizard'); assert.equal(d.loot.minTier, 3); assert(d.shards >= 1); assert(d.master.lv === 6 && d.master.nodes.knight.a1 === 1); assert(d.inv.some((i) => i.god === 1) || Object.values(d.equip).some((i) => i && i.god === 1) || lst.s === 200, 'Thần cấp được lưu');
+await wait(200);
+// tạo nhân vật Chúa Tể / Đấu Sĩ trên máy chủ thật, vào game, dùng kỹ năng đầu
+for (const [u, cls] of [['lordtest', 'lord'], ['gladtest', 'gladiator']]) {
+  await start(); const R = (await http('POST', '/api/register', null, { user: u, pass: 'matkhau123' })).j; assert(R.token, 'register ' + cls);
+  const c2 = await play(R.token, { create: { cls, name: 'Ban' + cls.slice(0, 3) } }); await wait(300); let st = merged(c2); c2.ws.close(); await wait(300);
+  const c3 = await play(R.token, { play: true }); await wait(500); st = merged(c3); assert.equal(st.cls, cls, 'class ' + cls); assert.equal(st.equip.weapon.cls, cls); assert(st.skills.r[cls === 'lord' ? 'darkbolt' : 'flameblade'] >= 1);
+  assert.equal((await c3.act('learnSkill', cls === 'lord' ? 'thunderorder' : 'lightningslash')).r, false, 'chưa đủ cấp'); c3.ws.close(); await wait(300); await stop();
+}
 console.log('E2E-NEW OK'); process.exit(0);

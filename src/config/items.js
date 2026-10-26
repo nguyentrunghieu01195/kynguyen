@@ -10,6 +10,8 @@ export const PIECE_DEF = { helm: 0.8, armor: 1.3, pants: 1.0, gloves: 0.7, boots
 export const WEAPON_NAMES = {
   knight: ['Kiếm Ngắn', 'Kiếm Thép', 'Đại Kiếm Xương', 'Kiếm Băng Phong', 'Kiếm Hỏa Ngục', 'Thánh Kiếm'],
   wizard: ['Gậy Gỗ', 'Gậy Pha Lê', 'Trượng Xương', 'Trượng Băng', 'Trượng Dung Nham', 'Trượng Thiên Giới'],
+  lord: ['Trượng Đồng', 'Trượng Sừng', 'Quyền Trượng Xương', 'Quyền Trượng Băng', 'Quyền Trượng Hắc Hoả', 'Quyền Trượng Thiên Vương'],
+  gladiator: ['Kiếm Phép Sơ Cấp', 'Kiếm Phép Thép', 'Kiếm Phép Xương', 'Kiếm Phép Băng Lôi', 'Kiếm Phép Hỏa Ngục', 'Kiếm Phép Thiên Giới'],
   archer: ['Cung Gỗ', 'Cung Sừng', 'Cung Xương', 'Cung Băng', 'Cung Hỏa Long', 'Cung Thiên Sứ'],
 };
 

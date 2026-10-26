@@ -4,6 +4,7 @@ import { log, announce } from '../core/events.js';
 import { fmt } from '../core/utils.js';
 import { MASTER, masterNeed, masterTree, defaultMaster } from '../config/master.js';
 import { calcStats } from './stats.js';
+import { checkUnlocks } from './fashion.js';
 
 export const masterOf = (S = G.S) => S.master || (S.master = defaultMaster());
 export const masterUnlocked = (S = G.S) => (S.tier || 1) >= MASTER.unlockTier || masterOf(S).lv > 0;
@@ -32,7 +33,7 @@ export function gainMasterExp(amount) {
   if (up) {
     const p = G.R.p;
     G.R.fx.push({ k: 'tierup', x: p.x, y: p.y, t: 0, d: 1.8, tier: 3, follow: true });
-    announce('MASTER CẤP ' + m.lv + '!');
+    announce('MASTER CẤP ' + m.lv + '!'); checkUnlocks();
     log('🌟 Lên <b>cấp Master ' + m.lv + '</b> — có ' + masterPoints(S) + ' điểm Master. Mở bảng <b>Master</b> để đầu tư.', '#ffd54a');
   }
   return up;

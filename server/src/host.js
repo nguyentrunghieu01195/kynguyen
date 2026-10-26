@@ -256,7 +256,7 @@ export function createHost({ accounts, store, market, guilds, gboss, siege, send
       try { old.s.ws.close(4004, 'other device'); } catch (e) { /* bỏ qua */ }
     }
     if (create) {
-      const cls = ['knight', 'wizard', 'archer'].includes(create.cls) ? create.cls : 'knight';
+      const cls = ['knight', 'wizard', 'archer', 'lord', 'gladiator'].includes(create.cls) ? create.cls : 'knight';
       S = createCharacter(cls, String(create.name || 'Hiệp Sĩ').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 12) || 'Hiệp Sĩ', create.gender === 'f' ? 'f' : 'm');
       S.tut = 0;
     } else if (!S) {

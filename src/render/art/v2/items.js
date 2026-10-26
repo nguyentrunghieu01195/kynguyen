@@ -1,4 +1,5 @@
 // Icon vật phẩm V2 (vẽ bằng code, cache thành ảnh) + vật phẩm rơi trên đất.
+import { SKILLS_BY_ID } from '../../../config/skills.js';
 import { pixelOn, pixelate } from '../../pixel.js';
 import { SETS, WINGS, JEWELS } from '../../../config/items.js';
 import { tones, pEll, pCirc, pPoly, pRR, fs, vgrad, rgrad, gloss, sparkle } from './kit.js';
@@ -367,6 +368,14 @@ Object.assign(ICON, {
   },
 });
 
+/** Biểu tượng kỹ năng chung (class mới chưa có hình riêng): huy hiệu tròn + biểu tượng của kỹ năng */
+function genericSkillIcon(c, arg, kind) {
+  const sk = SKILLS_BY_ID[String(kind).replace(/^sk_/, '')], col = sk && sk.type === 'buff' ? '#c8841c' : sk && sk.type === 'passive' ? '#4a8a4a' : '#6a3aa8';
+  c.save(); c.translate(SIZE / 2, SIZE / 2); const g = c.createRadialGradient(-4, -6, 2, 0, 0, SIZE / 2); g.addColorStop(0, '#fff3'); g.addColorStop(0.3, col); g.addColorStop(1, '#14101c');
+  c.beginPath(); c.arc(0, 0, SIZE / 2 - 2, 0, 6.283); c.fillStyle = g; c.fill(); c.lineWidth = 2; c.strokeStyle = '#0a0810'; c.stroke();
+  c.font = Math.round(SIZE * 0.55) + 'px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(sk ? sk.icon : '?', 0, 2); c.restore();
+}
+
 const cache = {};
 /** Trả về canvas icon (cache) theo khoá */
 export function iconCanvas(kind, arg) {
@@ -374,7 +383,7 @@ export function iconCanvas(kind, arg) {
   if (cache[key]) return cache[key];
   const cv = document.createElement('canvas'); cv.width = cv.height = SIZE * 1.5;
   const c = cv.getContext('2d'); c.scale(1.5, 1.5);
-  ICON[kind](c, arg);
+  (ICON[kind] || genericSkillIcon)(c, arg, kind);
   if (pixelOn()) pixelate(c, cv.width, cv.height, 2, true);
   return (cache[key] = cv);
 }

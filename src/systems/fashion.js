@@ -14,13 +14,17 @@ export function unlockProgress(f) {
     case 'tower': return [S.tower ? S.tower.best : 0, u.n];
     case 'events': return [S.evDone || 0, u.n];
     case 'reset': return [S.resets, u.n];
+    case 'kills': return [S.kills || 0, u.n];
+    case 'master': return [S.master ? S.master.lv : 0, u.n];
+    case 'nm': return [S.nmKills || 0, u.n];
+    case 'god': return [[...Object.values(S.equip || {}), ...(S.inv || [])].filter((it) => it && it.god > 0).length, u.n];
     default: return [0, 1];
   }
 }
 export const unlockText = (f) => {
   const u = f.unlock, [a, b] = unlockProgress(f);
   return { shop: 'Mua bằng ' + fmt(u.zen) + ' Zen', checkin: 'Điểm danh ' + Math.min(a, b) + '/' + b + ' ngày', tower: 'Vượt tầng ' + b + ' Tháp Vô Tận (kỷ lục ' + a + ')',
-    events: 'Hoàn thành sự kiện ' + Math.min(a, b) + '/' + b + ' lần', reset: 'Reset ' + Math.min(a, b) + '/' + b + ' lần' }[u.type];
+    events: 'Hoàn thành sự kiện ' + Math.min(a, b) + '/' + b + ' lần', reset: 'Reset ' + Math.min(a, b) + '/' + b + ' lần', kills: 'Hạ ' + fmt(Math.min(a, b)) + '/' + fmt(b) + ' quái', master: 'Đạt Master ' + Math.min(a, b) + '/' + b, nm: 'Hạ Hỗn Mang Chi Vương ' + Math.min(a, b) + '/' + b + ' lần', god: 'Sở hữu ' + Math.min(a, b) + '/' + b + ' món đồ Thần' }[u.type];
 };
 export const owns = (id) => G.S.fashion.owned.includes(id);
 
@@ -68,4 +72,5 @@ export function initFashion() {
   sysOn(EV.QUEST, () => checkUnlocks());
   sysOn(EV.TOWER_FLOOR, () => checkUnlocks());
   sysOn(EV.RESET, () => checkUnlocks());
+  sysOn(EV.KILL, () => { if (G.S && G.S.kills % 250 === 0) checkUnlocks(); });
 }

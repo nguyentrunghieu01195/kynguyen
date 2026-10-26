@@ -26,8 +26,12 @@ const METAL = { bronze: 1, ice: 1, dragon: 1, magma: 1, angel: 1, demon: 1 };
 function gearSpec(eq, tier, L) {
   const a = eq && eq.armor, row = ARMOR_SETS[tier] || ARMOR_SETS[0], ar = row[(a && a.line) || 0] || row[0];
   const gc = DIVINE.slots.filter((sl) => eq && eq[sl] && eq[sl].god > 0).length, divine = (a && a.god > 0) || gc >= 3;
-  return { style: divine ? 'divine' : ar.style, tier, e: divine ? '#fff0b0' : ar.color, d: divine ? '#ff7aff' : ar.trim, outfit: L.outfit ? { style: L.outfit.style, colors: L.outfit.colors } : null, head: L.head ? { style: L.head.style, colors: L.head.colors } : null };
+  return { style: divine ? 'divine' : ar.style, tier, e: divine ? '#fff0b0' : ar.color, d: divine ? '#ff7aff' : ar.trim, outfit: L.outfit ? { style: L.outfit.s3 || L.outfit.style, colors: L.outfit.colors } : null, head: L.head ? { style: L.head.s3 || L.head.style, colors: L.head.colors } : L.cls === 'lord' ? { style: 'crown', colors: ['#7a30c8', '#ff50e0'] } : null }; // Chúa Tể luôn đội vương miện tím
 }
+/** Bản vẽ 2D dự phòng của class mới dùng lại khung nhân vật có sẵn (3D mới là bản chính) */
+const CHIBI_OF = { lord: 'wizard', gladiator: 'knight' };
+const CHIBI_WT = { greatsword: 'sword', dagger: 'sword', twinblade: 'sword', wand: 'staff', crystal: 'staff', scepter: 'staff', warhammer: 'staff', longbow: 'bow', repeater: 'crossbow' };
+const chibiWt = (cls, t) => (cls === 'lord' && !['staff', 'orb', 'tome'].includes(CHIBI_WT[t] || t) ? 'staff' : CHIBI_WT[t] || t);
 function setOf(eq) {
   const a = eq && eq.armor; if (!a) return null;
   const line = a.line || 0, ar = ARMOR_SETS[a.tier] && (ARMOR_SETS[a.tier][line] || ARMOR_SETS[a.tier][0]); if (!ar) return null;
@@ -82,7 +86,7 @@ export function drawHero(c, cls, eq, t, o) {
   if (L.aura) { c.save(); c.scale(1.15, 1.15); auraLayer(c, L.aura, t, false); c.restore(); }
   if (gfx3d()) {
     const tierTint = ['#c8c8d0', '#b9a98a', '#8fb4d8', '#d8c070', '#c070e0', '#ff9a50', '#70e0ff'][tier] || '#ffffff';
-    const gs = gearSpec(eq, tier, L), f3 = frame3d({ cls, pose, f: pose === 'walk' || pose === 'idle' ? (tq / (pose === 'walk' ? 0.6618 : 2.618)) % 1 : (k == null ? 0 : k), weapon: L.weapon.type, tint: tint3d(L.outfit ? L.outfit.colors[0] : gs.e, 0.65), capeTint: tint3d(L.outfit ? L.outfit.colors[1] : gs.d, 0.8), helm: !!eq.helm && !L.head, gear: gs, wing: L.wings ? { tier: L.wings.tier, ph: Math.floor(t * 3 / 6.2832 * 6) % 6, glow: L.wings.plus >= 7 } : null, shield: cls === 'knight' && (tier >= 2) ? 'Knight_Shield' : '' });
+    const gs = gearSpec(eq, tier, L), accent = { lord: '#7a30c0', gladiator: '#c84030' }[cls], f3 = frame3d({ cls, pose, f: pose === 'walk' || pose === 'idle' ? (tq / (pose === 'walk' ? 0.6618 : 2.618)) % 1 : (k == null ? 0 : k), weapon: L.weapon.type, tint: tint3d(L.outfit ? L.outfit.colors[0] : gs.e, 0.65), capeTint: tint3d(L.outfit ? L.outfit.colors[1] : accent || gs.d, 0.8), helm: !!eq.helm && !L.head && cls !== 'lord', gear: gs, wing: L.wings ? { tier: L.wings.tier, ph: Math.floor(t * 3 / 6.2832 * 6) % 6, glow: L.wings.plus >= 7 } : null, shield: cls === 'knight' && (tier >= 2) ? 'Knight_Shield' : '' });
     if (f3) {
       c.save(); c.scale(o.face || 1, 1); const hh = 78, ww = hh * F3.w / F3.h; c.drawImage(f3, -ww / 2, -hh * 0.86, ww, hh); c.restore();
       sparks(c, L, t);
@@ -112,7 +116,7 @@ export function drawHero(c, cls, eq, t, o) {
     };
     if (L.head) inject.helmet = (_c, B) => { const [hx, hy] = B.joints.head; g.save(); toPx(); g.translate(hx * SC, hy * SC); g.rotate(B.P.lean + B.P.tilt); g.scale(1.56, 1.56); g.translate(0, -6); headwear(g, L.head, tq); g.restore(); };
     g.scale(RES, RES); g.translate(OX, OY); g.scale(SC, SC);
-    drawChibi(g, { pl, set, cls, wtype: L.weapon.type, special: !!L.weapon.special, wglow, tier, gender, pose, t: tq, k, crown: !!L.head, inject,
+    drawChibi(g, { pl, set, cls: CHIBI_OF[cls] || cls, wtype: chibiWt(cls, L.weapon.type), special: !!L.weapon.special, wglow, tier, gender, pose, t: tq, k, crown: !!L.head, inject,
       hide: { chest: !!L.outfit, helmet: !!L.head, hair: !!(L.head && HEADWEAR_HIDES_HAIR[L.head.style]) } });
     cache.set(key, cv);
   }

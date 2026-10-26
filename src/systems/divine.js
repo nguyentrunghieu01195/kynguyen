@@ -5,6 +5,7 @@ import { fmt } from '../core/utils.js';
 import { DIVINE } from '../config/divine.js';
 import { findItem, rollExc, itemFull } from './items.js';
 import { calcStats } from './stats.js';
+import { checkUnlocks } from './fashion.js';
 
 export const godOf = (it) => (it && it.god > 0 ? it.god : 0);
 export const isDivine = (it) => godOf(it) > 0;
@@ -52,7 +53,7 @@ export function ascend(id) {
   it.god = godOf(it) + 1;
   if (!it.exc || it.exc.length < 2) it.exc = (it.exc || []).concat(rollExc(it.slot, 2 - (it.exc ? it.exc.length : 0)));
   calcStats();
-  announce(info.kind === 'ascend' ? 'THẦN HOÁ THÀNH CÔNG!' : 'THẦN CẤP ' + it.god + '!');
+  announce(info.kind === 'ascend' ? 'THẦN HOÁ THÀNH CÔNG!' : 'THẦN CẤP ' + it.god + '!'); checkUnlocks();
   log('✨ <b>' + itemFull(it) + '</b> đạt <b style="color:' + DIVINE.color + '">Thần cấp ' + it.god + '</b> (chỉ số gốc ×' + DIVINE.mult(it.god).toFixed(2) + ').', DIVINE.color);
   const p = G.R.p; G.R.fx.push({ k: 'tierup', x: p.x, y: p.y, t: 0, d: 2, tier: 3, follow: true });
   return { ok: true, success: true };

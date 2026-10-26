@@ -13,6 +13,8 @@ export const CLASS_TIERS = {
   knight: ['Kiếm Sĩ', 'Kiếm Vương', 'Kiếm Thánh'],
   wizard: ['Pháp Sư', 'Đại Pháp Sư', 'Pháp Thần'],
   archer: ['Xạ Thủ', 'Thần Tiễn Thủ', 'Tiễn Thánh'],
+  lord: ['Chúa Tể', 'Đại Chúa Tể', 'Hoàng Đế Hắc Ám'],
+  gladiator: ['Đấu Sĩ', 'Kiếm Phép Sư', 'Thánh Đấu Sĩ'],
 };
 /** Số lần Reset cần để đạt bậc 1/2/3 */
 export const TIER_RESETS = [0, 1, 3];
@@ -68,6 +70,68 @@ export const SKILL_LIST = {
       desc: 'Phóng mũi tên phượng hoàng lửa, nổ tung tại mục tiêu.' },
   ],
 };
+
+// Chúa Tể & Đấu Sĩ: dùng lại các hàm kỹ năng có sẵn qua trường `fn` (id hàm), khác tham số / hiệu ứng.
+SKILL_LIST.lord = [
+  { id: 'darkbolt', fn: 'meteor', name: 'Hắc Ám Pháo', icon: '🌑', type: 'active', lv: 1, tier: 1, cd: 2.6, cost: 12, learn: 0, mult: 2.5, radius: 2.4, castRange: 6.5,
+    desc: 'Bắn quả cầu hắc ám xuống mục tiêu, nổ lan xung quanh.' },
+  { id: 'thunderorder', fn: 'chain', name: 'Lệnh Sấm Truyền', icon: '⚡', type: 'active', lv: 30, tier: 1, cd: 5.5, cost: 18, learn: 100000, mult: 2.7, jumps: 4, castRange: 6.5, stun: 0.35,
+    desc: 'Ra lệnh sấm sét nảy qua nhiều kẻ địch.' },
+  { id: 'lordaura', name: 'Uy Vương', icon: '👑', type: 'passive', lv: 50, tier: 1, learn: 300000, mods: { dmg: 1.5, def: 2, hp: 2 },
+    desc: 'Nội tại: tăng sát thương, phòng thủ và HP tối đa.' },
+  { id: 'rally', name: 'Hiệu Lệnh Chiến Trường', icon: '🚩', type: 'buff', lv: 90, tier: 1, cd: 32, cost: 22, learn: 1000000, dur: 14, mods: { dmg: 16, spd: 10, def: 10 }, rankMods: { dmg: 1.6, spd: 1, def: 1 },
+    desc: 'Hạ lệnh tiến công: tăng sát thương, tốc đánh và phòng thủ trong thời gian ngắn.' },
+  { id: 'earthshatter', fn: 'slam', name: 'Vương Chấn Địa', icon: '🪨', type: 'active', lv: 60, tier: 2, cd: 7, cost: 24, learn: 3000000, mult: 3.2, radius: 3.0, stun: 1.2,
+    desc: 'Giáng quyền trượng xuống đất, chấn động diện rộng và làm choáng.' },
+  { id: 'chaoscall', fn: 'blackhole', name: 'Hỗn Mang Triệu Hồi', icon: '🌀', type: 'active', lv: 100, tier: 3, cd: 18, cost: 44, learn: 10000000, mult: 1.8, radius: 3.6, castRange: 6.5, ticks: 6, every: 0.4,
+    desc: 'Mở cổng hỗn mang hút quái vào tâm và nghiền nát liên tục.' },
+];
+SKILL_LIST.gladiator = [
+  { id: 'flameblade', fn: 'whirl', name: 'Hỏa Kiếm Xoáy', icon: '🔥', type: 'active', lv: 1, tier: 1, cd: 2.4, cost: 10, learn: 0, mult: 2.3, radius: 2.9,
+    desc: 'Xoay kiếm phủ lửa chém toàn bộ quái xung quanh.' },
+  { id: 'lightningslash', fn: 'charge', name: 'Lôi Trảm', icon: '⚡', type: 'active', lv: 30, tier: 1, cd: 6, cost: 16, learn: 100000, mult: 3.2, castRange: 6.5, width: 1.1,
+    desc: 'Lao tới mục tiêu trong một tia chớp, chém mọi quái trên đường đi và làm choáng.' },
+  { id: 'battlemage', name: 'Chiến Pháp', icon: '📘', type: 'passive', lv: 50, tier: 1, learn: 300000, mods: { dmg: 1.5, skill: 2.5, hp: 2 },
+    desc: 'Nội tại: tăng sát thương, sát thương kỹ năng và HP tối đa.' },
+  { id: 'spellblade', name: 'Phép Kiếm Hợp Nhất', icon: '🗡️', type: 'buff', lv: 90, tier: 1, cd: 30, cost: 20, learn: 1000000, dur: 12, mods: { dmg: 14, crit: 8, skill: 14 }, rankMods: { dmg: 1.5, crit: 0.5, skill: 1.5 },
+    desc: 'Hợp nhất kiếm và phép: tăng mạnh sát thương, chí mạng và sát thương kỹ năng.' },
+  { id: 'frostwave', fn: 'frost', name: 'Hàn Phong Trảm', icon: '❄️', type: 'active', lv: 60, tier: 2, cd: 6.5, cost: 22, learn: 3000000, mult: 2.4, radius: 3.2, castRange: 4.2, slow: 3,
+    desc: 'Chém một đợt gió băng: sát thương diện rộng và làm chậm quái 50%.' },
+  { id: 'arcanejudgement', fn: 'skyblade', name: 'Thiên Phạt', icon: '⚖️', type: 'active', lv: 100, tier: 3, cd: 16, cost: 40, learn: 10000000, mult: 7.2, radius: 3.5, castRange: 6.5, stun: 1,
+    desc: 'Triệu hồi thanh phán xử từ trời giáng xuống, nổ diện rộng.' },
+];
+
+// Kỹ năng mở rộng (mỗi class thêm 2): dùng hàm burst / drain / volley.
+SKILL_LIST.knight.push(
+  { id: 'bloodthirst', fn: 'drain', name: 'Khát Máu', icon: '🩸', type: 'active', lv: 40, tier: 1, cd: 5, cost: 14, learn: 150000, mult: 3.4, castRange: 2.8, heal: 6, col: '#ff3a4a',
+    desc: 'Chém mạnh một mục tiêu và hút máu hồi lại 6% HP tối đa.' },
+  { id: 'bladestorm', fn: 'burst', name: 'Bão Kiếm', icon: '🌪️', type: 'active', lv: 75, tier: 2, cd: 9, cost: 26, learn: 4000000, mult: 3.0, radius: 3.8, stun: 0.6, col: '#ff7a4a',
+    desc: 'Cuồng phong kiếm khí quét quanh người, làm choáng nhẹ quái.' },
+);
+SKILL_LIST.wizard.push(
+  { id: 'manadrain', fn: 'drain', name: 'Hút Hồn Phép', icon: '👁️', type: 'active', lv: 40, tier: 1, cd: 5, cost: 16, learn: 150000, mult: 3.0, castRange: 6.5, heal: 4, col: '#b080ff',
+    desc: 'Rút sinh lực kẻ địch bằng tia hắc phép, hồi 4% HP tối đa.' },
+  { id: 'supernova', fn: 'burst', name: 'Siêu Tân Tinh', icon: '✴️', type: 'active', lv: 80, tier: 2, cd: 10, cost: 30, learn: 4000000, mult: 3.4, radius: 4.2, slow: 2, col: '#9fc8ff',
+    desc: 'Nổ năng lượng quanh người, làm chậm quái trong vùng.' },
+);
+SKILL_LIST.archer.push(
+  { id: 'multishot', fn: 'volley', name: 'Loạt Tên', icon: '🎯', type: 'active', lv: 40, tier: 1, cd: 5, cost: 15, learn: 150000, mult: 1.5, count: 6, castRange: 8,
+    desc: 'Bắn dồn một loạt 6 mũi tên vào các quái gần nhất.' },
+  { id: 'trapburst', fn: 'burst', name: 'Bẫy Nổ', icon: '💣', type: 'active', lv: 80, tier: 2, cd: 9, cost: 24, learn: 4000000, mult: 3.0, radius: 3.2, slow: 2.5, col: '#8aff8a',
+    desc: 'Đặt bẫy nổ tại chân: sát thương diện rộng và làm chậm.' },
+);
+SKILL_LIST.lord.push(
+  { id: 'soulsiphon', fn: 'drain', name: 'Hút Hồn Vương', icon: '💀', type: 'active', lv: 40, tier: 1, cd: 5, cost: 16, learn: 150000, mult: 3.2, castRange: 6, heal: 5, col: '#e060ff',
+    desc: 'Tia hồn lực hút sinh lực kẻ địch, hồi 5% HP tối đa.' },
+  { id: 'dominion', fn: 'burst', name: 'Thống Trị', icon: '🔱', type: 'active', lv: 80, tier: 2, cd: 10, cost: 28, learn: 4000000, mult: 3.0, radius: 4.0, stun: 0.8, col: '#d070ff',
+    desc: 'Uy quyền Chúa Tể trấn áp xung quanh, làm choáng quái.' },
+);
+SKILL_LIST.gladiator.push(
+  { id: 'blinkstrike', fn: 'charge', name: 'Phép Kiếm Đột', icon: '💫', type: 'active', lv: 40, tier: 1, cd: 6.5, cost: 17, learn: 150000, mult: 3.0, castRange: 7.5, width: 1.3,
+    desc: 'Dịch chuyển chớp nhoáng qua mục tiêu, chém mọi quái trên đường.' },
+  { id: 'runicburst', fn: 'burst', name: 'Ấn Rune Nổ', icon: '🔆', type: 'active', lv: 80, tier: 2, cd: 9, cost: 26, learn: 4000000, mult: 3.2, radius: 3.4, heal: 3, col: '#ffb040', fire: true,
+    desc: 'Khắc ấn rune bùng nổ quanh người, hồi 3% HP tối đa.' },
+);
 
 export const SKILLS_BY_ID = Object.fromEntries(Object.values(SKILL_LIST).flat().map((s) => [s.id, s]));
 export const TYPE_NAMES = { active: 'Chủ động', buff: 'Tăng cường', passive: 'Nội tại' };

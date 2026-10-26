@@ -13,7 +13,7 @@ const STAT_ROWS = (cls) => [
   ['str', 'Sức mạnh', cls === 'wizard' ? 'Ít tác dụng với Pháp Sư' : 'Tăng sát thương'],
   ['agi', 'Nhanh nhẹn', 'Tăng phòng thủ & tốc đánh' + (cls === 'archer' ? ' & sát thương' : '')],
   ['vit', 'Thể lực', 'Tăng HP tối đa'],
-  ['ene', 'Năng lượng', 'Tăng MP' + (cls === 'wizard' ? ' & sát thương phép' : '')],
+  ['ene', 'Năng lượng', 'Tăng MP' + (cls === 'wizard' || cls === 'lord' || cls === 'gladiator' ? ' & sát thương' : '')],
 ];
 
 export default {

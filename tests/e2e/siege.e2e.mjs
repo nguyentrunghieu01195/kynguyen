@@ -63,7 +63,7 @@ const castleC = cs[2].got.filter((m) => m.s && m.s.guild).map((m) => m.s.guild).
 const endEv = cs[1].got.filter((m) => m.t === 'snap' && m.ev && m.ev.some((e) => e[0] === 'siegeEnd')).length; assert(endEv > 0, 'nhận sự kiện kết thúc');
 // quà bang thắng: 3 vũ khí đặc biệt vào đấu giá bang Long (chỉ người đủ điều kiện), bang Ho không có
 const lotsB = (await http('GET', '/api/auction?scope=guild', toks[1])).j.lots; console.log('lô đấu giá bang Long:', lotsB.map((l) => l.goods.items[0] && l.goods.items[0].cls + ' wt' + l.goods.items[0].wt + ' +' + l.goods.items[0].plus + ' khởi điểm ' + l.start).join(' | '));
-assert.equal(lotsB.length, 3, '3 vũ khí đặc biệt'); assert(lotsB.every((l) => l.goods.items[0].slot === 'weapon' && l.goods.items[0].exc && l.canBid));
+assert.equal(lotsB.length, 5, '5 vũ khí đặc biệt'); assert(lotsB.every((l) => l.goods.items[0].slot === 'weapon' && l.goods.items[0].exc && l.canBid));
 assert.equal((await http('GET', '/api/auction?scope=guild', toks[2])).j.lots.length, 0, 'bang thua không có quà');
 assert(lotsB.some((l) => l.goods.items[0].cls === 'knight' && l.goods.items[0].wt === 4), 'kiếm đặc biệt là loại số 4');
 // quỹ bang + phát quỹ (thêm trực tiếp bằng API thử nghiệm không có → kiểm tra quỹ ban đầu = 0 và chặn phát khi trống)

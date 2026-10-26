@@ -7,11 +7,13 @@ import { makeWings, poseWings } from './wings3d.js';
 import { makeGear } from './gear3d.js';
 
 const FW = 256, FH = 224;                          // kích thước khung ảnh dựng sẵn
-const MODEL = { knight: 'Knight', wizard: 'Mage', archer: 'Rogue', sk_warrior: 'Skeleton_Warrior', sk_minion: 'Skeleton_Minion', sk_mage: 'Skeleton_Mage', sk_rogue: 'Skeleton_Rogue' };
+const MODEL = { knight: 'Knight', wizard: 'Mage', archer: 'Rogue', lord: 'Knight', gladiator: 'Barbarian', sk_warrior: 'Skeleton_Warrior', sk_minion: 'Skeleton_Minion', sk_mage: 'Skeleton_Mage', sk_rogue: 'Skeleton_Rogue' };
 const ANIM = {
   knight: { idle: 'Idle', walk: 'Walking_B', attack: '1H_Melee_Attack_Slice_Diagonal', skill: '2H_Melee_Attack_Spin', hit: 'Hit_A', death: 'Death_A' },
   wizard: { idle: 'Idle', walk: 'Walking_B', attack: 'Spellcast_Shoot', skill: 'Spellcast_Long', hit: 'Hit_A', death: 'Death_A' },
   archer: { idle: 'Idle', walk: 'Walking_B', attack: '2H_Ranged_Shoot', skill: '2H_Ranged_Shoot', hit: 'Hit_A', death: 'Death_A' },
+  lord: { idle: 'Idle', walk: 'Walking_B', attack: 'Spellcast_Shoot', skill: 'Spellcast_Long', hit: 'Hit_A', death: 'Death_A' },
+  gladiator: { idle: 'Idle', walk: 'Walking_B', attack: '1H_Melee_Attack_Slice_Diagonal', skill: '2H_Melee_Attack_Spin', hit: 'Hit_A', death: 'Death_A' },
   sk_warrior: { idle: 'Idle', walk: 'Walking_B', attack: '1H_Melee_Attack_Slice_Diagonal', skill: '2H_Melee_Attack_Spin', hit: 'Hit_A', death: 'Death_A' },
   sk_minion: { idle: 'Idle', walk: 'Walking_B', attack: '1H_Melee_Attack_Chop', skill: '2H_Melee_Attack_Spin', hit: 'Hit_A', death: 'Death_A' },
   sk_mage: { idle: 'Idle', walk: 'Walking_B', attack: 'Spellcast_Shoot', skill: 'Spellcast_Long', hit: 'Hit_A', death: 'Death_A' },
@@ -23,9 +25,19 @@ const WEAPON = {
   sword: { b: '1H_Sword' }, axe: { w: 'axe_1handed' }, mace: { w: 'axe_2handed' }, spear: { w: 'staff' }, special: { w: 'sword_2handed' },
   staff: { b: '2H_Staff' }, orb: { b: '1H_Wand' }, tome: { b: '2H_Staff' },
   bow: { b: '2H_Crossbow' }, crossbow: { b: '1H_Crossbow' }, twinbow: { b: '2H_Crossbow' },
+  greatsword: { w: 'sword_2handed' }, dagger: { w: 'dagger' }, twinblade: { w: 'dagger' }, wand: { w: 'wand' }, scepter: { w: 'wand' }, crystal: { w: 'staff' },
+  longbow: { b: '2H_Crossbow' }, repeater: { b: '1H_Crossbow' }, warhammer: { w: 'axe_2handed' },
 };
-const ACCESSORY = /Hood|Sword|Shield|Helmet|Cape|Staff|Wand|Hat|Crossbow|Knife|Spellbook|Throwable/i;
-const HELM = { Knight: 'Knight_Helmet', Mage: 'Mage_Hat', Rogue: null, Skeleton_Warrior: 'Skeleton_Warrior_Helmet', Skeleton_Mage: 'Skeleton_Mage_Hat', Skeleton_Rogue: 'Skeleton_Rogue_Hood' }, CAPE = { Knight: 'Knight_Cape', Mage: 'Mage_Cape', Rogue: 'Rogue_Cape', Skeleton_Warrior: 'Skeleton_Warrior_Cloak', Skeleton_Rogue: 'Skeleton_Rogue_Cape' };
+// vũ khí tự có của mô hình không có → dùng tệp vũ khí rời tương ứng
+const FALL = { '1H_Sword': 'sword_1handed', '2H_Staff': 'staff', '1H_Wand': 'staff', '2H_Crossbow': 'crossbow_1handed', '1H_Crossbow': 'crossbow_1handed' };
+function effWp(m, type) {
+  const base = WEAPON[type] || WEAPON.sword;
+  if (m.name === 'Barbarian' && type === 'axe') return { b: '1H_Axe' };
+  if (base.b && !m.acc.has(base.b) && FALL[base.b]) return { w: FALL[base.b] };
+  return base;
+}
+const ACCESSORY = /Axe|Mug|Hood|Sword|Shield|Helmet|Cape|Staff|Wand|Hat|Crossbow|Knife|Spellbook|Throwable/i;
+const HELM = { Knight: 'Knight_Helmet', Mage: 'Mage_Hat', Rogue: null, Skeleton_Warrior: 'Skeleton_Warrior_Helmet', Skeleton_Mage: 'Skeleton_Mage_Hat', Skeleton_Rogue: 'Skeleton_Rogue_Hood', Barbarian: 'Barbarian_Hat' }, CAPE = { Barbarian: 'Barbarian_Cape', Knight: 'Knight_Cape', Mage: 'Mage_Cape', Rogue: 'Rogue_Cape', Skeleton_Warrior: 'Skeleton_Warrior_Cloak', Skeleton_Rogue: 'Skeleton_Rogue_Cape' };
 
 let TH = null, loader = null, rdr = null, scene = null, cam = null, booting = null, failed = false;
 const models = new Map(), weapons = new Map(), frames = new Map();
@@ -80,9 +92,9 @@ function prep(m, r) {
   m.root.traverse((o) => { if (o.userData && o.userData.of) o.visible = o.userData.of.visible; });
   const show = (n) => { const o = m.acc.get(n); if (o) { o.visible = true; } };
   if (r.helm && HELM[mn]) show(HELM[mn]); if (r.cape !== false) show(CAPE[mn]);
-  const wp = WEAPON[r.weapon] || WEAPON.sword;
+  const wp = effWp(m, r.weapon);
   if (wp.b) show(wp.b);
-  if (wp.w && r.wobj) { if (m.hold) m.hand.remove(m.hold); const o = r.wobj.clone(true); const ref = m.acc.get('1H_Sword') || m.acc.get('2H_Staff') || m.acc.get('1H_Crossbow'); if (ref) { o.position.copy(ref.position); o.quaternion.copy(ref.quaternion); } m.hand.add(o); m.hold = o; }
+  if (wp.w && r.wobj) { if (m.hold) m.hand.remove(m.hold); const o = r.wobj.clone(true); const ref = m.acc.get('1H_Sword') || m.acc.get('2H_Staff') || m.acc.get('1H_Crossbow') || m.acc.get('1H_Axe'); if (ref) { o.position.copy(ref.position); o.quaternion.copy(ref.quaternion); } m.hand.add(o); m.hold = o; }
   else if (m.hold) { m.hand.remove(m.hold); m.hold = null; }
   if (mn === 'Knight' && r.shield) show(r.shield);
   if (mn === 'Mage' && r.weapon === 'tome') show('Spellbook_open');
@@ -103,7 +115,7 @@ export function frame(r) {
   const mm = models.get(name);
   if (!mm) { loadModel(name); return null; }
   if (mm.then) return null;                                  // đang tải
-  const wp = WEAPON[r.weapon] || WEAPON.sword;
+  const wp = effWp(mm, r.weapon);
   if (wp.w) { const ww = weapons.get(wp.w); if (!ww) { loadWeapon(wp.w); return null; } if (ww.then) return null; r = { ...r, wobj: ww }; }
   prep(mm, r);
   const clip = mm.clips[ANIM[r.cls][r.pose] || 'Idle']; mm.mixer.stopAllAction(); const a = mm.mixer.clipAction(clip); a.play(); a.paused = true;

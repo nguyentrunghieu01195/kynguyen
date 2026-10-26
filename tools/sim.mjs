@@ -27,7 +27,7 @@ const { WEAPON_TYPES } = await import(ROOT + '/src/config/gear.js');
 const { petFx } = await import(ROOT + '/src/config/pets.js');
 
 G.S = createCharacter(cls, 'Bot'); calcStats(); enterMap(0); G.R.auto = true;
-const MAINS = { knight: { str: 0.5, vit: 0.35, agi: 0.15 }, wizard: { ene: 0.6, vit: 0.3, agi: 0.1 }, archer: { agi: 0.45, str: 0.3, vit: 0.25 } };
+const MAINS = { knight: { str: 0.5, vit: 0.35, agi: 0.15 }, wizard: { ene: 0.6, vit: 0.3, agi: 0.1 }, archer: { agi: 0.45, str: 0.3, vit: 0.25 }, lord: { str: 0.35, ene: 0.35, vit: 0.3 }, gladiator: { str: 0.45, ene: 0.2, vit: 0.35 } };
 const MAIN_OF = () => MAINS[G.S.cls];
 const stat = { deaths: 0, kills: 0, shards: 0, goodDrops: 0, godItems: 0, breaks: 0, upOK: 0, upFail: 0, mexp: 0 };
 G.R.p.hp = G.P.maxHp;
