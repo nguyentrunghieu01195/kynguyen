@@ -47,5 +47,6 @@ export const MOB_MODEL = {
   "banditking": "Big_Ninja",
   "merman": "Blob_Fish",
   "hellmage": "Flying_Tribal",
+  "chaoslord": "Flying_Dragon_Evolved",
   "darkknight": "Big_Ninja"
 };

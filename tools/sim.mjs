@@ -32,7 +32,8 @@ const MAIN_OF = () => MAINS[G.S.cls];
 const stat = { deaths: 0, kills: 0, shards: 0, goodDrops: 0, godItems: 0, breaks: 0, upOK: 0, upFail: 0, mexp: 0 };
 G.R.p.hp = G.P.maxHp;
 const { on, EV } = await import(ROOT + '/src/core/events.js');
-on(EV.PLAYER_DIE, () => stat.deaths++);
+on(EV.PLAYER_DIE, () => { stat.deaths++; if (G.R.nm) stat.nmDeaths = (stat.nmDeaths || 0) + 1; });
+on(EV.KILL, (m) => { if (m && m.nightmare) stat.nmKills = (stat.nmKills || 0) + 1; });
 on(EV.UPGRADE, (o) => { if (o === 'break') stat.breaks++; else if (o === 'success') stat.upOK++; else stat.upFail++; });
 const logs = [];
 const t_now = () => T.t;
@@ -82,6 +83,8 @@ function manage() {
   const farm = process.env.MASTER_FARM && S.tier >= 3 && S.master.lv < +process.env.MASTER_FARM; // chế độ cày Master: đứng ở cấp tối đa không Reset
   if (canReset() && !farm) { runAction('doReset', []); T.mapAdj = 0; }
   const need = TIER_RESETS[(S.tier || 1)]; if (need !== undefined && S.resets >= need && S.tier < 3) S.tier++;
+  // bình máu / mana: người chơi thật luôn mua đủ (bot cũ không mua nên chết oan)
+  for (const k of ['hp', 'mp']) if (S.pot[k] < 60) runAction('buy', [k, 50]);
   // pet: mua pet bán được nếu dư tiền
   if (S.pets.list.length < 1 && S.zen > 6e6) runAction('petBuy', ['fox']);
 }
@@ -91,7 +94,16 @@ const t0 = Date.now(); let lastKills = 0, win = [];
 const row = (h) => { const S = G.S; return [h + 'h', 'lv ' + S.lv, 'R' + S.resets, 'B' + S.tier, 'M' + (S.master ? S.master.lv : 0), 'map ' + S.map, 'zen ' + Math.round(S.zen / 1e3) + 'K', 'jw ' + S.jewels.bless + '/' + S.jewels.soul + '/' + S.jewels.chaos, 'sh ' + S.shards, 'kills ' + S.kills, 'dmg ' + Math.round(G.P.dmgMax), 'hp ' + G.P.maxHp, 'mp ' + G.P.maxMp, 'chết ' + stat.deaths, 'gần' + T.mapAdj].join(' | '); };
 let deathsAtStart = 0;
 for (let t = 0; t < total; t += dt) {
-  G.R.auto = true; update(dt); T.t = t;
+  G.R.auto = true; const hadNm = !!G.R.nm; update(dt); T.t = t; if (!hadNm && G.R.nm) stat.nmSpawns = (stat.nmSpawns || 0) + 1;
+  { const nm = G.R.nm, p = G.R.p; if (nm) { nm._eng = nm._eng || p.target === nm; nm._last = { d: Math.round(Math.hypot(nm.x - p.x, nm.y - p.y)), hp: Math.round(p.hp / G.P.maxHp * 100), pot: G.S.pot.hp, ig: nm.ignoreT > G.R.time, mt: Math.round(G.R.manualT), tv: G.R.travel, life: Math.round(nm.life) }; T.lastNm = nm; } else if (T.lastNm) { const n = T.lastNm; T.lastNm = null; if (n.hp > 0) { (stat.noEng = stat.noEng || []).push((n._eng ? 'E' : '-') + JSON.stringify(n._last)); } } }
+  { const nm = G.R.nm, p = G.R.p; if (nm && p.target === nm) { const f = T.fight || (T.fight = { t0: t, min: 1, hits: 0 }); f.min = Math.min(f.min, p.hp / G.P.maxHp); } else if (T.fight) { const f = T.fight; T.fight = null; (stat.fights = stat.fights || []).push(+(t - f.t0).toFixed(0) + 's/' + Math.round(f.min * 100) + '%'); } }
+
+  if (process.env.NMTEST && G.S.resets >= 10 && !globalThis.__nmDone && G.S.map === 9) { // thử một trận Hỗn Mang Chi Vương đối đầu trực tiếp
+    globalThis.__nmDone = 1; const R = G.R, p = R.p, W = await import(ROOT + '/src/systems/world.js'); R.mobs.length = 0; const nm = W.spawnNightmare(); nm.x = p.x + 2; nm.y = p.y; R.nm = nm; p.hp = G.P.maxHp;
+    console.log('NMTEST bắt đầu: boss hp', nm.maxHp, 'dmg(raw)', Math.round(nm.dmg), 'player hp', G.P.maxHp, 'def', Math.round(G.P.def), 'dmgAvg', Math.round((G.P.dmgMin + G.P.dmgMax) / 2), 'spd', G.P.spd.toFixed(2), 'abs', G.P.abs, 'guard', G.P.guard, 'cd', G.P.cdMul);
+    let min = 1; for (let i = 0; i < 2400 && nm.hp > 0 && p.dead <= 0; i++) { R.auto = true; update(0.05); if (i % 20 === 0) manage(); min = Math.min(min, p.hp / G.P.maxHp); if (i % 100 === 0) console.log('  +' + (i * 0.05).toFixed(0) + 's boss ' + Math.round(100 * Math.max(0, nm.hp) / nm.maxHp) + '% | người ' + Math.round(100 * p.hp / G.P.maxHp) + '% | pot ' + G.S.pot.hp); }
+    console.log('NMTEST kết thúc: boss', Math.round(100 * Math.max(0, nm.hp) / nm.maxHp) + '%, máu thấp nhất của người', Math.round(min * 100) + '%', 'chết', p.dead > 0); process.exit(0);
+  }
   { // người gác: nhân vật đứng yên > 120 giây (kể cả khi 'đang làm gì đó') → in trạng thái để điều tra lỗi kẹt
     const p = G.R.p, w = T.watch || (T.watch = { x: p.x, y: p.y, k: G.S.kills, t });
     if (Math.hypot(p.x - w.x, p.y - w.y) > 0.5 || G.S.kills !== w.k) { w.x = p.x; w.y = p.y; w.k = G.S.kills; w.t = t; }
@@ -104,6 +116,7 @@ for (let t = 0; t < total; t += dt) {
     console.log(row(Math.round(nextRep / 3600))); nextRep += 3600;
   }
 }
+delete stat.fights; if (stat.noEng) { stat.noEngN = stat.noEng.length; stat.noEng = stat.noEng.slice(-8); }
 console.log('--- tổng kết', cls, 'đổi class ' + (T.ccN || 0) + ' lần,', hours + 'h', 'thời gian chạy ' + ((Date.now() - t0) / 1000).toFixed(0) + 's', JSON.stringify(stat));
 const S = G.S; console.log('đồ đang mặc:', SLOTS.map((sl) => S.equip[sl] ? sl + ' T' + (S.equip[sl].tier + 1) + '+' + S.equip[sl].plus + (S.equip[sl].god ? '✦' + S.equip[sl].god : '') : sl + ' -').join(' · '));
 process.exit(0);

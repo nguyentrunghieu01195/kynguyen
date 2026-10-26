@@ -42,12 +42,14 @@ function autoThink() {
     else if ((p.prog.t += R.dtLast || 0) > 4) { t.ignoreT = R.time + 25; p.target = null; p.prog = { m: null }; return; }
     // Có quái gần hơn hẳn → đổi mục tiêu
     const dt = dist(p.target, p);
-    if (dt > 2.5) { const n = nearestMob(p, dt - AUTO.switchMargin, true); if (n) p.target = n; }
+    if (dt > 2.5 && !p.target.nightmare) { const n = nearestMob(p, dt - AUTO.switchMargin, true); if (n) p.target = n; } // đang đi tới Hỗn Mang Chi Vương thì không bị quái gần cướp mục tiêu
     return;
   }
   let best = null, bd = AUTO.lootRadius;
   for (const d of R.drops) { if (!canPick(d) || d.ignoreT > R.time) continue; const dd = dist(d, p); if (dd < bd) { bd = dd; best = d; } }
   if (best) { p.tx = best.x; p.ty = best.y; return; }
+  const nm = R.nm; // AUTO tự thách đấu Hỗn Mang Chi Vương khi còn đầy máu và đủ bình máu
+  if (nm && nm.hp > 0 && !(nm.ignoreT > R.time) && dist(nm, p) < 90 && p.hp > G.P.maxHp * 0.7 && G.S.pot.hp >= 5) { p.target = nm; p.tx = null; return; }
   const m = nearestMob(p, AUTO.searchRadius, true);
   if (m) { p.target = m; p.tx = null; return; }
   if (p.tx == null) { const C = pickCamp(R, p); p.tx = C.x; p.ty = C.y; }

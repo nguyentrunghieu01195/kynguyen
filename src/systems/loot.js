@@ -7,7 +7,8 @@ import { CFG } from '../config/constants.js';
 import { DROP } from '../config/balance.js';
 import { JEWELS, JEWEL_KEYS } from '../config/items.js';
 import { TICKETS } from '../config/events.js';
-import { generateDrop, sellPrice, isJunk, itemColor, itemFull } from './items.js';
+import { NIGHTMARE } from '../config/nightmare.js';
+import { generateDrop, rollExc, sellPrice, isJunk, itemColor, itemFull } from './items.js';
 import { addText } from './combat.js';
 import { blockedAt } from './nav.js';
 import { MAPS } from '../config/maps.js';
@@ -34,6 +35,14 @@ export function rollDrops(m) {
   const tier = mapTier(), B = DROP.boss, E = m.elite ? DROP.elite : null;
   const zen = Math.max(1, Math.round(m.lv * rint(...DROP.zenPerLevel) * (1 + G.P.zen / 100) * (m.boss ? B.zenMult : 1) * (E ? E.zenMul : 1)));
   addDrop(m, 'zen', zen);
+  if (m.nightmare) { // Hỗn Mang Chi Vương: thưởng lớn, đồ đã ép sẵn và có dòng Hoàn Hảo
+    const D = NIGHTMARE.drop, sp = 2.2;
+    for (const k of ['chaos', 'soul', 'bless']) for (let i = rint(...D[k]); i--; ) addDrop(m, 'jewel', k, sp);
+    addDrop(m, 'shard', rint(...D.shards), sp);
+    for (let i = 0; i < D.items; i++) { const it = generateDrop(tier, true); it.plus = rint(D.plusMin, D.plusMax); it.exc = rollExc(it.slot, rint(...D.excLines)); addDrop(m, 'item', it, sp); }
+    addDrop(m, 'pot', { t: 'hp', n: 30 }, sp);
+    return;
+  }
   if (m.boss && !m.event) { // boss sự kiện không dùng bảng rơi boss (đã có thưởng sự kiện)
     const sp = 1.8;
     for (const k of JEWEL_KEYS) for (let i = rint(...B[k]); i--; ) addDrop(m, 'jewel', k, sp);

@@ -1,4 +1,5 @@
 // Thế giới: sinh dữ liệu bản đồ (thuần dữ liệu, không vẽ), vào bản đồ, sinh quái.
+import { NIGHTMARE } from '../config/nightmare.js';
 import { G, inSafe } from '../core/state.js';
 import { log, emit, EV } from '../core/events.js';
 import { uid, rnd, clamp, seededRng } from '../core/utils.js';
@@ -172,6 +173,20 @@ export function createMob(tp, lv, x, y, opts = {}) {
   };
   m.hp = m.maxHp;
   G.R.mobs.push(m);
+  return m;
+}
+
+/** Hỗn Mang Chi Vương: chỉ số lấy theo sức mạnh người chơi hiện tại (xem config/nightmare.js) */
+export function spawnNightmare() {
+  const R = G.R, map = R.map, P = G.P, N = NIGHTMARE, ex = Math.max(0, (G.S.resets || 0) - N.minResets);
+  const cs = map.centers.filter((_, i) => i !== map.bossCi), C = cs[Math.floor(Math.random() * cs.length)];
+  let x = C.x, y = C.y; if (blockedAt(map, x, y)) { x = map.town.x + 6; y = map.town.y + 6; }
+  const lv = Math.min(330, R.M.lv[1] + 8), m = createMob(N.tpl, lv, x, y, { boss: true, ci: map.bossCi });
+  const dps = ((P.dmgMin + P.dmgMax) / 2) * P.spd * 1.6, grow = 1 + N.growPerReset * ex;
+  m.maxHp = Math.max(1000, Math.round(dps * N.fightSec * grow)); m.hp = m.maxHp;
+  const hit = P.maxHp * N.hitPct * Math.min(N.hitCap, grow) / Math.max(0.2, (1 - P.abs / 100) * (1 - P.guard / 100)); // mong muốn sau giảm trừ
+  m.dmg = hit * (100 + P.def) / 100; m.def = MONSTER.def(lv); m.exp *= N.drop.expMul;
+  m.nightmare = true; m.name = N.tpl.name; m.angry = true; m.life = N.lifeSec;
   return m;
 }
 
