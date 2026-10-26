@@ -32,7 +32,7 @@ function autoThink() {
   // Nhặt đồ rơi gần khi không bị đánh (class đánh xa hay bỏ sót đồ vì đứng xa chỗ quái chết)
   if (!(p.hurtT > 0)) {
     let near = null, nd = AUTO.quickLoot;
-    for (const d of R.drops) { if (!canPick(d)) continue; const dd = dist(d, p); if (dd < nd) { nd = dd; near = d; } }
+    for (const d of R.drops) { if (!canPick(d) || d.ignoreT > R.time) continue; const dd = dist(d, p); if (dd < nd) { nd = dd; near = d; } }
     if (near) { p.target = null; p.tx = near.x; p.ty = near.y; return; }
   }
   if (p.target && p.target.hp > 0) {
@@ -46,7 +46,7 @@ function autoThink() {
     return;
   }
   let best = null, bd = AUTO.lootRadius;
-  for (const d of R.drops) { if (!canPick(d)) continue; const dd = dist(d, p); if (dd < bd) { bd = dd; best = d; } }
+  for (const d of R.drops) { if (!canPick(d) || d.ignoreT > R.time) continue; const dd = dist(d, p); if (dd < bd) { bd = dd; best = d; } }
   if (best) { p.tx = best.x; p.ty = best.y; return; }
   const m = nearestMob(p, AUTO.searchRadius, true);
   if (m) { p.target = m; p.tx = null; return; }
@@ -57,7 +57,8 @@ function autoThink() {
 function pickCamp(R, p) {
   const M = R.M, cs = R.map.centers, [lo, hi] = M.lv, lv = autoLevel();
   const lvOf = (c) => (c.f != null ? lo + (hi - lo) * c.f : lo);
-  const ok = cs.filter((c, i) => i !== R.map.bossCi && lvOf(c) <= lv + 3);
+  const bad = (p.badSpots || []).filter((b) => b.until > R.time);
+  const ok = cs.filter((c, i) => i !== R.map.bossCi && lvOf(c) <= lv + 3 && !bad.some((b) => Math.hypot(b.x - c.x, b.y - c.y) < 4));
   const pool = ok.length ? ok : cs.slice().sort((a, b) => lvOf(a) - lvOf(b)).slice(0, 3);
   const top = Math.max(...pool.map(lvOf));
   const good = pool.filter((c) => lvOf(c) >= top - 8);
@@ -89,20 +90,32 @@ export function updatePlayer(dt) {
   if (R.auto) autoThink();
 
   p.moving = false;
+  let chasing = false;
   if (p.target && !isAlive(p.target)) p.target = null;
   if (p.target) {
     const m = p.target, d = dist(p, m), rg = G.P.range + (m.size - 1) * 0.5;
-    if (d > rg) { navStep(p, m.x, m.y, PLAYER.moveSpeed, dt); p.moving = true; }
+    if (d > rg) { navStep(p, m.x, m.y, PLAYER.moveSpeed, dt); p.moving = true; chasing = true; }
     else {
       p.face = m.x - p.x - (m.y - p.y) > 0 ? 1 : -1;
       if (R.auto) autoCast();
       if (p.target && p.atkT <= 0) basicAttack(m);
     }
   } else if (p.tx != null) {
+    chasing = true;
     if (navStep(p, p.tx, p.ty, PLAYER.moveSpeed, dt) || p.stuck > 1.5) { p.tx = null; p.path = null; p.stuck = 0; R.travel = false; }
     else p.moving = true;
   }
   clampToBounds(p);
+  if (chasing) { // đang muốn đi (tới mục tiêu ngoài tầm / điểm đến) mà quanh một chỗ > 3 giây (kể cả rung nhẹ) → coi là kẹt
+    const a = p.anchor || (p.anchor = { x: p.x, y: p.y, t: 0 });
+    if (Math.hypot(p.x - a.x, p.y - a.y) > 0.4) { a.x = p.x; a.y = p.y; a.t = 0; }
+    else if ((a.t += dt) > 3) {
+      if (p.target) p.target.ignoreT = R.time + 25;
+      else if (p.tx != null) for (const d of R.drops) if (Math.hypot(d.x - p.tx, d.y - p.ty) < 1.6) d.ignoreT = R.time + 90; // đồ rơi không với tới (kẹt sau vật cản) → bỏ qua
+      if (!p.target && p.tx != null) (p.badSpots = (p.badSpots || []).filter((b) => b.until > R.time).concat([{ x: p.tx, y: p.ty, until: R.time + 120 }])); // điểm đến không tới được → AUTO tránh trong 2 phút
+      p.target = null; p.tx = null; p.path = null; p.stuck = 0; R.travel = false; a.t = 0;
+    }
+  } else if (p.anchor) p.anchor.t = 0;
 }
 
 /** Lệnh từ người chơi (chạm/click) */

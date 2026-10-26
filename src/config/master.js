@@ -5,7 +5,7 @@ import { PROGRESSION as PG } from './balance.js';
 export const MASTER = {
   unlockTier: 3,
   maxLv: 50,          // tối đa 50 điểm; tổng cây 54 điểm → phải chọn
-  expMul: 2,          // 1 cấp Master cần ~2 lần EXP của cấp 300
+  expMul: 2.5,        // 1 cấp Master cần ~2,5 lần EXP của cấp 300 (đo bằng mô phỏng: đủ 50 cấp ≈ 15–20 giờ cày ở cấp tối đa)
   respecZen: 5000000, // phí tẩy điểm
 };
 /** EXP cần để lên cấp Master m+1 */

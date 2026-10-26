@@ -16,8 +16,8 @@ export const DIVINE = {
   setBonus: [[3, { dmg: 12, def: 12 }], [5, { crit: 8, hp: 15, skill: 15 }], [6, { dmg: 20, cd: 10 }]],
   /** Mảnh Thần rơi: Boss (bản đồ bậc ≥ 4) 1–3 mảnh; tinh anh / quái thường ở bản đồ bậc 6 theo xác suất */
   /** Tách đồ Thiên Thần chưa thần hoá (từ +9) thành Mảnh Thần: cơ bản + thưởng nếu Hoàn Hảo / +12 */
-  dismantle: { base: 2, exc: 1, plus12: 1 },
-  drop: { bossMapTier: 4, boss: [1, 3], eliteChance: 0.1, mobChance: 0.006, mobMapTier: 5 },
+  dismantle: { base: 1, exc: 1, plus12: 1 },
+  drop: { bossMapTier: 4, boss: [1, 2], eliteChance: 0.03, mobChance: 0.0005, mobMapTier: 5 },
 };
 /** Tên đồ Thần: vũ khí theo class, giáp theo ô */
 export const DIVINE_NAMES = {
