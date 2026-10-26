@@ -27,11 +27,12 @@ export function computeOffline(ms) {
   // Quái điển hình của bản đồ nhưng không cao quá cấp người chơi
   const mobLv = clamp(Math.round((M.lv[0] + M.lv[1]) / 2), M.lv[0], Math.max(M.lv[0], S.lv + 5));
   const hit = mitigate((P.dmgMin + P.dmgMax) / 2, MONSTER.def(mobLv)) * OFFLINE.skillBonus * (1 + 0.04 * Math.max(0, activeLearned(S) - 1));
-  const killSec = MONSTER.hp(mobLv) / Math.max(1, hit * P.spd) + OFFLINE.travelSec;
+  const RS = MONSTER.resetScale, rs = S.resets || 0; // độ khó theo Reset (giống lúc chơi thật)
+  const killSec = (MONSTER.hp(mobLv) * (1 + RS.hp * rs)) / Math.max(1, hit * P.spd) + OFFLINE.travelSec;
   const kills = Math.floor(((minutes * 60) / killSec) * OFFLINE.efficiency);
   if (kills <= 0) return null;
   // Mô phỏng theo 12 chặng: nhân vật lên cấp dần, quái quá yếu so với cấp sẽ cho ít EXP hơn
-  const STEPS = 12, perStep = kills / STEPS, expPerKill = MONSTER.exp(mobLv) * expRate();
+  const STEPS = 12, perStep = kills / STEPS, expPerKill = MONSTER.exp(mobLv) * (1 + RS.exp * rs) * expRate();
   let lv = S.lv, exp = S.exp, totalExp = 0, penalized = false;
   for (let i = 0; i < STEPS; i++) {
     const gap = lv - mobLv - OFFLINE.gapFree, f = clamp(1 - gap / OFFLINE.gapRange, OFFLINE.gapMinFactor, 1);

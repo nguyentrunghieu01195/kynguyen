@@ -35,6 +35,7 @@ function convertWeapon(it, from, to) {
   const special = it.wt === specialWeaponIndex(from) && specialWeaponIndex(from) >= 0;
   const wt = special ? specialWeaponIndex(to) : Math.min(it.wt || 0, regularWeaponCount(to) - 1);
   const n = makeItem('weapon', it.tier, it.plus, it.exc, to, { wt });
+  if (it.god > 0) n.god = it.god; // giữ Thần cấp khi đổi class
   return n;
 }
 

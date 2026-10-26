@@ -75,8 +75,11 @@ G.S.ccAt = Date.now() - 7 * 3600 * 1000; assert.equal(classChangeBlock('archer')
 G.S.zen = 0; assert(/Zen/.test(classChangeBlock('archer')));
 G.S.zen = 20e6; G.S.jewels.soul = 0; assert(/ngọc/.test(classChangeBlock('archer')));
 G.S.jewels.soul = 5; G.R.event = { id: 'x' }; assert(/sự kiện/.test(classChangeBlock('archer'))); G.R.event = null;
+// vũ khí Thần giữ Thần cấp khi đổi class
+G.S.equip.weapon.god = 3; G.S.ccAt = 0; assert.equal(runAction('changeClass', ['archer']).r, true); assert.equal(G.S.equip.weapon.god, 3, 'Thần cấp vũ khí được giữ'); assert.equal(G.S.equip.weapon.cls, 'archer');
+G.S.ccAt = 0; G.S.zen = 20e6; G.S.jewels.soul = 5; assert.equal(runAction('changeClass', ['wizard']).r, true); G.S.ccAt = 0; G.S.zen = 20e6; G.S.jewels.soul = 5; assert.equal(runAction('changeClass', ['knight']).r, true);
 // đổi về → kỹ năng cũ trở lại
-G.S.ccAt = 0; assert.equal(runAction('changeClass', ['knight']).r, true); assert.equal(G.S.skills.r.whirl, 4, 'đổi về có lại kỹ năng');
+assert.equal(G.S.skills.r.whirl, 4, 'đổi về có lại kỹ năng');
 // migrate save cũ (không có master/alt)
 const old = createCharacter('archer', 'O'); delete old.master; delete old.alt; delete old.ccAt;
 const m2 = migrate(old); assert.deepEqual(m2.master, { lv: 0, exp: 0, nodes: {} }); assert.deepEqual(m2.alt, {}); assert.equal(m2.ccAt, 0);

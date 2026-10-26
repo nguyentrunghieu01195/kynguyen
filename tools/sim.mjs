@@ -27,14 +27,16 @@ const { WEAPON_TYPES } = await import(ROOT + '/src/config/gear.js');
 const { petFx } = await import(ROOT + '/src/config/pets.js');
 
 G.S = createCharacter(cls, 'Bot'); calcStats(); enterMap(0); G.R.auto = true;
-const MAIN = { knight: { str: 0.5, vit: 0.35, agi: 0.15 }, wizard: { ene: 0.6, vit: 0.3, agi: 0.1 }, archer: { agi: 0.45, str: 0.3, vit: 0.25 } }[cls];
+const MAINS = { knight: { str: 0.5, vit: 0.35, agi: 0.15 }, wizard: { ene: 0.6, vit: 0.3, agi: 0.1 }, archer: { agi: 0.45, str: 0.3, vit: 0.25 } };
+const MAIN_OF = () => MAINS[G.S.cls];
 const stat = { deaths: 0, kills: 0, shards: 0, goodDrops: 0, godItems: 0, breaks: 0, upOK: 0, upFail: 0, mexp: 0 };
 G.R.p.hp = G.P.maxHp;
 const { on, EV } = await import(ROOT + '/src/core/events.js');
 on(EV.PLAYER_DIE, () => stat.deaths++);
 on(EV.UPGRADE, (o) => { if (o === 'break') stat.breaks++; else if (o === 'success') stat.upOK++; else stat.upFail++; });
 const logs = [];
-const T = { t: 0, lastDeath: 0, mapAdj: 0 };
+const t_now = () => T.t;
+const T = { lastCC: 0, t: 0, lastDeath: 0, mapAdj: 0 };
 
 function manage() {
   const S = G.S, R = G.R;
@@ -44,7 +46,7 @@ function manage() {
   best = Math.max(0, best - T.mapAdj);
   if (best !== S.map && !R.event) enterMap(best);
   // điểm chỉ số
-  if (S.pts > 0) { let left = S.pts; for (const k in MAIN) { const n = Math.floor(S.pts * MAIN[k]); if (n > 0) { runAction('addPoints', [k, n]); left -= n; } } if (left > 0) runAction('addPoints', ['str', left]); }
+  if (S.pts > 0) { const MAIN = MAIN_OF(); let left = S.pts; for (const k in MAIN) { const n = Math.floor(S.pts * MAIN[k]); if (n > 0) { runAction('addPoints', [k, n]); left -= n; } } if (left > 0) runAction('addPoints', ['str', left]); }
   // kỹ năng: học / nâng mọi thứ có thể (rẻ trước)
   for (let round = 0; round < 6; round++) {
     const c = classSkills().map((sk) => ({ sk, i: learnInfo(sk) })).filter((x) => x.i.ok).sort((a, b) => a.i.zen - b.i.zen)[0];
@@ -73,6 +75,9 @@ function manage() {
   for (const sl of ['weapon', 'armor', 'helm', 'pants', 'gloves', 'boots']) { const it = S.equip[sl]; if (it && divineInfo(it).ok) runAction('ascend', [it.id]); }
   // Master
   if (masterPoints(S) > 0) { const t = masterTree(S.cls); for (let g = 0; g < 50 && masterPoints(S) > 0; g++) { let ok = false; for (const n of t.nodes) { if (runAction('masterAdd', [n.id]).r) { ok = true; break; } } if (!ok) break; } }
+  // chuyển class định kỳ (CC=1) + kiểm tra bất biến
+  if (process.env.CC && t_now() - T.lastCC > 6.2 * 3600 && !R.event) { S.zen = Math.max(S.zen, 4e8); S.jewels.soul = Math.max(S.jewels.soul, 3); S.ccAt = 0; const to = { knight: 'wizard', wizard: 'archer', archer: 'knight' }[S.cls]; if (runAction('changeClass', [to]).r) { T.lastCC = t_now(); T.ccN = (T.ccN || 0) + 1; } }
+  { const bad = []; const w = S.equip.weapon; if (w && (w.cls || S.cls) !== S.cls) bad.push('vũ khí sai class ' + w.cls); for (const id of S.skills.bar) if (id && !classSkills().some((k) => k.id === id)) bad.push('ô kỹ năng sai class ' + id); for (const [k, v] of Object.entries(G.P)) if (typeof v === 'number' && !Number.isFinite(v)) bad.push('P.' + k + ' không hợp lệ'); if (S.inv.some((it) => it.slot === 'weapon' && (it.cls || S.cls) !== S.cls && it.cls !== S.cls && !Object.values(S.alt || {}).length)) bad.push('vũ khí trong túi sai class'); if (bad.length && !T.badRep) { T.badRep = 1; console.log('!! BẤT BIẾN SAI', JSON.stringify(bad), 'class', S.cls); } }
   // Reset
   const farm = process.env.MASTER_FARM && S.tier >= 3 && S.master.lv < +process.env.MASTER_FARM; // chế độ cày Master: đứng ở cấp tối đa không Reset
   if (canReset() && !farm) { runAction('doReset', []); T.mapAdj = 0; }
@@ -99,6 +104,6 @@ for (let t = 0; t < total; t += dt) {
     console.log(row(Math.round(nextRep / 3600))); nextRep += 3600;
   }
 }
-console.log('--- tổng kết', cls, hours + 'h', 'thời gian chạy ' + ((Date.now() - t0) / 1000).toFixed(0) + 's', JSON.stringify(stat));
+console.log('--- tổng kết', cls, 'đổi class ' + (T.ccN || 0) + ' lần,', hours + 'h', 'thời gian chạy ' + ((Date.now() - t0) / 1000).toFixed(0) + 's', JSON.stringify(stat));
 const S = G.S; console.log('đồ đang mặc:', SLOTS.map((sl) => S.equip[sl] ? sl + ' T' + (S.equip[sl].tier + 1) + '+' + S.equip[sl].plus + (S.equip[sl].god ? '✦' + S.equip[sl].god : '') : sl + ' -').join(' · '));
 process.exit(0);

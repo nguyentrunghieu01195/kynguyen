@@ -87,4 +87,9 @@ G.S.inv.push(dm, dm2, dm3, dm4); const inv0 = G.S.inv.length;
 assert.equal(runAction('dismantle', [dm.id]).r, 1 + 1 + 1, 'cơ bản + Hoàn Hảo + từ +12'); assert.equal(G.S.shards, 3);
 assert.equal(runAction('dismantle', [dm2.id]).r, 1); assert.equal(runAction('dismantle', [dm3.id]).r, 0, 'không phải bậc 6'); assert.equal(runAction('dismantle', [dm4.id]).r, 0, 'đã Thần'); assert.equal(runAction('dismantle', [G.S.equip.weapon.id]).r, 0, 'đang mặc');
 assert.equal(G.S.shards, 4); assert.equal(G.S.inv.length, inv0 - 2);
+// chợ / giao dịch phải giữ Thần cấp (trước đây cleanItem làm rơi mất)
+const { cleanItem } = await import(ROOT + '/server/src/market.js');
+const gi = Object.assign(makeItem('armor', 5, 12, [{ k: 'dmg', v: 5 }]), { god: 3 });
+assert.equal(cleanItem(gi).god, 3); assert.equal(cleanItem({ ...gi, god: 99 }).god, 5); assert.equal(cleanItem({ ...gi, god: -2 }).god, undefined); assert.equal(cleanItem({ ...gi, god: 'x' }).god, undefined);
+assert.equal(cleanItem(makeItem('armor', 5, 12)).god, undefined, 'đồ thường không có god');
 console.log('đồ Thần + bộ lọc nhặt OK');

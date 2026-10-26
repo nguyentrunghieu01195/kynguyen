@@ -46,6 +46,8 @@ export const SHOP = { charmPrice: 150000 };
 export const mitigate = (dmg, def) => (dmg * 100) / (100 + def);
 
 export const MONSTER = {
+  /** Độ khó theo số lần Reset (bản đồ thường, không áp cho sự kiện / đấu trường): quái mạnh dần để người đã Reset nhiều vẫn có thử thách */
+  resetScale: { hp: 1, dmg: 0.9, exp: 0.6 },
   hp: (lv) => 30 + 6 * Math.pow(lv, 1.2),
   dmg: (lv) => (3 + lv * 1.45) * (1 + Math.min(0.3, lv / 700)), // bản đồ sau mạnh hơn tới +30%
   def: (lv) => lv * 0.3,

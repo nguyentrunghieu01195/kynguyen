@@ -38,6 +38,7 @@ export function cleanItem(it) {
   const out = { id: String(it.id || '').slice(0, 24), slot: it.slot, tier, plus, exc: null };
   if (Array.isArray(it.exc)) out.exc = it.exc.slice(0, 6).filter((o) => o && typeof o.k === 'string').map((o) => ({ k: o.k.slice(0, 16), v: Math.max(0, Math.min(1000, +o.v || 0)) }));
   if (out.exc && !out.exc.length) out.exc = null;
+  const god = int(it.god) || 0; if (god > 0 && it.slot !== 'wings') out.god = Math.min(5, god); // Thần cấp phải giữ nguyên khi mua bán / giao dịch
   if (it.slot === 'weapon') { out.cls = ['knight', 'wizard', 'archer'].includes(it.cls) ? it.cls : 'knight'; out.wt = Math.max(0, Math.min(9, int(it.wt) || 0)); }
   else if (it.slot !== 'wings') out.line = Math.max(0, Math.min(3, int(it.line) || 0));
   return out;

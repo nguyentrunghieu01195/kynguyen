@@ -157,11 +157,12 @@ export function enterMap(mi) {
  */
 export function createMob(tp, lv, x, y, opts = {}) {
   const B = MONSTER.boss, boss = !!opts.boss, k = (key) => (boss ? B[key] : 1);
+  const rs = G.S && !G.R.event && !opts.event ? G.S.resets || 0 : 0, RS = MONSTER.resetScale; // độ khó theo Reset
   const m = {
     id: uid(), tpl: tp, name: tp.name, shape: tp.shape, c1: tp.c1, c2: tp.c2,
     size: (tp.size || 1) * (boss ? B.size : 1) * (opts.sizeMul || 1), lv, boss, ci: opts.ci, x, y, hx: x, hy: y,
-    maxHp: Math.round(MONSTER.hp(lv) * k('hp') * (opts.hpMul || 1)), dmg: MONSTER.dmg(lv) * k('dmg') * (opts.dmgMul || 1),
-    def: MONSTER.def(lv) * k('def'), exp: MONSTER.exp(lv) * k('exp') * (opts.expMul || 1),
+    maxHp: Math.round(MONSTER.hp(lv) * k('hp') * (opts.hpMul || 1) * (1 + RS.hp * rs)), dmg: MONSTER.dmg(lv) * k('dmg') * (opts.dmgMul || 1) * (1 + RS.dmg * rs),
+    def: MONSTER.def(lv) * k('def'), exp: MONSTER.exp(lv) * k('exp') * (opts.expMul || 1) * (1 + RS.exp * rs),
     spd: (tp.spd || MONSTER.speed) * (boss ? B.speed : 1),
     range: boss ? B.range : MONSTER.range, aggro: opts.aggro || (boss ? B.aggroRange : MONSTER.aggroRange),
     atkCd: boss ? B.attackCd : MONSTER.attackCd, leash: opts.leash || (boss ? B.leash : MONSTER.leash),
