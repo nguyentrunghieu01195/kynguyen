@@ -109,7 +109,7 @@ export function drawHero(c, cls, eq, t, o) {
     const g = cv.getContext('2d');
     const toPx = () => { g.setTransform(RES, 0, 0, RES, OX * RES, OY * RES); };           // hệ px game, gốc = giữa hai bàn chân
     const inject = {};
-    if (L.wings) inject.pre = () => { g.save(); toPx(); g.translate(-1, -10); g.scale(1.15, 1.15); drawWings(g, L.wings, wingT); g.restore(); };
+    if (L.wings) inject.pre = () => { g.save(); toPx(); g.translate(-1, -10); g.scale(1.15, 1.15); drawWings(g, L.wings, wingT, cls); g.restore(); };
     if (L.outfit) inject.armor_chest = (_c, B) => {
       const [tx, ty] = B.TR(4, -44); g.save(); toPx(); g.translate(tx * SC, ty * SC); g.rotate(B.P.lean); g.scale(1.22, 1.23); g.translate(0, 30);
       outfitSkirt(g, L.outfit, tq, 0); outfitBody(g, L.outfit, cls, tq, 0); g.restore();

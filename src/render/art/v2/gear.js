@@ -188,9 +188,10 @@ export function crest(c, style, col, trim) {
 // =====================================================================
 //  CÁNH
 // =====================================================================
-export function drawWings(c, w, t) {
+const WING_CLS = { knight: 'hue-rotate(330deg) saturate(1.3) brightness(.85)', wizard: 'hue-rotate(200deg) saturate(.9)', archer: 'hue-rotate(95deg) saturate(1.1)', lord: 'hue-rotate(320deg) saturate(1.3) brightness(.8)', gladiator: 'hue-rotate(260deg) saturate(1.2) brightness(.8)' };
+export function drawWings(c, w, t, cls) {
   const W = WINGS[w.tier], T = tones(W.color), fl = Math.sin(t * 3) * 0.16, glow = w.plus >= 7;
-  c.save(); c.translate(-3, -40);
+  c.save(); c.translate(-3, -40); if (WING_CLS[cls] && w.tier < 6) c.filter = WING_CLS[cls]; // bản 2D dự phòng: đổi tông màu theo class
   if (glow) { c.shadowColor = W.color; c.shadowBlur = 16; }
   for (const sd of [-1, 1]) {
     c.save(); c.scale(sd, 1); c.rotate(-0.15 - sd * fl);

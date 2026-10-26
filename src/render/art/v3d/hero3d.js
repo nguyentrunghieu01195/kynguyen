@@ -123,7 +123,7 @@ export function frame(r) {
   mm.root.rotation.y = Math.PI / 2; scene.add(mm.root);
   let wg = null;
   if (r.wing) { // cánh dựng riêng, đặt theo vị trí ngực nhân vật (không phụ thuộc trục xương)
-    wg = wingsOf(r.wing.tier); if (wg) { poseWings(wg, r.wing.ph / 6); const ch = mm.root.getObjectByName('chest') || mm.root.getObjectByName('spine'); const pv = new TH.Group(); const v = new TH.Vector3(); mm.root.updateMatrixWorld(true); if (ch) ch.getWorldPosition(v); pv.position.copy(v); pv.rotation.y = Math.PI / 2; wg.position.set(0, 0.0, -0.2); pv.add(wg); wg.userData.pv = pv; scene.add(pv); }
+    wg = wingsOf(r.wing.tier, r.cls); if (wg) { poseWings(wg, r.wing.ph / 6); const ch = mm.root.getObjectByName('chest') || mm.root.getObjectByName('spine'); const pv = new TH.Group(); const v = new TH.Vector3(); mm.root.updateMatrixWorld(true); if (ch) ch.getWorldPosition(v); pv.position.copy(v); pv.rotation.y = Math.PI / 2; wg.position.set(0, 0.0, -0.2); pv.add(wg); wg.userData.pv = pv; scene.add(pv); }
   }
   let gr = null;
   if (r.gear) { // phụ kiện giáp (12 kiểu) + thời trang (trang phục, đồ đầu): đặt theo xương trong toạ độ thế giới
@@ -147,7 +147,7 @@ export function frame(r) {
 
 // ---------- Quái (Quaternius Ultimate Monsters, CC0) ----------
 const mobs = new Map(), mobFrames = new Map(), mobLast = new Map();
-const wingCache = new Map(); const wingsOf = (t) => { let g = wingCache.get(t); if (!g) { g = makeWings(TH, t); wingCache.set(t, g || null); } return g; };
+const wingCache = new Map(); const wingsOf = (t, cls) => { const k = t + cls; let g = wingCache.get(k); if (!g) { g = makeWings(TH, t, cls); wingCache.set(k, g || null); } return g; };
 let mbud = 0, mbudPending = false;
 const MPOSE = { idle: /(^|[|_])(Flying_Idle|Idle)(\||$)/, walk: /(Fast_Flying|Walk|Run)(\||$)/, attack: /(Bite_Front|Punch|Headbutt|Attack)\d?(\||$)/, hit: /HitRe/, death: /Death(\||$)/ };
 function setupMat(mat) { // đổi màu theo sắc độ: chỉ vùng có màu (độ bão hoà cao) bị đổi sang màu quái, vùng trắng / xám (mắt, răng) giữ nguyên

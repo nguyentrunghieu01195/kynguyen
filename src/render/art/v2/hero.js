@@ -247,7 +247,7 @@ export function drawHero(c, cls, eq, t, o) {
   c.translate(0, -P.bob); c.rotate(P.lean);
 
   // --- Lớp sau: cánh, áo choàng, ống tên, tóc sau
-  if (L.wings) drawWings(c, L.wings, t);
+  if (L.wings) drawWings(c, L.wings, t, cls);
   if (cls === 'knight' && !L.outfit) {
     const cp = tones(L.style === 'dragon' || L.style === 'demon' ? '#7a1010' : L.style === 'angel' ? '#f0f0ff' : mix(L.body, '#5a1a1a', 0.5)), fl = Math.sin(t * 4) * 2 + P.walk * 2.5;
     c.beginPath(); c.moveTo(-7, -42); c.quadraticCurveTo(-15 - fl, -24, -16 - fl, -6); c.quadraticCurveTo(-10, -3, -4, -7); c.lineTo(3, -40); c.closePath(); fs(c, vgrad(c, -42, -6, cp.h, cp.d), cp.o);
