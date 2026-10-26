@@ -28,6 +28,12 @@ export function moveCollide(o, tx, ty, spd, dt, map = G.R && G.R.map) {
   const sd = dx - dy;
   if (Math.abs(sd) > 0.02) o.face = sd > 0 ? 1 : -1;
   if (!map || !map.block) { o.x += mx; o.y += my; return d <= s + 0.001; }
+  if (!freeAt(map, o.x, o.y)) { // đang nằm sát / lún vào vật cản (mọi bước đi đều bị coi là chặn) → đẩy ra chỗ trống gần nhất
+    for (let r = 0.1; r <= 1.3; r += 0.1) for (let a = 0; a < 16; a++) {
+      const nx = o.x + Math.cos((a / 16) * 6.283) * r, ny = o.y + Math.sin((a / 16) * 6.283) * r;
+      if (freeAt(map, nx, ny)) { o.x = nx; o.y = ny; r = 9; break; }
+    }
+  }
   if (freeAt(map, o.x + mx, o.y + my)) { o.x += mx; o.y += my; o.stuck = 0; return d <= s + 0.001; }
   // trượt theo trục
   if (Math.abs(mx) > 0.001 && freeAt(map, o.x + mx, o.y)) { o.x += mx; o.stuck = 0; return false; }

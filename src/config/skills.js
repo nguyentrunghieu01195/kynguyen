@@ -26,7 +26,7 @@ export const GCD = 0.35;
 
 export const SKILL_LIST = {
   knight: [
-    { id: 'whirl', name: 'Xoáy Kiếm', icon: '🌀', type: 'active', lv: 1, tier: 1, cd: 2.5, cost: 10, learn: 0, mult: 2.2, radius: 2.6,
+    { id: 'whirl', name: 'Xoáy Kiếm', icon: '🌀', type: 'active', lv: 1, tier: 1, cd: 2.2, cost: 10, learn: 0, mult: 2.4, radius: 3.4,
       desc: 'Xoay kiếm chém toàn bộ quái xung quanh.' },
     { id: 'slam', name: 'Địa Chấn Kích', icon: '💥', type: 'active', lv: 30, tier: 1, cd: 7, cost: 16, learn: 100000, mult: 2.8, radius: 2.4, stun: 1.5,
       desc: 'Bổ kiếm xuống đất, gây sát thương diện rộng và làm choáng quái.' },

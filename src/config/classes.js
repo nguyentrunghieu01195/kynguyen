@@ -6,7 +6,7 @@ export const CLASSES = {
     name: 'Kiếm Sĩ',
     desc: 'Cận chiến, máu trâu. Kỹ năng Xoáy Kiếm đánh lan xung quanh.',
     stats: { str: 28, agi: 20, vit: 25, ene: 10 },
-    atkSpd: 1.1,
+    atkSpd: 1.3,
     range: 1.4,
     attack: 'melee',
   },
@@ -30,9 +30,9 @@ export const CLASSES = {
 
 /** Công thức chỉ số gốc theo class */
 export const STAT_FORMULA = {
-  knight: { dmg: (s) => s.str / 3.5, hp: (s, lv) => 60 + lv * 2 + s.vit * 3, mp: (s, lv) => 20 + lv * 0.5 + s.ene, defDiv: 3 },
+  knight: { dmg: (s) => s.str / 3.5, hp: (s, lv) => 60 + lv * 2 + s.vit * 3, mp: (s, lv) => 20 + lv * 1.6 + s.ene * 2, defDiv: 3 },
   wizard: { dmg: (s) => s.ene / 3.6, hp: (s, lv) => 60 + lv * 1.5 + s.vit * 2.5, mp: (s, lv) => 40 + lv + s.ene * 2, defDiv: 4 },
-  archer: { dmg: (s) => (s.str + s.agi * 2) / 11, hp: (s, lv) => 50 + lv * 1.5 + s.vit * 2.5, mp: (s, lv) => 30 + lv * 0.8 + s.ene * 1.5, defDiv: 4 },
+  archer: { dmg: (s) => (s.str + s.agi * 2) / 11, hp: (s, lv) => 50 + lv * 1.5 + s.vit * 2.5, mp: (s, lv) => 30 + lv * 1.5 + s.ene * 1.5, defDiv: 4 },
 };
 
 export const STAT_INFO = [

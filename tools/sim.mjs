@@ -83,10 +83,15 @@ function manage() {
 
 const total = +hours * 3600, dt = 0.05; let nextM = 0, nextRep = 3600;
 const t0 = Date.now(); let lastKills = 0, win = [];
-const row = (h) => { const S = G.S; return [h + 'h', 'lv ' + S.lv, 'R' + S.resets, 'B' + S.tier, 'M' + (S.master ? S.master.lv : 0), 'map ' + S.map, 'zen ' + Math.round(S.zen / 1e3) + 'K', 'jw ' + S.jewels.bless + '/' + S.jewels.soul + '/' + S.jewels.chaos, 'sh ' + S.shards, 'kills ' + S.kills, 'dmg ' + Math.round(G.P.dmgMax), 'hp ' + G.P.maxHp, 'chết ' + stat.deaths, 'gần' + T.mapAdj].join(' | '); };
+const row = (h) => { const S = G.S; return [h + 'h', 'lv ' + S.lv, 'R' + S.resets, 'B' + S.tier, 'M' + (S.master ? S.master.lv : 0), 'map ' + S.map, 'zen ' + Math.round(S.zen / 1e3) + 'K', 'jw ' + S.jewels.bless + '/' + S.jewels.soul + '/' + S.jewels.chaos, 'sh ' + S.shards, 'kills ' + S.kills, 'dmg ' + Math.round(G.P.dmgMax), 'hp ' + G.P.maxHp, 'mp ' + G.P.maxMp, 'chết ' + stat.deaths, 'gần' + T.mapAdj].join(' | '); };
 let deathsAtStart = 0;
 for (let t = 0; t < total; t += dt) {
   G.R.auto = true; update(dt); T.t = t;
+  { // người gác: nhân vật đứng yên > 120 giây (kể cả khi 'đang làm gì đó') → in trạng thái để điều tra lỗi kẹt
+    const p = G.R.p, w = T.watch || (T.watch = { x: p.x, y: p.y, k: G.S.kills, t });
+    if (Math.hypot(p.x - w.x, p.y - w.y) > 0.5 || G.S.kills !== w.k) { w.x = p.x; w.y = p.y; w.k = G.S.kills; w.t = t; }
+    else if (t - w.t > 120 && !T.warned) { T.warned = 1; const tg = p.target; console.log('!! KẸT tại', Math.round(t / 3600 * 10) / 10 + 'h', JSON.stringify({ x: +p.x.toFixed(2), y: +p.y.toFixed(2), tx: p.tx, ty: p.ty, dead: p.dead, hp: Math.round(p.hp), target: tg && { x: +tg.x.toFixed(1), y: +tg.y.toFixed(1), hp: Math.round(tg.hp), boss: !!tg.boss, ignore: tg.ignoreT, id: tg.tpl && tg.tpl.id }, ev: G.R.event && G.R.event.id, drops: G.R.drops.length, mobs: G.R.mobs.length, invFull: G.S.inv.length, manualT: Math.round(G.R.manualT), travel: G.R.travel })); }
+  }
   if (t >= nextM) { nextM = t + 4; manage(); if (!G.R.event && G.R.p.dead > 0) { /* hồi sinh tự động */ } }
   if (t >= nextRep) { // mỗi giờ: đánh giá tỉ lệ chết để chỉnh bản đồ
     const d = stat.deaths - deathsAtStart; deathsAtStart = stat.deaths;
